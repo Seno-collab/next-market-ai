@@ -1,0 +1,506 @@
+export type Locale = "vi" | "en";
+
+export const defaultLocale: Locale = "vi";
+
+export const messages = {
+  vi: {
+    site: {
+      name: "next-ai starter",
+      tagline: "Base Next.js + Ant Design + Three.js",
+    },
+    actions: {
+      refresh: "Làm mới API",
+    },
+    features: {
+      antd: {
+        title: "Ant Design 5",
+        description:
+          "Design system đã sẵn sàng và token được cấu hình toàn cục.",
+      },
+      three: {
+        title: "Three.js playground",
+        description: "Renderer sẵn sàng để thử nghiệm các cảnh 3D.",
+      },
+      api: {
+        title: "API ready",
+        description: "Ví dụ route cho thấy luồng dữ liệu client/server.",
+      },
+    },
+    stats: {
+      performance: "Hiệu năng",
+      uiComponents: "Thành phần UI",
+    },
+    hero: {
+      title: "Khởi tạo dự án với giao diện hiện đại",
+      description:
+        "Tận dụng toàn bộ sức mạnh của Next.js App Router, hệ thống thiết kế Ant Design 5 và sân chơi Three.js để dựng những trải nghiệm web cao cấp chỉ trong vài phút.",
+    },
+    nav: {
+      admin: "Admin",
+      adminSubtitle: "Quản trị QR Menu",
+      dashboard: "Dashboard",
+      menu: "Menu",
+      analytics: "Analytics",
+      qrMenu: "QR menu",
+      home: "Trang chủ",
+    },
+    adminHero: {
+      badge: "QR COMMAND CENTER",
+      title: "Hệ điều hành QR menu thế hệ mới",
+      subtitle:
+        "Theo dõi menu, doanh thu và trạng thái bán theo thời gian thực với giao diện 3D mang hơi thở tương lai.",
+      primaryAction: "Mở menu khách",
+      secondaryAction: "Kiểm tra bảo mật",
+      note: "Mọi thay đổi sẽ đồng bộ ngay tới khách qua QR code.",
+    },
+    dashboard: {
+      adminTitle: "Tổng quan hệ thống menu",
+      adminSubtitle:
+        "Theo dõi hiệu suất và kiểm soát món ăn theo thời gian thực.",
+      manageMenu: "Quản lý menu",
+      statsTitle: "Lý do chọn nền tảng này",
+      quickActionsTitle: "Hành động nhanh",
+      systemTitle: "Hệ thống",
+      activityTitle: "Hoạt động gần đây",
+      authTitle: "Auth API demo",
+      registerTitle: "Đăng ký",
+      loginTitle: "Đăng nhập",
+      registerButton: "Tạo tài khoản + login",
+      loginButton: "Đăng nhập",
+      fetchProfile: "Lấy profile",
+      refreshToken: "Làm mới token",
+      logout: "Đăng xuất",
+      changePassword: "Đổi mật khẩu",
+      currentPassword: "MK hiện tại",
+      newPassword: "MK mới",
+      signedIn: "Đang đăng nhập",
+      signedOut: "Chưa đăng nhập",
+      tokens: "Tokens",
+      profile: "Profile",
+    },
+    menu: {
+      title: "Quản lý menu",
+      subtitle: "Thêm, chỉnh sửa giá và bật/tắt trạng thái bán cho từng món.",
+      qrTitle: "Menu dành cho khách",
+      qrSubtitle: "Quét QR để xem menu và đặt món nhanh.",
+      heroBadge: "NEW SEASON",
+      heroPrimary: "Bắt đầu chọn món",
+      heroSecondary: "Gọi nhân viên",
+      spotlightTitle: "Signature pick",
+      spotlightEmpty: "Chưa có món nổi bật",
+      browseTitle: "Khám phá thực đơn",
+      browseSubtitle: "Chọn nhanh theo danh mục yêu thích của bạn.",
+      addToOrder: "Thêm vào order",
+      itemsLabel: "món",
+      available: "Đang bán",
+      empty: "Chưa có món nào.",
+      unavailable: "Tạm hết",
+      filters: {
+        all: "Tất cả",
+      },
+      table: {
+        name: "Món ăn",
+        category: "Danh mục",
+        price: "Giá",
+        available: "Bán",
+        updated: "Cập nhật",
+        actions: "Thao tác",
+      },
+      actions: {
+        add: "Thêm món",
+        edit: "Chỉnh sửa",
+        delete: "Xoá",
+        save: "Lưu",
+        create: "Tạo mới",
+        confirmDelete: "Bạn chắc chắn muốn xoá món này?",
+      },
+      form: {
+        name: "Tên món",
+        namePlaceholder: "Ví dụ: Cà phê sữa",
+        description: "Mô tả",
+        descriptionPlaceholder: "Mô tả ngắn về món ăn",
+        category: "Danh mục",
+        price: "Giá",
+        available: "Đang bán",
+        cancel: "Huỷ",
+      },
+      metrics: {
+        categories: "Danh mục",
+      },
+      categories: {
+        coffee: "Cà phê",
+        tea: "Trà",
+        dessert: "Tráng miệng",
+        food: "Đồ ăn",
+        other: "Khác",
+      },
+    },
+    analytics: {
+      title: "Analytics menu",
+      subtitle: "Tổng hợp nhanh doanh thu và hiệu suất món ăn.",
+      summary: "Tổng quan",
+      totalItems: "Tổng số món",
+      availableItems: "Món đang bán",
+      averagePrice: "Giá trung bình",
+      categories: "Danh mục",
+      topItems: "Món giá cao",
+      updatedAt: "Cập nhật",
+    },
+    security: {
+      title: "Secure authentication",
+      subtitle: "Bảo vệ dữ liệu quản trị bằng chính sách đa lớp.",
+      status: {
+        success: "Ổn định",
+        processing: "Đang giám sát",
+        warning: "Cần xem xét",
+      },
+      items: {
+        mfa: {
+          title: "MFA enforcement",
+          detail: "Bật cho 92% tài khoản",
+        },
+        session: {
+          title: "Session integrity",
+          detail: "Tự động xoá phiên bất thường",
+        },
+        role: {
+          title: "Role-based access",
+          detail: "Chính sách truy cập theo vai trò",
+        },
+        audit: {
+          title: "Audit log review",
+          detail: "2 cảnh báo chưa xử lý",
+        },
+      },
+    },
+    auth: {
+      nameLabel: "Tên",
+      emailLabel: "Email",
+      passwordLabel: "Mật khẩu",
+      namePlaceholder: "Nguyễn Văn A",
+      currentPasswordPlaceholder: "demo1234",
+      newPasswordPlaceholder: "newpass123",
+      success: {
+        register: "Đăng ký thành công",
+        login: "Đăng nhập thành công",
+        logout: "Đăng xuất thành công",
+        profile: "Lấy profile thành công",
+        refresh: "Làm mới token thành công",
+        changePassword: "Đổi mật khẩu thành công",
+      },
+    },
+    status: {
+      title: "API status",
+      latency: "Latency",
+      environment: "Environment",
+      waiting: "Đang chờ phản hồi từ API example...",
+      tagLoading: "ĐANG LẤY DỮ LIỆU",
+      tagError: "LỖI API",
+      tagOk: "API OK",
+    },
+    quickActions: {
+      deploy: {
+        label: "Triển khai mới",
+        description: "Push bản build mới lên môi trường staging.",
+      },
+      invite: {
+        label: "Mời admin",
+        description: "Gửi lời mời quản trị qua email.",
+      },
+      apiKey: {
+        label: "Tạo API key",
+        description: "Sinh khóa truy cập tạm thời cho client.",
+      },
+    },
+    systemStatus: {
+      edge: {
+        name: "Edge network",
+        value: "Operational",
+      },
+      database: {
+        name: "Database cluster",
+        value: "Migration pending",
+      },
+      storage: {
+        name: "Object storage",
+        value: "Syncing",
+      },
+      realtime: {
+        name: "Realtime relay",
+        value: "Degraded",
+      },
+      statusLabel: {
+        success: "OK",
+        processing: "Đang xử lý",
+        warning: "Cảnh báo",
+        error: "Lỗi",
+      },
+    },
+    activity: {
+      deploy: {
+        label: "Nguyễn Văn A deploy",
+        description: "Triển khai bản 1.0.8 lên staging",
+        timestamp: "10 phút trước",
+      },
+      apiKey: {
+        label: "API key mới",
+        description: "Tạo key cho đối tác POS",
+        timestamp: "1 giờ trước",
+      },
+      latency: {
+        label: "Cảnh báo latency",
+        description: "Datadog phát hiện spike ở khu vực SEA",
+        timestamp: "2 giờ trước",
+      },
+    },
+  },
+  en: {
+    site: {
+      name: "next-ai starter",
+      tagline: "Base Next.js + Ant Design + Three.js",
+    },
+    actions: {
+      refresh: "Refresh API",
+    },
+    features: {
+      antd: {
+        title: "Ant Design 5",
+        description: "Production-ready design system with global tokens.",
+      },
+      three: {
+        title: "Three.js playground",
+        description: "Renderer ready for rapid 3D experimentation.",
+      },
+      api: {
+        title: "API ready",
+        description: "Example route demonstrates client/server flow.",
+      },
+    },
+    stats: {
+      performance: "Performance",
+      uiComponents: "UI components",
+    },
+    hero: {
+      title: "Launch modern products in minutes",
+      description:
+        "Leverage Next.js App Router, Ant Design 5, and a Three.js playground to craft premium experiences quickly.",
+    },
+    nav: {
+      admin: "Admin",
+      adminSubtitle: "QR menu operations",
+      dashboard: "Dashboard",
+      menu: "Menu",
+      analytics: "Analytics",
+      qrMenu: "QR menu",
+      home: "Home",
+    },
+    adminHero: {
+      badge: "QR COMMAND CENTER",
+      title: "Futuristic QR menu command hub",
+      subtitle:
+        "Monitor menus, revenue, and live availability with a premium 3D experience built for modern operators.",
+      primaryAction: "Open customer menu",
+      secondaryAction: "Run security check",
+      note: "Every change syncs instantly to customer QR menus.",
+    },
+    dashboard: {
+      adminTitle: "Menu operations overview",
+      adminSubtitle: "Track performance and adjust items in real time.",
+      manageMenu: "Manage menu",
+      statsTitle: "Why this foundation",
+      quickActionsTitle: "Quick actions",
+      systemTitle: "System health",
+      activityTitle: "Recent activity",
+      authTitle: "Auth API demo",
+      registerTitle: "Register",
+      loginTitle: "Sign in",
+      registerButton: "Create account + login",
+      loginButton: "Sign in",
+      fetchProfile: "Get profile",
+      refreshToken: "Refresh token",
+      logout: "Sign out",
+      changePassword: "Change password",
+      currentPassword: "Current password",
+      newPassword: "New password",
+      signedIn: "Signed in",
+      signedOut: "Signed out",
+      tokens: "Tokens",
+      profile: "Profile",
+    },
+    menu: {
+      title: "Menu management",
+      subtitle: "Add items, update prices, and toggle availability.",
+      qrTitle: "Customer menu",
+      qrSubtitle: "Scan QR to view items and order quickly.",
+      heroBadge: "NEW SEASON",
+      heroPrimary: "Start order",
+      heroSecondary: "Call staff",
+      spotlightTitle: "Signature pick",
+      spotlightEmpty: "No highlighted item yet",
+      browseTitle: "Browse the menu",
+      browseSubtitle: "Filter by your favorite categories.",
+      addToOrder: "Add to order",
+      itemsLabel: "items",
+      available: "Available",
+      empty: "No items yet.",
+      unavailable: "Sold out",
+      filters: {
+        all: "All",
+      },
+      table: {
+        name: "Item",
+        category: "Category",
+        price: "Price",
+        available: "Available",
+        updated: "Updated",
+        actions: "Actions",
+      },
+      actions: {
+        add: "Add item",
+        edit: "Edit",
+        delete: "Delete",
+        save: "Save",
+        create: "Create",
+        confirmDelete: "Delete this menu item?",
+      },
+      form: {
+        name: "Item name",
+        namePlaceholder: "e.g. Latte",
+        description: "Description",
+        descriptionPlaceholder: "Short description",
+        category: "Category",
+        price: "Price",
+        available: "Available",
+        cancel: "Cancel",
+      },
+      metrics: {
+        categories: "Categories",
+      },
+      categories: {
+        coffee: "Coffee",
+        tea: "Tea",
+        dessert: "Dessert",
+        food: "Food",
+        other: "Other",
+      },
+    },
+    analytics: {
+      title: "Menu analytics",
+      subtitle: "Quick overview of item performance.",
+      summary: "Summary",
+      totalItems: "Total items",
+      availableItems: "Available items",
+      averagePrice: "Average price",
+      categories: "Categories",
+      topItems: "Top priced",
+      updatedAt: "Updated",
+    },
+    security: {
+      title: "Secure authentication",
+      subtitle: "Keep admin data protected with layered policies.",
+      status: {
+        success: "Stable",
+        processing: "Monitoring",
+        warning: "Needs review",
+      },
+      items: {
+        mfa: {
+          title: "MFA enforcement",
+          detail: "Enabled for 92% of accounts",
+        },
+        session: {
+          title: "Session integrity",
+          detail: "Auto-revokes unusual sessions",
+        },
+        role: {
+          title: "Role-based access",
+          detail: "Access scoped by role tiers",
+        },
+        audit: {
+          title: "Audit log review",
+          detail: "2 alerts pending action",
+        },
+      },
+    },
+    auth: {
+      nameLabel: "Name",
+      emailLabel: "Email",
+      passwordLabel: "Password",
+      namePlaceholder: "Jane Doe",
+      currentPasswordPlaceholder: "demo1234",
+      newPasswordPlaceholder: "newpass123",
+      success: {
+        register: "Registration successful",
+        login: "Login successful",
+        logout: "Logout successful",
+        profile: "Profile fetched",
+        refresh: "Token refreshed",
+        changePassword: "Password updated",
+      },
+    },
+    status: {
+      title: "API status",
+      latency: "Latency",
+      environment: "Environment",
+      waiting: "Waiting for API response...",
+      tagLoading: "LOADING",
+      tagError: "API ERROR",
+      tagOk: "API OK",
+    },
+    quickActions: {
+      deploy: {
+        label: "Deploy update",
+        description: "Ship a new build to staging.",
+      },
+      invite: {
+        label: "Invite admin",
+        description: "Send an admin invitation email.",
+      },
+      apiKey: {
+        label: "Create API key",
+        description: "Generate a temporary client key.",
+      },
+    },
+    systemStatus: {
+      edge: {
+        name: "Edge network",
+        value: "Operational",
+      },
+      database: {
+        name: "Database cluster",
+        value: "Migration pending",
+      },
+      storage: {
+        name: "Object storage",
+        value: "Syncing",
+      },
+      realtime: {
+        name: "Realtime relay",
+        value: "Degraded",
+      },
+      statusLabel: {
+        success: "OK",
+        processing: "Processing",
+        warning: "Warning",
+        error: "Error",
+      },
+    },
+    activity: {
+      deploy: {
+        label: "Nguyen Van A deploy",
+        description: "Deployed version 1.0.8 to staging",
+        timestamp: "10 minutes ago",
+      },
+      apiKey: {
+        label: "New API key",
+        description: "Issued a key for POS partner",
+        timestamp: "1 hour ago",
+      },
+      latency: {
+        label: "Latency alert",
+        description: "Datadog reported a spike in SEA",
+        timestamp: "2 hours ago",
+      },
+    },
+  },
+} as const;

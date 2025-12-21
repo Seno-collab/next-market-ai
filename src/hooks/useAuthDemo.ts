@@ -1,0 +1,164 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import type {
+  AuthCredentials,
+  AuthPublicUser,
+  AuthResponse,
+  AuthTokens,
+  RegisterPayload,
+} from "@/features/auth/types";
+import { fetchJson } from "@/lib/api/client";
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+type AuthAction = "register" | "login" | "logout" | "profile" | "refresh" | "changePassword";
+
+type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export function useAuthDemo() {
+  const [user, setUser] = useState<AuthPublicUser | null>(null);
+  const [profile, setProfile] = useState<AuthPublicUser | null>(null);
+  const [tokens, setTokens] = useState<AuthTokens | null>(null);
+  const [message, setMessage] = useState<AuthAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<AuthAction | null>(null);
+
+  const withAction = useCallback(async (action: AuthAction, task: () => Promise<void>) => {
+    setLoadingAction(action);
+    setMessage(null);
+    setError(null);
+    try {
+      await task();
+      setMessage(action);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Đã có lỗi xảy ra";
+      setError(errorMessage);
+    } finally {
+      setLoadingAction(null);
+    }
+  }, []);
+
+  const register = useCallback(
+    async (payload: RegisterPayload) =>
+      withAction("register", async () => {
+        const result = await fetchJson<AuthResponse>("/api/auth/register", {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+        setUser(result.user);
+        setProfile(result.user);
+        setTokens(result.tokens);
+      }),
+    [withAction],
+  );
+
+  const login = useCallback(
+    async (payload: AuthCredentials) =>
+      withAction("login", async () => {
+        const result = await fetchJson<AuthResponse>("/api/auth/login", {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+        setUser(result.user);
+        setProfile(result.user);
+        setTokens(result.tokens);
+      }),
+    [withAction],
+  );
+
+  const authorizedHeaders = useCallback(() => {
+    if (!tokens) {
+      throw new Error("Chưa đăng nhập");
+    }
+    return {
+      ...JSON_HEADERS,
+      Authorization: `Bearer ${tokens.accessToken}`,
+    } as HeadersInit;
+  }, [tokens]);
+
+  const logout = useCallback(
+    async () =>
+      withAction("logout", async () => {
+        if (!tokens) {
+          throw new Error("Chưa đăng nhập");
+        }
+        await fetchJson<{ message: string }>("/api/auth/logout", {
+          method: "POST",
+          headers: authorizedHeaders(),
+          cache: "no-store",
+        });
+        setUser(null);
+        setProfile(null);
+        setTokens(null);
+      }),
+    [authorizedHeaders, tokens, withAction],
+  );
+
+  const fetchProfile = useCallback(
+    async () =>
+      withAction("profile", async () => {
+        const response = await fetchJson<{ user: AuthPublicUser }>("/api/auth/profile", {
+          method: "GET",
+          headers: authorizedHeaders(),
+          cache: "no-store",
+        });
+        setProfile(response.user);
+        setUser(response.user);
+      }),
+    [authorizedHeaders, withAction],
+  );
+
+  const refreshAuth = useCallback(
+    async () =>
+      withAction("refresh", async () => {
+        if (!tokens?.refreshToken) {
+          throw new Error("Không có refresh token");
+        }
+        const response = await fetchJson<{ tokens: AuthTokens }>("/api/auth/refresh-token", {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+          cache: "no-store",
+        });
+        setTokens(response.tokens);
+      }),
+    [tokens, withAction],
+  );
+
+  const changePassword = useCallback(
+    async (payload: ChangePasswordPayload) =>
+      withAction("changePassword", async () => {
+        await fetchJson<{ message: string }>("/api/auth/change-password", {
+          method: "POST",
+          headers: authorizedHeaders(),
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+      }),
+    [authorizedHeaders, withAction],
+  );
+
+  return {
+    user,
+    profile,
+    tokens,
+    message,
+    error,
+    loadingAction,
+    register,
+    login,
+    logout,
+    fetchProfile,
+    refreshAuth,
+    changePassword,
+    isAuthenticated: Boolean(tokens?.accessToken),
+  };
+}
