@@ -1,16 +1,18 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ApiOutlined, RocketOutlined, ThunderboltOutlined, UsergroupAddOutlined } from "@ant-design/icons";
+
+type IconComponent = typeof ApiOutlined;
 
 export type FeatureHighlight = {
   titleKey: string;
   descriptionKey: string;
-  Icon: ComponentType;
+  Icon: IconComponent;
 };
 
 export type SummaryStat = {
   titleKey: string;
   value: string;
-  Icon: ComponentType;
+  Icon: IconComponent;
   color: string;
 };
 

@@ -1,7 +1,7 @@
 export type MenuItem = {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   category: string;
   price: number;
   available: boolean;

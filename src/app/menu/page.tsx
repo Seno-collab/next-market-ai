@@ -268,7 +268,9 @@ export default function MenuPage() {
                         accent={accentMap[spotlightItem.category] ?? "#f97316"}
                       />
                       <Text className="menu-spotlight-name">{t(spotlightItem.name)}</Text>
-                      <Text type="secondary">{t(spotlightItem.description)}</Text>
+                      {spotlightItem.description && (
+                        <Text type="secondary">{t(spotlightItem.description)}</Text>
+                      )}
                       <Text className="menu-spotlight-price">
                         {formatter.format(spotlightItem.price)}
                       </Text>
@@ -336,9 +338,11 @@ export default function MenuPage() {
                         )}
                       </div>
                       <Text className="menu-special-name">{t(item.name)}</Text>
-                      <Text type="secondary" className="menu-special-description">
-                        {t(item.description)}
-                      </Text>
+                      {item.description && (
+                        <Text type="secondary" className="menu-special-description">
+                          {t(item.description)}
+                        </Text>
+                      )}
                       <div className="menu-special-footer">
                         <Tag className="menu-special-category">{categoryLabel(item.category)}</Tag>
                         <Button
@@ -442,9 +446,11 @@ export default function MenuPage() {
                     <Text className="menu-price">{formatter.format(item.price)}</Text>
                   </div>
                   <Text className="menu-card-title">{t(item.name)}</Text>
-                  <Text type="secondary" className="menu-card-description">
-                    {t(item.description)}
-                  </Text>
+                  {item.description && (
+                    <Text type="secondary" className="menu-card-description">
+                      {t(item.description)}
+                    </Text>
+                  )}
                   <div className="menu-card-footer">
                     <Button type="text" className="menu-add" onClick={(event) => handleAddToOrder(item, event)}>
                       {t("menu.addToOrder")}

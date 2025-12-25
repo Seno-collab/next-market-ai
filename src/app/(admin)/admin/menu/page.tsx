@@ -19,6 +19,7 @@ import {
   Tag,
   Typography,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import { MenuItemForm, type MenuItemFormValues } from "@/features/menu/components/MenuItemForm";
 import { menuCategories } from "@/features/menu/constants";
@@ -144,7 +145,7 @@ export default function MenuManagementPage() {
     setOpen(false);
   };
 
-  const columns = [
+  const columns: ColumnsType<MenuItem> = [
     {
       title: t("menu.table.image"),
       dataIndex: "imageUrl",

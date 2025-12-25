@@ -56,7 +56,7 @@ export function MenuItemPreview3D({ imageUrl, accent = "#f97316" }: MenuItemPrev
     scene.add(group);
 
     const accentColor = new THREE.Color(accent);
-    const frontMaterial = new THREE.MeshStandardMaterial({
+    const frontMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       roughness: 0.35,
       metalness: 0.2,

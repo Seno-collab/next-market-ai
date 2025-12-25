@@ -248,12 +248,17 @@ export default function TopicsPage() {
           <Button icon={<EditOutlined />} onClick={() => openTopicEdit(record)}>
             {t("menu.actions.edit")}
           </Button>
-          <Popconfirm
-            title={t("menu.actions.confirmDelete")}
-            okText={t("menu.actions.delete")}
-            cancelText={t("menu.form.cancel")}
-            onConfirm={() => deleteTopic(record.id).then(() => restaurantId && fetchTopics(restaurantId))}
-          >
+            <Popconfirm
+              title={t("menu.actions.confirmDelete")}
+              okText={t("menu.actions.delete")}
+              cancelText={t("menu.form.cancel")}
+              onConfirm={async () => {
+                await deleteTopic(record.id);
+                if (restaurantId) {
+                  await fetchTopics(restaurantId);
+                }
+              }}
+            >
             <Button danger icon={<DeleteOutlined />}>
               {t("menu.actions.delete")}
             </Button>
@@ -309,7 +314,12 @@ export default function TopicsPage() {
             title={t("menu.actions.confirmDelete")}
             okText={t("menu.actions.delete")}
             cancelText={t("menu.form.cancel")}
-            onConfirm={() => deleteGroup(record.id).then(() => menuItemId && fetchGroups(menuItemId))}
+            onConfirm={async () => {
+              await deleteGroup(record.id);
+              if (menuItemId) {
+                await fetchGroups(menuItemId);
+              }
+            }}
           >
             <Button danger icon={<DeleteOutlined />}>
               {t("menu.actions.delete")}
@@ -366,7 +376,12 @@ export default function TopicsPage() {
             title={t("menu.actions.confirmDelete")}
             okText={t("menu.actions.delete")}
             cancelText={t("menu.form.cancel")}
-            onConfirm={() => deleteItem(record.id).then(() => groupId && fetchItems(groupId))}
+            onConfirm={async () => {
+              await deleteItem(record.id);
+              if (groupId) {
+                await fetchItems(groupId);
+              }
+            }}
           >
             <Button danger icon={<DeleteOutlined />}>
               {t("menu.actions.delete")}
