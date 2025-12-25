@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { deleteMenuItem, updateMenuItem } from "@/features/menu/server/menuStore";
 import { createTranslator, getRequestLocale } from "@/i18n/translator";
 import { withApiLogging } from "@/lib/api/withApiLogging";
 
-export const PATCH = withApiLogging(async (request: Request, { params }: { params: { id: string } }) => {
+export const PATCH = withApiLogging(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
   const t = createTranslator(getRequestLocale(request));
   try {
+    const { id } = await context.params;
     const payload = await request.json();
-    const item = updateMenuItem(params.id, payload);
+    const item = updateMenuItem(id, payload);
     return NextResponse.json({ item });
   } catch (error) {
     return NextResponse.json(
@@ -17,10 +18,11 @@ export const PATCH = withApiLogging(async (request: Request, { params }: { param
   }
 });
 
-export const DELETE = withApiLogging(async (request: Request, { params }: { params: { id: string } }) => {
+export const DELETE = withApiLogging(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
   const t = createTranslator(getRequestLocale(request));
   try {
-    deleteMenuItem(params.id);
+    const { id } = await context.params;
+    deleteMenuItem(id);
     return NextResponse.json({ message: t("menu.success.delete") });
   } catch (error) {
     return NextResponse.json(
