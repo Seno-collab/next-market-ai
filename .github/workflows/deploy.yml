@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
   CONTAINER_NAME: next-ai
   APP_PORT: 3000
 
@@ -27,8 +27,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push image
         uses: docker/build-push-action@v5
@@ -48,20 +48,20 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
           APP_PORT: ${{ env.APP_PORT }}
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           ENV_FILE: ${{ secrets.SERVER_ENV_FILE }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          envs: REGISTRY,IMAGE_NAME,CONTAINER_NAME,APP_PORT,REGISTRY_USERNAME,REGISTRY_PASSWORD,ENV_FILE
+          envs: REGISTRY,IMAGE_NAME,CONTAINER_NAME,APP_PORT,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,ENV_FILE
           script: |
             set -e
             IMAGE="$REGISTRY/$IMAGE_NAME:latest"
-            if [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
-              echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
+            if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+              echo "$DOCKERHUB_TOKEN" | docker login "$REGISTRY" -u "$DOCKERHUB_USERNAME" --password-stdin
             fi
             docker pull "$IMAGE"
             docker rm -f "$CONTAINER_NAME" || true
