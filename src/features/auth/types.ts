@@ -3,6 +3,7 @@ export type AuthUser = {
   email: string;
   name: string;
   password: string;
+  image_url?: string;
   createdAt: string;
   updatedAt: string;
 };

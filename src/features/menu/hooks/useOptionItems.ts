@@ -65,7 +65,7 @@ export function useOptionItems() {
         setAction(null);
       }
     },
-    [handleActionResponse, t],
+    [t],
   );
 
   const createItem = useCallback(
@@ -109,7 +109,7 @@ export function useOptionItems() {
         setAction(null);
       }
     },
-    [t],
+    [handleActionResponse, t],
   );
 
   const deleteItem = useCallback(

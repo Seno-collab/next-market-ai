@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SelectProps } from "antd";
 import { useLocale } from "@/hooks/useLocale";
 import {
@@ -141,6 +141,7 @@ export function useRestaurantSelect() {
   const [loading, setLoading] = useState(!optionsCache.has(locale));
   const [error, setError] = useState<string | null>(null);
   const [value, setValue] = useState<string | undefined>(undefined);
+  const hasDefaultedRef = useRef(false);
 
   useEffect(() => {
     setValue(getStoredRestaurantId() ?? undefined);
@@ -184,6 +185,24 @@ export function useRestaurantSelect() {
       active = false;
     };
   }, [locale, t]);
+
+  useEffect(() => {
+    if (hasDefaultedRef.current || options.length === 0) {
+      return;
+    }
+    const stored = getStoredRestaurantId();
+    if (stored) {
+      setValue(stored);
+      hasDefaultedRef.current = true;
+      return;
+    }
+    const defaultValue = options[0]?.value;
+    if (!value && defaultValue) {
+      setValue(defaultValue);
+      setStoredRestaurantId(defaultValue);
+    }
+    hasDefaultedRef.current = true;
+  }, [options, value]);
 
   const handleChange = (nextValue: string | undefined) => {
     const normalized = nextValue?.trim();

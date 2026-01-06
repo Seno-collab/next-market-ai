@@ -27,6 +27,7 @@ import { useMenuItems } from "@/features/menu/hooks/useMenuItems";
 import { useTopicCombobox } from "@/features/menu/hooks/useTopicCombobox";
 import type { MenuItem } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
+import { useHasHydrated } from "@/hooks/useHasHydrated";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -47,18 +48,14 @@ export default function MenuManagementPage() {
   const { topics, loading: topicsLoading } = useTopicCombobox();
   const { t, locale } = useLocale();
   const [form] = Form.useForm<MenuItemFormValues>();
+  const hydrated = useHasHydrated();
   const [open, setOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all");
   const [page, setPage] = useState(1);
-  const [hydrated, setHydrated] = useState(false);
   const pageSize = 6;
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
 
   const totalItems = searchMeta?.totalItems ?? items.length;
   const availableItems = items.filter((item) => item.available).length;
@@ -100,10 +97,6 @@ export default function MenuManagementPage() {
   const activeCategory = categoryFilter === "all" ? undefined : categoryFilter;
   const activeStatus =
     availabilityFilter === "all" ? undefined : availabilityFilter === "available";
-
-  useEffect(() => {
-    setPage(1);
-  }, [activeCategory, activeStatus, normalizedFilter]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -290,14 +283,24 @@ export default function MenuManagementPage() {
                     prefix={<SearchOutlined />}
                     placeholder={t("menu.search.placeholder")}
                     value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
+                    onChange={(event) => {
+                      setSearchTerm(event.target.value);
+                      setPage(1);
+                    }}
                   />
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6} lg={6}>
                 <div className="menu-admin-field">
                   <Text type="secondary">{t("menu.form.category")}</Text>
-                  <Select value={categoryFilter} onChange={setCategoryFilter} options={categoryOptions} />
+                  <Select
+                    value={categoryFilter}
+                    onChange={(value) => {
+                      setCategoryFilter(value);
+                      setPage(1);
+                    }}
+                    options={categoryOptions}
+                  />
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6} lg={8}>
@@ -305,7 +308,10 @@ export default function MenuManagementPage() {
                   <Text type="secondary">{t("menu.table.available")}</Text>
                   <Segmented
                     value={availabilityFilter}
-                    onChange={(value) => setAvailabilityFilter(value as "all" | "available" | "unavailable")}
+                    onChange={(value) => {
+                      setAvailabilityFilter(value as "all" | "available" | "unavailable");
+                      setPage(1);
+                    }}
                     options={availabilityOptions}
                   />
                 </div>
@@ -373,8 +379,8 @@ export default function MenuManagementPage() {
         >
           <MenuItemForm
             form={form}
-            onCancel={() => setOpen(false)}
-            onSubmit={handleSubmit}
+            onCancelAction={() => setOpen(false)}
+            onSubmitAction={handleSubmit}
             submitLabel={editingItem ? t("menu.actions.save") : t("menu.actions.create")}
             loading={action === "create" || action === "update"}
             topics={topics}

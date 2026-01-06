@@ -206,6 +206,7 @@ function mapMenuItemPayload(payload: TokenRecord, fallback: MenuItemFallback = {
     sku: sku || undefined,
     topicId: topicId ?? undefined,
     available,
+    is_active: available,
     imageUrl: imageUrl || undefined,
     createdAt,
     updatedAt,

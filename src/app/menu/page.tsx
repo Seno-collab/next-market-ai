@@ -24,7 +24,7 @@ import {
 } from "antd";
 import { Playfair_Display, Space_Grotesk } from "next/font/google";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -48,7 +48,7 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("featured");
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [zoomedItem, setZoomedItem] = useState<MenuItem | null>(null);
   const burstRef = useRef<OrderBurstHandle>(null);
 
@@ -95,12 +95,20 @@ export default function MenuPage() {
     availableItems.length === 0
       ? 0
       : availableItems.reduce((sum, item) => sum + item.price, 0) / availableItems.length;
-
-  useEffect(() => {
-    if (!selectedItem || !filteredItems.some((item) => item.id === selectedItem.id)) {
-      setSelectedItem(filteredItems[0] ?? null);
+  const activeSelectedItem = useMemo(() => {
+    if (filteredItems.length === 0) {
+      return null;
     }
-  }, [filteredItems, selectedItem]);
+    if (selectedItemId) {
+      const match = filteredItems.find((item) => item.id === selectedItemId);
+      if (match) {
+        return match;
+      }
+    }
+    return filteredItems[0] ?? null;
+  }, [filteredItems, selectedItemId]);
+
+  const activeSelectedId = activeSelectedItem?.id ?? null;
 
   const handleCardMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const card = event.currentTarget;
@@ -121,7 +129,7 @@ export default function MenuPage() {
 
   const handleAddToOrder = (item: MenuItem, event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
-    setSelectedItem(item);
+    setSelectedItemId(item.id);
     if (globalThis.window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
@@ -133,7 +141,7 @@ export default function MenuPage() {
     if (!item.imageUrl?.trim()) {
       return;
     }
-    setSelectedItem(item);
+    setSelectedItemId(item.id);
     setZoomedItem(item);
   };
 
@@ -146,10 +154,10 @@ export default function MenuPage() {
         return;
       }
       event.preventDefault();
-      setSelectedItem(item);
+      setSelectedItemId(item.id);
     };
 
-  const spotlightItem = selectedItem;
+  const spotlightItem = activeSelectedItem;
 
   const categoryLabel = (value: string) => {
     const category = menuCategories.find((item) => item.value === value);
@@ -305,7 +313,7 @@ export default function MenuPage() {
                 const accent = accentMap[item.category] ?? "#f97316";
                 const imageUrl = item.imageUrl?.trim();
                 const badgeKey = specialBadgeKeys[index] ?? "menu.specials.labels.signature";
-                const isActive = selectedItem?.id === item.id;
+                const isActive = activeSelectedId === item.id;
                 const isFeatured = index === 0;
                 return (
                   <Col xs={24} md={12} lg={isFeatured ? 12 : 6} key={item.id}>
@@ -318,7 +326,7 @@ export default function MenuPage() {
                       role="button"
                       tabIndex={0}
                       aria-pressed={isActive}
-                      onClick={() => setSelectedItem(item)}
+                      onClick={() => setSelectedItemId(item.id)}
                       onKeyDown={handleCardKeyDown(item)}
                       onMouseMove={handleCardMouseMove}
                       onMouseLeave={handleCardMouseLeave}
@@ -421,7 +429,7 @@ export default function MenuPage() {
           {filteredItems.map((item) => {
             const accent = accentMap[item.category] ?? "#60a5fa";
             const imageUrl = item.imageUrl?.trim();
-            const isActive = selectedItem?.id === item.id;
+            const isActive = activeSelectedId === item.id;
             return (
               <Col xs={24} sm={12} lg={8} key={item.id}>
                 <Card
@@ -431,7 +439,7 @@ export default function MenuPage() {
                   role="button"
                   tabIndex={0}
                   aria-pressed={isActive}
-                  onClick={() => setSelectedItem(item)}
+                  onClick={() => setSelectedItemId(item.id)}
                   onKeyDown={handleCardKeyDown(item)}
                   onMouseMove={handleCardMouseMove}
                   onMouseLeave={handleCardMouseLeave}

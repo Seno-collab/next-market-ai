@@ -4,7 +4,7 @@ import { Alert, Card, Col, Empty, Progress, Row, Space, Statistic, Tag, Typograp
 import type { MenuAnalytics } from "@/features/menu/types";
 import { menuCategories } from "@/features/menu/constants";
 import { useLocale } from "@/hooks/useLocale";
-import { useEffect, useState } from "react";
+import { useHasHydrated } from "@/hooks/useHasHydrated";
 
 const { Text } = Typography;
 
@@ -16,10 +16,7 @@ type MenuAnalyticsPanelProps = {
 
 export function MenuAnalyticsPanel({ data, loading, error }: MenuAnalyticsPanelProps) {
   const { t, locale } = useLocale();
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const hydrated = useHasHydrated();
   const formatter = new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US", {
     style: "currency",
     currency: "VND",

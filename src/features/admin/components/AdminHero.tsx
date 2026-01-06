@@ -4,7 +4,7 @@ import Link from "next/link";
 import { QrcodeOutlined } from "@ant-design/icons";
 import { Button, Card, Col, Row, Space, Tag, Typography } from "antd";
 import { useLocale } from "@/hooks/useLocale";
-import QrCodeScene from "@/features/admin/components/QrCodeScene";
+import AdminHologramScene from "@/features/admin/components/AdminHologramScene";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -34,12 +34,30 @@ export function AdminHero() {
           </Space>
         </Col>
         <Col xs={24} lg={10}>
-          <div className="qr-stack">
-            <div className="qr-scene">
-              <div className="qr-ambient" />
-              <div className="qr-frame" />
-              <QrCodeScene />
-              <div className="qr-logo-label">QR MENU</div>
+          <div className="holo-card">
+            <div className="holo-card-header">
+              <span className="holo-pill">{t("adminHero.securityLabel")}</span>
+              <span className="holo-card-id">AI-RX • QR SECURE</span>
+            </div>
+            <div className="holo-stage-wrap">
+              <AdminHologramScene />
+              <div className="holo-chip-grid">
+                <div className="holo-chip">
+                  <span className="holo-chip-label">{t("adminHero.holoTitle")}</span>
+                  <strong>99.98%</strong>
+                  <span className="holo-chip-sub">{t("adminHero.uptimeLabel")}</span>
+                </div>
+                <div className="holo-chip holo-chip-accent">
+                  <span className="holo-chip-label">{t("adminHero.qrLabel")}</span>
+                  <strong>{t("adminHero.qrStatus")}</strong>
+                  <span className="holo-chip-sub">AES-256 / FaceScan</span>
+                </div>
+                <div className="holo-chip">
+                  <span className="holo-chip-label">{t("adminHero.footprintLabel")}</span>
+                  <strong>48</strong>
+                  <span className="holo-chip-sub">{t("adminHero.footprintSubtitle")}</span>
+                </div>
+              </div>
             </div>
           </div>
         </Col>

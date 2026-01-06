@@ -21,7 +21,6 @@ export default function LogoutPage() {
       return;
     }
     didLogout.current = true;
-    setSuccess(null);
     logout()
       .then(() => setSuccess(t("logout.success")))
       .catch(() => {

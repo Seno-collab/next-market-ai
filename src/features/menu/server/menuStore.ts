@@ -10,6 +10,7 @@ function normalizeInput(input: MenuItemInput): MenuItemInput {
   if (!Number.isFinite(input.price) || input.price <= 0) {
     throw new Error("menu.errors.priceInvalid");
   }
+  const available = input.available ?? input.is_active ?? true;
   const imageUrl = typeof input.imageUrl === "string" ? input.imageUrl.trim() : "";
   const sku = typeof input.sku === "string" ? input.sku.trim() : "";
   const topicId =
@@ -21,7 +22,8 @@ function normalizeInput(input: MenuItemInput): MenuItemInput {
     price: Number(input.price),
     sku: sku || undefined,
     topicId,
-    available: input.available ?? true,
+    available,
+    is_active: available,
     imageUrl,
   };
 }
@@ -33,9 +35,13 @@ export function listMenuItems() {
 export function createMenuItem(payload: MenuItemInput) {
   const data = normalizeInput(payload);
   const now = new Date().toISOString();
+  const available = data.available ?? true;
+  const isActive = data.is_active ?? available;
   const item: MenuItem = {
     id: randomUUID(),
     ...data,
+    available,
+    is_active: isActive,
     createdAt: now,
     updatedAt: now,
   };
@@ -52,6 +58,7 @@ export function updateMenuItem(id: string, updates: MenuItemUpdate) {
   if (!current) {
     throw new Error("menu.errors.itemNotFound");
   }
+  const nextAvailable = updates.available ?? updates.is_active ?? current.available;
   const nextImageUrl =
     updates.imageUrl !== undefined
       ? typeof updates.imageUrl === "string"
@@ -75,7 +82,8 @@ export function updateMenuItem(id: string, updates: MenuItemUpdate) {
     price: updates.price ?? current.price,
     sku: nextSku || undefined,
     topicId: nextTopicId,
-    available: updates.available ?? current.available,
+    available: nextAvailable,
+    is_active: nextAvailable,
     imageUrl: nextImageUrl,
     updatedAt: new Date().toISOString(),
   };

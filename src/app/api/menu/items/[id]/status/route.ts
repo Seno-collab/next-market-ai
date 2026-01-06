@@ -137,7 +137,7 @@ async function handleStatusUpdate(
     return NextResponse.json(data);
   }
 
-  const item = updateMenuItem(id, { available: isActive });
+  const item = updateMenuItem(id, { is_active: isActive });
   return NextResponse.json({ item });
 }
 

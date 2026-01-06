@@ -39,6 +39,12 @@ function mapProfileToUser(payload: TokenRecord) {
       : typeof profile.name === "string"
         ? profile.name
         : "";
+  const imageUrl =
+    typeof profile.image_url === "string"
+      ? profile.image_url
+      : typeof (profile as Record<string, unknown>).imageUrl === "string"
+        ? (profile as Record<string, string>).imageUrl
+        : "";
   const id =
     typeof profile.id === "string"
       ? profile.id
@@ -49,6 +55,7 @@ function mapProfileToUser(payload: TokenRecord) {
     id,
     email,
     name,
+    image_url: imageUrl,
     createdAt: "",
     updatedAt: "",
   };
@@ -101,6 +108,12 @@ export const PATCH = withApiLogging(async (request: NextRequest) => {
     const payload = (await request.json()) as TokenRecord;
     const nameValue = typeof payload.name === "string" ? payload.name : typeof payload.full_name === "string" ? payload.full_name : "";
     const name = nameValue.trim();
+    const imageUrl =
+      typeof payload.image_url === "string"
+        ? payload.image_url
+        : typeof (payload as Record<string, unknown>).imageUrl === "string"
+          ? (payload as Record<string, string>).imageUrl
+          : undefined;
     if (!name) {
       throw new Error("auth.errors.profileInfoMissing");
     }
@@ -114,7 +127,7 @@ export const PATCH = withApiLogging(async (request: NextRequest) => {
       const response = await fetch(`${AUTH_BASE_URL}/api/auth/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", authorization: authHeader, "x-locale": locale },
-        body: JSON.stringify({ full_name: name }),
+        body: JSON.stringify({ full_name: name, image_url: imageUrl }),
       });
       const data = (await response.json().catch(() => ({}))) as TokenRecord;
       const responseCode = parseResponseCode(data.response_code);
@@ -136,7 +149,7 @@ export const PATCH = withApiLogging(async (request: NextRequest) => {
       throw new Error("auth.errors.bearerTokenMissing");
     }
     const { email } = requireAuthContext(token);
-    const user = updateProfile(email, name);
+    const user = updateProfile(email, name, imageUrl);
     return NextResponse.json({ user, message: t("auth.success.profileUpdate") });
   } catch (error) {
     return NextResponse.json(

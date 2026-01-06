@@ -8,6 +8,7 @@ import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useLocale } from "@/hooks/useLocale";
 import { useTheme } from "@/hooks/useTheme";
 import AuthQrBackground from "@/features/auth/components/AuthQrBackground";
+import LoginGalaxyScene from "@/features/auth/components/LoginGalaxyScene";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -41,8 +42,11 @@ export default function LoginPage() {
     <div className="auth-shell">
       <div className="auth-backdrop" />
       <AuthQrBackground />
-      <div className="auth-grid auth-grid-single">
+      <div className="auth-grid">
         <div className="auth-panel">
+          <div className="auth-tagline">
+            <Text>{t("login.tagline")}</Text>
+          </div>
           <Card variant="borderless" className="glass-card auth-card">
             <Space orientation="vertical" size="large" style={{ width: "100%" }}>
               <div className="auth-card-header">
@@ -87,6 +91,7 @@ export default function LoginPage() {
                   {t("login.cta")}
                 </Button>
               </Form>
+              <Text type="secondary">{t("login.secondaryHint")}</Text>
               {success && <Alert title={success} type="success" showIcon />}
               {error && <Alert title={error} type="error" showIcon />}
               {session?.user && (
@@ -96,6 +101,18 @@ export default function LoginPage() {
               )}
             </Space>
           </Card>
+        </div>
+        <div className="auth-visual login-visual">
+          <LoginGalaxyScene />
+          <div className="login-visual-meta">
+            <Text className="login-visual-badge">{t("login.tagline")}</Text>
+            <Paragraph type="secondary" className="login-visual-copy">
+              {t("login.subtitle")}
+            </Paragraph>
+          </div>
+          <div className="auth-caption">
+            <Text>{t("login.visualCaption")}</Text>
+          </div>
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ function toPublicUser(user: ReturnType<typeof findUserByEmail>): AuthPublicUser 
     id: user.id,
     email: user.email,
     name: user.name,
+    image_url: user.image_url,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -51,6 +52,7 @@ export function registerUser(payload: RegisterPayload): AuthResponse {
     email: email.toLowerCase(),
     name,
     password,
+    image_url: "",
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -114,7 +116,7 @@ export function changePassword(email: string, currentPassword: string, newPasswo
   return toPublicUser(updated);
 }
 
-export function updateProfile(email: string, name: string) {
+export function updateProfile(email: string, name: string, image_url?: string) {
   if (!name?.trim()) {
     throw new Error("auth.errors.profileInfoMissing");
   }
@@ -122,7 +124,7 @@ export function updateProfile(email: string, name: string) {
   if (!user) {
     throw new Error("auth.errors.userNotFound");
   }
-  const updated = updateUser(email, { name: name.trim() });
+  const updated = updateUser(email, { name: name.trim(), image_url });
   return toPublicUser(updated);
 }
 

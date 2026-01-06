@@ -1,9 +1,9 @@
 "use client";
 
 import { ConfigProvider, theme as antdTheme } from "antd";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-export type ThemeMode = "dark" | "light";
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import type { ThemeMode } from "./types";
+import { getServerSnapshot, getThemeSnapshot, subscribeTheme, updateThemeMode } from "./themeStore";
 
 type ThemeContextValue = {
   mode: ThemeMode;
@@ -12,42 +12,31 @@ type ThemeContextValue = {
   toggle: () => void;
 };
 
-const STORAGE_KEY = "next-ai-theme";
-
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-function getInitialMode(): ThemeMode {
-  const stored = globalThis.window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "dark" || stored === "light") {
-    return stored;
-  }
-  return globalThis.window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
 
 type ThemeProviderProps = Readonly<{ children: React.ReactNode }>;
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [mode, setMode] = useState<ThemeMode>("dark");
+  const mode = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerSnapshot);
+
+  const handleSetMode = useCallback((nextMode: ThemeMode) => {
+    updateThemeMode(nextMode);
+  }, []);
+
+  const handleToggle = useCallback(() => {
+    const nextMode = mode === "dark" ? "light" : "dark";
+    updateThemeMode(nextMode);
+  }, [mode]);
 
   const value = useMemo(
     () => ({
       mode,
       isDark: mode === "dark",
-      setMode,
-      toggle: () => setMode((prev) => (prev === "dark" ? "light" : "dark")),
+      setMode: handleSetMode,
+      toggle: handleToggle,
     }),
-    [mode],
+    [handleSetMode, handleToggle, mode],
   );
-
-  useEffect(() => {
-    const nextMode = getInitialMode();
-    setMode(nextMode);
-  }, []);
-
-  useEffect(() => {
-    globalThis.window.localStorage.setItem(STORAGE_KEY, mode);
-    document.documentElement.dataset.theme = mode;
-  }, [mode]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
@@ -83,3 +72,5 @@ export function useTheme() {
   }
   return context;
 }
+
+export type { ThemeMode } from "./types";

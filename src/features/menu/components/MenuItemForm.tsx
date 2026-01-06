@@ -2,15 +2,23 @@
 
 import Image from "next/image";
 import { UploadOutlined } from "@ant-design/icons";
-import { Button, Form, Input, InputNumber, Select, Space, Switch } from "antd";
+import { Button, Form, Input, InputNumber, Select, Space, Switch, Typography } from "antd";
 import type { FormInstance } from "antd";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { menuCategories } from "@/features/menu/constants";
 import type { Topic } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
 import { fetchJson, notifyError } from "@/lib/api/client";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function sanitizeImageUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return encodeURI(trimmed).replace(/#/g, "%23");
+}
 
 export type MenuItemFormValues = {
   name: string;
@@ -25,8 +33,8 @@ export type MenuItemFormValues = {
 
 type MenuItemFormProps = {
   form: FormInstance<MenuItemFormValues>;
-  onSubmit: (values: MenuItemFormValues) => void;
-  onCancel: () => void;
+  onSubmitAction: (values: MenuItemFormValues) => void | Promise<void>;
+  onCancelAction: () => void;
   submitLabel: string;
   loading?: boolean;
   topics?: Topic[];
@@ -35,29 +43,51 @@ type MenuItemFormProps = {
 
 export function MenuItemForm({
   form,
-  onSubmit,
-  onCancel,
+  onSubmitAction,
+  onCancelAction,
   submitLabel,
   loading = false,
   topics = [],
   topicsLoading = false,
 }: MenuItemFormProps) {
   const { t } = useLocale();
+  const { Text } = Typography;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(
+    null
+  );
   const imageUrl = Form.useWatch("imageUrl", form);
   const trimmedImageUrl = typeof imageUrl === "string" ? imageUrl.trim() : "";
+  const previewImageUrl = pendingPreviewUrl
+    ? pendingPreviewUrl
+    : trimmedImageUrl
+    ? sanitizeImageUrl(trimmedImageUrl)
+    : "";
   const isSubmitting = loading || uploading;
   const topicOptions = topics.map((topic) => ({
     value: topic.id,
     label: topic.name,
   }));
 
+  useEffect(() => {
+    if (!pendingFile) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(pendingFile);
+    setPendingPreviewUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [pendingFile]);
+
   const handlePickFile = () => {
     fileInputRef.current?.click();
   };
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -72,25 +102,48 @@ export function MenuItemForm({
       event.target.value = "";
       return;
     }
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetchJson<{ url: string }>("/api/menu/upload", {
-        method: "POST",
-        body: formData,
-      });
-      form.setFieldsValue({ imageUrl: response.url });
-    } catch {
-      // Error toast is already handled by fetchJson.
+    setPendingFile(file);
+    form.setFieldsValue({ imageUrl: "" });
+    event.target.value = "";
+  };
+
+  const handleRemoveImage = () => {
+    setPendingFile(null);
+    form.setFieldsValue({ imageUrl: "" });
+  };
+
+  const handleFinish = async (values: MenuItemFormValues) => {
+    let nextImageUrl =
+      typeof values.imageUrl === "string" ? values.imageUrl.trim() : "";
+    if (pendingFile) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", pendingFile);
+        const response = await fetchJson<{ url: string }>("/api/menu/upload", {
+          method: "POST",
+          body: formData,
+        });
+        nextImageUrl = sanitizeImageUrl(response.url);
+        setPendingFile(null);
+        form.setFieldsValue({ imageUrl: nextImageUrl });
+      } catch {
+        // Error toast is already handled by fetchJson.
+        return;
       } finally {
         setUploading(false);
-        event.target.value = "";
       }
-    };
+    }
+    const normalizedImageUrl = nextImageUrl
+      ? sanitizeImageUrl(nextImageUrl)
+      : undefined;
+    await Promise.resolve(
+      onSubmitAction({ ...values, imageUrl: normalizedImageUrl })
+    );
+  };
 
   return (
-    <Form form={form} layout="vertical" onFinish={onSubmit}>
+    <Form form={form} layout="vertical" onFinish={handleFinish}>
       <Form.Item
         label={t("menu.form.name")}
         name="name"
@@ -137,42 +190,62 @@ export function MenuItemForm({
           <div className="menu-price-addon">VND</div>
         </Space.Compact>
       </Form.Item>
-      <Form.Item label={t("menu.form.image")} name="imageUrl">
-        <Input placeholder={t("menu.form.imagePlaceholder")} type="url" allowClear />
+      <Form.Item name="imageUrl" hidden>
+        <Input type="hidden" />
       </Form.Item>
-      <Space size="small" wrap>
-        <Button
-          icon={<UploadOutlined />}
-          onClick={handlePickFile}
-          loading={uploading}
-          disabled={loading || uploading}
-        >
-          {t("menu.form.imageUpload")}
-        </Button>
-        <Button
-          onClick={() => form.setFieldsValue({ imageUrl: "" })}
-          disabled={!trimmedImageUrl || isSubmitting}
-        >
-          {t("menu.form.imageRemove")}
-        </Button>
-        <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleUpload} />
-      </Space>
-      {trimmedImageUrl && (
-        <div className="menu-image-preview">
-          <Image
-            src={trimmedImageUrl}
-            alt={t("menu.form.image")}
-            fill
-            sizes="(max-width: 768px) 100vw, 480px"
-          />
+      <div className="menu-image-actions">
+        <div className="menu-image-actions__header">
+          <Text strong>{t("menu.form.image")}</Text>
+          <Text type="secondary" className="menu-image-actions__hint">
+            {t("menu.form.imagePlaceholder")}
+          </Text>
         </div>
-      )}
+        <Space size="small" wrap className="menu-image-actions__buttons">
+          <Button
+            icon={<UploadOutlined />}
+            onClick={handlePickFile}
+            loading={uploading}
+            disabled={loading || uploading}
+          >
+            {t("menu.form.imageUpload")}
+          </Button>
+          <Button
+            onClick={handleRemoveImage}
+            disabled={(!trimmedImageUrl && !pendingFile) || isSubmitting}
+          >
+            {t("menu.form.imageRemove")}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleFileChange}
+          />
+        </Space>
+        {previewImageUrl && (
+          <div className="menu-image-preview">
+            <Image
+              src={previewImageUrl}
+              alt={t("menu.form.image")}
+              fill
+              sizes="(max-width: 768px) 100vw, 480px"
+              unoptimized={Boolean(pendingFile)}
+            />
+          </div>
+        )}
+      </div>
       <Form.Item label={t("menu.form.available")} name="available" valuePropName="checked">
         <Switch />
       </Form.Item>
       <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-        <Button onClick={onCancel}>{t("menu.form.cancel")}</Button>
-        <Button type="primary" htmlType="submit" loading={loading} disabled={uploading}>
+        <Button onClick={onCancelAction}>{t("menu.form.cancel")}</Button>
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={isSubmitting}
+          disabled={isSubmitting}
+        >
           {submitLabel}
         </Button>
       </Space>

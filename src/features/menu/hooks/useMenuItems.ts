@@ -6,8 +6,14 @@ import type {
   MenuItemUpdate,
 } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
-import { fetchApiJson, fetchJson, notifyError } from "@/lib/api/client";
-import { useCallback, useEffect, useState } from "react";
+import {
+  RESTAURANT_ID_CHANGE_EVENT,
+  fetchApiJson,
+  getStoredRestaurantId,
+  notifyError,
+  notifySuccess,
+} from "@/lib/api/client";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type MenuItemsResponse = {
   items?: unknown[];
@@ -16,13 +22,16 @@ type MenuItemsResponse = {
   response_code?: string | number;
 };
 
-type MenuItemResponse = { item: MenuItem };
-type MenuStatusResponse = {
-  item?: MenuItem;
-  data?: unknown;
+type MenuActionResponse = {
   message?: string;
   response_code?: string | number;
 };
+
+type MenuItemResponse = { item: MenuItem } & MenuActionResponse;
+type MenuStatusResponse = {
+  item?: MenuItem;
+  data?: unknown;
+} & MenuActionResponse;
 
 type MenuAction =
   | "fetch"
@@ -76,6 +85,29 @@ const MENU_ITEM_SEARCH_PATH = "/api/menu/items/search";
 type UseMenuItemsOptions = {
   autoFetch?: boolean;
 };
+
+function buildMenuRequestPayload(payload: MenuItemInput | MenuItemUpdate) {
+  const { available, category, imageUrl, ...rest } = payload as Record<string, unknown>;
+  const requestPayload: Record<string, unknown> = { ...rest };
+
+  if (typeof available === "boolean") {
+    requestPayload.is_active = available;
+  }
+  if (typeof category === "string") {
+    requestPayload.type = category;
+  }
+  if (typeof imageUrl === "string") {
+    requestPayload.image_url = imageUrl;
+  }
+  if (typeof payload.price === "string") {
+    const parsedPrice = Number(payload.price);
+    requestPayload.price = Number.isFinite(parsedPrice) ? parsedPrice : undefined;
+  } else if (typeof payload.price === "number") {
+    requestPayload.price = Number.isFinite(payload.price) ? payload.price : undefined;
+  }
+
+  return requestPayload;
+}
 
 function parseResponseCode(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -133,6 +165,14 @@ function readBoolean(value: unknown) {
     }
   }
   return null;
+}
+
+function sanitizeImageUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return encodeURI(trimmed).replace(/#/g, "%23");
 }
 
 function normalizeCategory(value: string | null) {
@@ -232,7 +272,8 @@ function mapMenuItemRecord(record: MenuItemRecord): MenuItem | null {
     sku: sku || undefined,
     topicId: topicId ?? undefined,
     available,
-    imageUrl: imageUrl || undefined,
+    is_active: available,
+    imageUrl: imageUrl ? sanitizeImageUrl(imageUrl) : undefined,
     createdAt,
     updatedAt,
   };
@@ -309,6 +350,10 @@ function extractMenuItems(payload: unknown): MenuItem[] | null {
   return null;
 }
 
+function resolveMenuItemFromResponse(payload: unknown): MenuItem | null {
+  return extractMenuItem(payload) ?? extractMenuItem((payload as Record<string, unknown> | null)?.data);
+}
+
 function extractMenuSearchItems(payload: MenuSearchResponse) {
   const direct = extractMenuItems(payload);
   if (direct !== null) {
@@ -323,6 +368,22 @@ function extractMenuSearchItems(payload: MenuSearchResponse) {
   return deepNested ?? [];
 }
 
+function handleMenuActionResponse(
+  response: MenuActionResponse,
+  fallbackMessage: string
+) {
+  const responseCode = parseResponseCode(response.response_code);
+  if (responseCode !== null && responseCode !== 200) {
+    const message =
+      typeof response.message === "string" ? response.message : fallbackMessage;
+    notifyError(message);
+    throw new Error(message);
+  }
+  if (typeof response.message === "string") {
+    notifySuccess(response.message);
+  }
+}
+
 export function useMenuItems(options: UseMenuItemsOptions = {}) {
   const { t } = useLocale();
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -331,13 +392,16 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
   const [action, setAction] = useState<MenuAction | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [searchMeta, setSearchMeta] = useState<MenuSearchMeta | null>(null);
+  const lastSearchParamsRef = useRef<MenuSearchParams | null>(null);
+  const restaurantIdRef = useRef<string | null>(getStoredRestaurantId());
+  const autoFetch = options.autoFetch !== false;
 
   const fetchItems = useCallback(async () => {
     setAction("fetch");
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchJson<MenuItemsResponse>("/api/menu/items", {
+      const response = await fetchApiJson<MenuItemsResponse>("/api/menu/items", {
         cache: "no-store",
       });
       const nextItems = extractMenuItems(response) ?? [];
@@ -352,48 +416,9 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
     }
   }, [t]);
 
-  const createItem = useCallback(
-    async (payload: MenuItemInput) => {
-      setAction("create");
-      setError(null);
-      try {
-        const response = await fetchJson<MenuItemResponse>("/api/menu/items", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        let refreshed = false;
-        try {
-          const refreshedPayload = await fetchApiJson<MenuItemsRefreshPayload>(
-            "/menu/restaurant/items",
-            { cache: "no-store" }
-          );
-          const refreshedItems = extractMenuItems(refreshedPayload);
-          if (refreshedItems !== null) {
-            setItems(refreshedItems);
-            refreshed = true;
-          }
-        } catch {
-          // Ignore refresh errors; fallback to local optimistic update.
-        }
-        if (!refreshed) {
-          setItems((prev) => [response.item, ...prev]);
-        }
-        return response.item;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : t("menu.errors.createFailed");
-        setError(message);
-        throw err;
-      } finally {
-        setAction(null);
-      }
-    },
-    [t]
-  );
-
   const searchItems = useCallback(
     async (params: MenuSearchParams = {}) => {
+      lastSearchParamsRef.current = params;
       setAction("search");
       setLoading(true);
       setError(null);
@@ -415,7 +440,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         payload.page = params.page;
       }
       try {
-        const response = await fetchJson<MenuSearchResponse>(
+        const response = await fetchApiJson<MenuSearchResponse>(
           MENU_ITEM_SEARCH_PATH,
           {
             method: "POST",
@@ -460,24 +485,127 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
     [t]
   );
 
+  const rerunLastQuery = useCallback(async () => {
+    if (lastSearchParamsRef.current) {
+      await searchItems({ ...lastSearchParamsRef.current });
+      return;
+    }
+    await searchItems({});
+  }, [searchItems]);
+
+  const createItem = useCallback(
+    async (payload: MenuItemInput) => {
+      setAction("create");
+      setError(null);
+      try {
+        const response = await fetchApiJson<MenuItemResponse>("/api/menu/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildMenuRequestPayload(payload)),
+        });
+        handleMenuActionResponse(response, t("menu.errors.createFailed"));
+        const newItem = resolveMenuItemFromResponse(response);
+        let refreshed = false;
+        try {
+          const refreshedPayload = await fetchApiJson<MenuItemsRefreshPayload>(
+            "/menu/restaurant/items",
+            { cache: "no-store" }
+          );
+          const refreshedItems = extractMenuItems(refreshedPayload);
+          if (refreshedItems !== null) {
+            setItems(refreshedItems);
+            refreshed = true;
+          }
+        } catch {
+          // Ignore refresh errors; fallback to local optimistic update.
+        }
+        if (!refreshed && newItem) {
+          setItems((prev) => [newItem, ...prev.filter(Boolean)]);
+        }
+        if (!newItem && !refreshed) {
+          await fetchItems();
+        }
+        await rerunLastQuery();
+        return newItem;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : t("menu.errors.createFailed");
+        setError(message);
+        throw err;
+      } finally {
+        setAction(null);
+      }
+    },
+    [fetchItems, rerunLastQuery, t]
+  );
+
   const updateItem = useCallback(
     async (id: string, payload: MenuItemUpdate) => {
       setAction("update");
       setPendingId(id);
       setError(null);
       try {
-        const response = await fetchJson<MenuItemResponse>(
+        const response = await fetchApiJson<MenuItemResponse>(
           `/api/menu/items/${id}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(buildMenuRequestPayload(payload)),
           }
         );
+        handleMenuActionResponse(response, t("menu.errors.updateFailed"));
+        const updatedItem = resolveMenuItemFromResponse(response);
+        if (updatedItem) {
+          setItems((prev) =>
+            prev
+              .map((item) => (item.id === id ? updatedItem : item))
+              .filter(Boolean) as MenuItem[]
+          );
+          await rerunLastQuery();
+          return updatedItem;
+        }
         setItems((prev) =>
-          prev.map((item) => (item.id === id ? response.item : item))
+          prev.map((item) => {
+            if (item.id !== id) {
+              return item;
+            }
+            const nextAvailable =
+              typeof payload.available === "boolean"
+                ? payload.available
+                : typeof (payload as { is_active?: boolean }).is_active === "boolean"
+                  ? (payload as { is_active: boolean }).is_active
+                  : item.available;
+            const nextCategory =
+              typeof payload.category === "string"
+                ? payload.category
+                : typeof (payload as { type?: string }).type === "string"
+                  ? (payload as { type: string }).type
+                  : item.category;
+            const nextImageUrl =
+              typeof (payload as { imageUrl?: string }).imageUrl === "string"
+                ? (payload as { imageUrl: string }).imageUrl
+                : typeof (payload as { image_url?: string }).image_url === "string"
+                  ? (payload as { image_url: string }).image_url
+                  : item.imageUrl;
+            const nextPrice =
+              typeof payload.price === "number"
+                ? payload.price
+                : typeof payload.price === "string" && Number.isFinite(Number(payload.price))
+                  ? Number(payload.price)
+                  : item.price;
+            return {
+              ...item,
+              ...payload,
+              category: nextCategory ?? item.category,
+              available: nextAvailable,
+              is_active: nextAvailable,
+              imageUrl: nextImageUrl,
+              price: nextPrice,
+            } as MenuItem;
+          })
         );
-        return response.item;
+        await rerunLastQuery();
+        return null;
       } catch (err) {
         const message =
           err instanceof Error ? err.message : t("menu.errors.updateFailed");
@@ -488,7 +616,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         setAction(null);
       }
     },
-    [t]
+    [fetchItems, rerunLastQuery, t]
   );
 
   const deleteItem = useCallback(
@@ -497,10 +625,15 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
       setPendingId(id);
       setError(null);
       try {
-        await fetchJson<{ message: string }>(`/api/menu/items/${id}`, {
-          method: "DELETE",
-        });
+        const response = await fetchApiJson<MenuActionResponse>(
+          `/api/menu/items/${id}`,
+          {
+            method: "DELETE",
+          }
+        );
+        handleMenuActionResponse(response, t("menu.errors.deleteFailed"));
         setItems((prev) => prev.filter((item) => item.id !== id));
+        await rerunLastQuery();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : t("menu.errors.deleteFailed");
@@ -511,7 +644,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         setAction(null);
       }
     },
-    [t]
+    [rerunLastQuery, t]
   );
 
   const toggleAvailability = useCallback(
@@ -520,7 +653,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
       setPendingId(id);
       setError(null);
       try {
-        const response = await fetchJson<MenuStatusResponse>(
+        const response = await fetchApiJson<MenuStatusResponse>(
           `/api/menu/items/${id}/status`,
           {
             method: "PATCH",
@@ -528,16 +661,10 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
             body: JSON.stringify({ is_active: available }),
           }
         );
-        const responseCode = parseResponseCode(response.response_code);
-        if (responseCode !== null && responseCode !== 200) {
-          const message =
-            typeof response.message === "string"
-              ? response.message
-              : t("menu.errors.updateStatusFailed");
-          notifyError(message);
-          setError(message);
-          throw new Error(message);
-        }
+        handleMenuActionResponse(
+          response,
+          t("menu.errors.updateStatusFailed")
+        );
         const updatedItem =
           response.item ??
           extractMenuItem(response) ??
@@ -549,6 +676,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
               : item
           )
         );
+        await rerunLastQuery();
         return updatedItem ?? null;
       } catch (err) {
         const message =
@@ -562,10 +690,8 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         setAction(null);
       }
     },
-    [t]
+    [rerunLastQuery, t]
   );
-
-  const autoFetch = options.autoFetch !== false;
 
   useEffect(() => {
     if (!autoFetch) {
@@ -573,6 +699,26 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
     }
     fetchItems();
   }, [autoFetch, fetchItems]);
+
+  useEffect(() => {
+    const handleRestaurantChange = () => {
+      const stored = getStoredRestaurantId();
+      restaurantIdRef.current = stored;
+      if (lastSearchParamsRef.current) {
+        void searchItems({ ...lastSearchParamsRef.current });
+      } else if (autoFetch) {
+        void fetchItems();
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener(RESTAURANT_ID_CHANGE_EVENT, handleRestaurantChange);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(RESTAURANT_ID_CHANGE_EVENT, handleRestaurantChange);
+      }
+    };
+  }, [autoFetch, fetchItems, searchItems]);
 
   return {
     items,

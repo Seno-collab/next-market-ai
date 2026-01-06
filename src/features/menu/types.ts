@@ -7,6 +7,7 @@ export type MenuItem = {
   sku?: string;
   topicId?: number | null;
   available: boolean;
+  is_active?: boolean;
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -19,7 +20,8 @@ export type MenuItemInput = {
   price: number;
   sku?: string;
   topicId?: number | null;
-  available: boolean;
+  available?: boolean;
+  is_active?: boolean;
   imageUrl?: string;
 };
 

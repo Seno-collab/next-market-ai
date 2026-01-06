@@ -1,12 +1,12 @@
 "use client";
 
 import { Alert, Avatar, Button, Card, Col, Form, Input, Row, Space, Typography } from "antd";
-import { useCallback, useEffect, useState } from "react";
-import { fetchJson } from "@/lib/api/client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchJson, notifyError } from "@/lib/api/client";
 import { useLocale } from "@/hooks/useLocale";
 import type { AuthPublicUser } from "@/features/auth/types";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 type ProfileFormValues = {
   name: string;
@@ -36,6 +36,10 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<AuthPublicUser | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -48,6 +52,8 @@ export default function ProfilePage() {
         name: user?.name ?? "",
         email: user?.email ?? "",
       });
+      setPendingFile(null);
+      setPendingPreviewUrl(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("auth.errors.profileFailed");
       setProfileError(message);
@@ -65,10 +71,25 @@ export default function ProfilePage() {
     setProfileError(null);
     setProfileSuccess(null);
     try {
+      let imageUrl = profileUser?.image_url ?? "";
+      if (pendingFile) {
+        setUploadingAvatar(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", pendingFile);
+          const uploadResponse = await fetchJson<{ url: string }>("/api/menu/upload", {
+            method: "POST",
+            body: formData,
+          });
+          imageUrl = uploadResponse.url;
+        } finally {
+          setUploadingAvatar(false);
+        }
+      }
       await fetchJson<ProfileResponse>("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: values.name }),
+        body: JSON.stringify({ name: values.name, image_url: imageUrl }),
       });
       setProfileSuccess(t("profile.success.update"));
       await loadProfile();
@@ -103,13 +124,49 @@ export default function ProfilePage() {
     }
   };
 
+  useEffect(() => {
+    if (!pendingFile) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(pendingFile);
+    setPendingPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [pendingFile]);
+
+  const handlePickFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      notifyError(t("menu.errors.uploadInvalid"));
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      notifyError(t("menu.errors.uploadTooLarge"));
+      event.target.value = "";
+      return;
+    }
+    setPendingFile(file);
+    event.target.value = "";
+  };
+
   const profileInitial = (profileUser?.name?.trim() || profileUser?.email?.trim() || "QR").charAt(0).toUpperCase();
+  const profileAvatarSrc =
+    pendingPreviewUrl ??
+    (typeof profileUser?.image_url === "string" && profileUser.image_url.trim() ? profileUser.image_url.trim() : undefined);
 
   return (
     <Space orientation="vertical" size="large" className="profile-page">
       <Card variant="borderless" className="glass-card profile-hero" loading={profileLoading}>
         <div className="profile-hero-content">
-          <Avatar size={72} className="profile-avatar">
+          <Avatar size={72} className="profile-avatar" src={profileAvatarSrc}>
             {profileInitial}
           </Avatar>
           <div className="profile-hero-text">
@@ -155,7 +212,17 @@ export default function ProfilePage() {
                   <Input disabled />
                 </Form.Item>
                 <Space className="profile-actions">
-                  <Button type="primary" htmlType="submit" loading={profileSaving}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleFileChange}
+                  />
+                  <Button onClick={handlePickFile} loading={uploadingAvatar}>
+                    {t("menu.actions.upload")}
+                  </Button>
+                  <Button type="primary" htmlType="submit" loading={profileSaving || uploadingAvatar}>
                     {t("profile.save")}
                   </Button>
                 </Space>
