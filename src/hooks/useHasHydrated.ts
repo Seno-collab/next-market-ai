@@ -6,7 +6,11 @@ export function useHasHydrated() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
+    const frame = requestAnimationFrame(() => {
+      setHydrated(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   return hydrated;

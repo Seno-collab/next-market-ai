@@ -13,6 +13,7 @@ import {
   notifyError,
   notifySuccess,
 } from "@/lib/api/client";
+import { normalizeCategory, parseResponseCode } from "@/lib/menu/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type MenuItemsResponse = {
@@ -84,6 +85,7 @@ const MENU_ITEM_SEARCH_PATH = "/api/menu/items/search";
 
 type UseMenuItemsOptions = {
   autoFetch?: boolean;
+  initialFetchPath?: string;
 };
 
 function buildMenuRequestPayload(payload: MenuItemInput | MenuItemUpdate) {
@@ -109,16 +111,6 @@ function buildMenuRequestPayload(payload: MenuItemInput | MenuItemUpdate) {
   return requestPayload;
 }
 
-function parseResponseCode(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
 
 function readRecord(value: unknown): MenuItemRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -175,29 +167,6 @@ function sanitizeImageUrl(value: string) {
   return encodeURI(trimmed).replace(/#/g, "%23");
 }
 
-function normalizeCategory(value: string | null) {
-  if (!value) {
-    return null;
-  }
-  const normalized = value.trim().toLowerCase();
-  switch (normalized) {
-    case "dish":
-    case "extra":
-    case "beverage":
-    case "combo":
-      return normalized;
-    case "coffee":
-    case "tea":
-      return "beverage";
-    case "dessert":
-    case "food":
-      return "dish";
-    case "other":
-      return "extra";
-    default:
-      return normalized;
-  }
-}
 
 function readMenuItemId(record: MenuItemRecord) {
   const idValue =
@@ -395,13 +364,14 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
   const lastSearchParamsRef = useRef<MenuSearchParams | null>(null);
   const restaurantIdRef = useRef<string | null>(getStoredRestaurantId());
   const autoFetch = options.autoFetch !== false;
+  const initialFetchPath = options.initialFetchPath ?? "/api/menu/items";
 
   const fetchItems = useCallback(async () => {
     setAction("fetch");
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchApiJson<MenuItemsResponse>("/api/menu/items", {
+      const response = await fetchApiJson<MenuItemsResponse>(initialFetchPath, {
         cache: "no-store",
       });
       const nextItems = extractMenuItems(response) ?? [];
@@ -414,7 +384,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
       setLoading(false);
       setAction(null);
     }
-  }, [t]);
+  }, [initialFetchPath, t]);
 
   const searchItems = useCallback(
     async (params: MenuSearchParams = {}) => {
@@ -516,8 +486,10 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
             setItems(refreshedItems);
             refreshed = true;
           }
-        } catch {
-          // Ignore refresh errors; fallback to local optimistic update.
+        } catch (refreshError) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn("[useMenuItems] Failed to refresh items after create:", refreshError);
+          }
         }
         if (!refreshed && newItem) {
           setItems((prev) => [newItem, ...prev.filter(Boolean)]);
@@ -616,7 +588,7 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         setAction(null);
       }
     },
-    [fetchItems, rerunLastQuery, t]
+    [rerunLastQuery, t]
   );
 
   const deleteItem = useCallback(

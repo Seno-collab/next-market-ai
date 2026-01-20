@@ -42,7 +42,7 @@ const accentMap: Record<string, string> = {
 };
 
 export default function MenuPage() {
-  const { items } = useMenuItems();
+  const { items } = useMenuItems({ initialFetchPath: "/api/menus?type=extra&topics=nam-moi" });
   const { t, locale, setLocale } = useLocale();
   const { isDark, setMode } = useTheme();
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -213,7 +213,7 @@ export default function MenuPage() {
     <div className={`menu-shell ${displayFont.variable} ${bodyFont.variable}`}>
       <div className="menu-backdrop" />
       <OrderBurstCanvas ref={burstRef} />
-      <Space orientation="vertical" size="large" style={{ width: "100%" }} className="menu-content">
+      <Space direction="vertical" size="large" style={{ width: "100%" }} className="menu-content">
         <div className="menu-topbar">
           <div className="menu-theme-toggle">
             <Text className="menu-theme-label">{t("menu.theme.label")}</Text>
@@ -241,7 +241,7 @@ export default function MenuPage() {
         <Card variant="borderless" className="menu-hero glass-card">
           <Row gutter={[32, 32]} align="middle">
             <Col xs={24} lg={14}>
-              <Space orientation="vertical" size="middle">
+              <Space direction="vertical" size="middle">
                 <Tag className="menu-badge">{t("menu.heroBadge")}</Tag>
                 <Title level={1} className="menu-title" style={{ margin: 0 }}>
                   {t("menu.qrTitle")}
@@ -273,7 +273,7 @@ export default function MenuPage() {
                 <Card variant="borderless" className="menu-spotlight-card">
                   <Text className="menu-spotlight-label">{t("menu.spotlightTitle")}</Text>
                   {spotlightItem ? (
-                    <Space orientation="vertical" size={8}>
+                    <Space direction="vertical" size={8}>
                       <MenuItemPreview3D
                         imageUrl={spotlightItem.imageUrl}
                         accent={accentMap[spotlightItem.category] ?? "#f97316"}
