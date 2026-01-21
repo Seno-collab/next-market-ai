@@ -14,6 +14,7 @@ import {
   Segmented,
   Select,
   Space,
+  Pagination,
   Switch,
   Table,
   Tag,
@@ -64,10 +65,6 @@ export default function MenuManagementPage() {
     typeof metaTotalPages === "number" && metaTotalPages > 0
       ? metaTotalPages
       : Math.max(1, Math.ceil(totalItems / effectiveLimit));
-  const paginationTotal =
-    typeof metaTotalPages === "number" && metaTotalPages > 0
-      ? metaTotalPages * effectiveLimit
-      : totalItems;
   const availableItems = items.filter((item) => item.available).length;
   const categoryCount = new Set(items.map((item) => item.category)).size;
 
@@ -366,16 +363,16 @@ export default function MenuManagementPage() {
           loading={loading || action === "fetch"}
           columns={columns}
           dataSource={items}
-          pagination={{
-            current: page,
-            pageSize: effectiveLimit,
-            total: paginationTotal,
-            size: "small",
-            showSizeChanger: false,
-            onChange: (nextPage) => setPage(nextPage),
-          }}
+          pagination={false}
           size="small"
           className="glass-table"
+        />
+        <Pagination
+          current={page}
+          total={totalPages}
+          pageSize={1}
+          showSizeChanger={false}
+          onChange={(nextPage) => setPage(nextPage)}
         />
       </Card>
       {hydrated ? (

@@ -3,7 +3,9 @@ import { deleteMenuItem, updateMenuItem } from "@/features/menu/server/menuStore
 import { createTranslator, getRequestLocale } from "@/i18n/translator";
 import { withApiLogging } from "@/lib/api/withApiLogging";
 
-export const PATCH = withApiLogging(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
+type MenuItemParams = { params: Promise<{ id: string }> };
+
+const handlePatch = async (request: NextRequest, context: MenuItemParams) => {
   const t = createTranslator(getRequestLocale(request));
   try {
     const { id } = await context.params;
@@ -16,9 +18,9 @@ export const PATCH = withApiLogging(async (request: NextRequest, context: { para
       { status: 400 },
     );
   }
-});
+};
 
-export const DELETE = withApiLogging(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
+const handleDelete = async (request: NextRequest, context: MenuItemParams) => {
   const t = createTranslator(getRequestLocale(request));
   try {
     const { id } = await context.params;
@@ -30,4 +32,7 @@ export const DELETE = withApiLogging(async (request: NextRequest, context: { par
       { status: 400 },
     );
   }
-});
+};
+
+export const PATCH = withApiLogging(handlePatch);
+export const DELETE = withApiLogging(handleDelete);
