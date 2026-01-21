@@ -39,6 +39,7 @@ export default function AppHeader({ onRefresh, loading = false }: Readonly<AppHe
       <Space size="middle">
         <Segmented
           size="middle"
+          name="app-header-locale-toggle"
           options={[
             { label: "VI", value: "vi" },
             { label: "EN", value: "en" },

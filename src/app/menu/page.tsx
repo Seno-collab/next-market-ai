@@ -229,6 +229,7 @@ export default function MenuPage() {
             <Text className="menu-locale-label">{t("menu.language.label")}</Text>
             <Segmented
               size="small"
+              name="public-menu-locale-toggle"
               options={[
                 { label: "VI", value: "vi" },
                 { label: "EN", value: "en" },

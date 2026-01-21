@@ -127,6 +127,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <Segmented
               size="middle"
               className="admin-locale-toggle"
+              name="admin-locale-toggle"
               options={[
                 { label: "VI", value: "vi" },
                 { label: "EN", value: "en" },

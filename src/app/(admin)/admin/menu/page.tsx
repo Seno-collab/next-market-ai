@@ -314,6 +314,7 @@ export default function MenuManagementPage() {
                 <div className="menu-admin-field">
                   <Text type="secondary">{t("menu.table.available")}</Text>
                   <Segmented
+                    name="admin-menu-availability-toggle"
                     value={availabilityFilter}
                     onChange={(value) => {
                       setAvailabilityFilter(value as "all" | "available" | "unavailable");

@@ -1,16 +1,21 @@
 "use client";
 
-import { BulbOutlined, GlobalOutlined, MoonOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Form, Input, Space, Typography } from "antd";
+import dynamic from "next/dynamic";
+import { BulbOutlined, GlobalOutlined, MoonOutlined, LockOutlined, UserOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Form, Input, Space, Spin, Typography } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useLocale } from "@/hooks/useLocale";
 import { useTheme } from "@/hooks/useTheme";
-import AuthQrBackground from "@/features/auth/components/AuthQrBackground";
-import LoginGalaxyScene from "@/features/auth/components/LoginGalaxyScene";
 
 const { Title, Paragraph, Text } = Typography;
+
+// Dynamic import for Three.js component (no SSR)
+const LoginPortalScene = dynamic(
+  () => import("@/features/auth/components/LoginPortalScene"),
+  { ssr: false, loading: () => <div className="portal-loading"><Spin size="large" /></div> }
+);
 
 type LoginValues = {
   email: string;
@@ -39,79 +44,120 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-backdrop" />
-      <AuthQrBackground />
-      <div className="auth-grid">
-        <div className="auth-panel">
-          <div className="auth-tagline">
-            <Text>{t("login.tagline")}</Text>
+    <div className="auth-shell-3d">
+      {/* 3D Background */}
+      <div className="auth-3d-bg">
+        <LoginPortalScene />
+      </div>
+
+      {/* Overlay gradient */}
+      <div className="auth-overlay" />
+
+      {/* Content */}
+      <div className="auth-3d-content">
+        <div className="auth-3d-grid">
+          {/* Login Form */}
+          <div className="auth-form-panel">
+            <Card variant="borderless" className="glass-card auth-card-3d">
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <div className="auth-card-header">
+                  <AuthBrand />
+                  <div className="auth-header-actions">
+                    <AuthThemeSwitch />
+                    <AuthLocaleSwitch />
+                  </div>
+                </div>
+
+                <div className="auth-welcome">
+                  <div className="auth-welcome-badge">
+                    <LockOutlined /> {t("login.eyebrow") || "Secure Access"}
+                  </div>
+                  <Title level={2} className="auth-welcome-title">
+                    {t("login.title") || "Welcome Back"}
+                  </Title>
+                  <Paragraph className="auth-welcome-subtitle">
+                    {t("login.subtitle") || "Sign in to access your dashboard"}
+                  </Paragraph>
+                </div>
+
+                <Form form={form} layout="vertical" onFinish={handleSubmit} className="auth-form">
+                  <Form.Item
+                    label={t("auth.emailLabel") || "Email"}
+                    name="email"
+                    rules={[{ required: true, message: t("auth.emailRequired") || "Please enter your email" }]}
+                  >
+                    <Input
+                      type="email"
+                      autoComplete="email"
+                      prefix={<UserOutlined />}
+                      placeholder="you@example.com"
+                      size="large"
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    label={t("auth.passwordLabel") || "Password"}
+                    name="password"
+                    rules={[{ required: true, message: t("auth.passwordRequired") || "Please enter your password" }]}
+                  >
+                    <Input.Password
+                      autoComplete="current-password"
+                      prefix={<LockOutlined />}
+                      placeholder="Enter your password"
+                      size="large"
+                    />
+                  </Form.Item>
+                  <Button
+                    type="primary"
+                    size="large"
+                    htmlType="submit"
+                    loading={loadingAction === "login"}
+                    className="auth-submit-btn"
+                    block
+                  >
+                    {loadingAction === "login" ? "Signing in..." : t("login.cta") || "Sign In"}
+                  </Button>
+                </Form>
+
+                <Text type="secondary" className="auth-hint">
+                  {t("login.secondaryHint") || "Enter your credentials to continue"}
+                </Text>
+
+                {success && <Alert message={success} type="success" showIcon />}
+                {error && <Alert message={error} type="error" showIcon />}
+                {session?.user && (
+                  <Text type="secondary">
+                    {t("login.signedInAs") || "Signed in as"}: {session.user.email}
+                  </Text>
+                )}
+              </Space>
+            </Card>
           </div>
-          <Card variant="borderless" className="glass-card auth-card">
-            <Space orientation="vertical" size="large" style={{ width: "100%" }}>
-              <div className="auth-card-header">
-                <AuthBrand />
-                <div className="auth-header-actions">
-                  <AuthThemeSwitch />
-                  <AuthLocaleSwitch />
+
+          {/* Portal Visual Info */}
+          <div className="auth-visual-panel">
+            <div className="auth-visual-content">
+              <div className="portal-info">
+                <div className="portal-badge">Enter the Portal</div>
+                <h3 className="portal-title">{t("login.tagline") || "AI-Powered Access"}</h3>
+                <p className="portal-description">
+                  {t("login.visualCaption") || "Step through the gateway to your personalized dashboard experience"}
+                </p>
+              </div>
+              <div className="portal-stats">
+                <div className="portal-stat">
+                  <span className="portal-stat-value">256-bit</span>
+                  <span className="portal-stat-label">Encryption</span>
+                </div>
+                <div className="portal-stat">
+                  <span className="portal-stat-value">99.9%</span>
+                  <span className="portal-stat-label">Uptime</span>
+                </div>
+                <div className="portal-stat">
+                  <span className="portal-stat-value">2FA</span>
+                  <span className="portal-stat-label">Security</span>
                 </div>
               </div>
-              <div>
-                <Text className="auth-eyebrow">{t("login.eyebrow")}</Text>
-                <Title level={2} className="auth-title">
-                  {t("login.title")}
-                </Title>
-                <Paragraph type="secondary" className="auth-subtitle">
-                  {t("login.subtitle")}
-                </Paragraph>
-              </div>
-              <Form form={form} layout="vertical" onFinish={handleSubmit} className="auth-form">
-                <Form.Item
-                  label={t("auth.emailLabel")}
-                  name="email"
-                  rules={[{ required: true, message: t("auth.emailLabel") }]}
-                >
-                  <Input type="email" autoComplete="email" />
-                </Form.Item>
-                <Form.Item
-                  label={t("auth.passwordLabel")}
-                  name="password"
-                  rules={[{ required: true, message: t("auth.passwordLabel") }]}
-                >
-                  <Input.Password autoComplete="current-password" />
-                </Form.Item>
-                <Button
-                  type="primary"
-                  size="large"
-                  htmlType="submit"
-                  loading={loadingAction === "login"}
-                  className="auth-primary"
-                  block
-                >
-                  {t("login.cta")}
-                </Button>
-              </Form>
-              <Text type="secondary">{t("login.secondaryHint")}</Text>
-              {success && <Alert title={success} type="success" showIcon />}
-              {error && <Alert title={error} type="error" showIcon />}
-              {session?.user && (
-                <Text type="secondary">
-                  {t("login.signedInAs")}: {session.user.email}
-                </Text>
-              )}
-            </Space>
-          </Card>
-        </div>
-        <div className="auth-visual login-visual">
-          <LoginGalaxyScene />
-          <div className="login-visual-meta">
-            <Text className="login-visual-badge">{t("login.tagline")}</Text>
-            <Paragraph type="secondary" className="login-visual-copy">
-              {t("login.subtitle")}
-            </Paragraph>
-          </div>
-          <div className="auth-caption">
-            <Text>{t("login.visualCaption")}</Text>
+            </div>
           </div>
         </div>
       </div>
@@ -136,19 +182,11 @@ function AuthBrand() {
           <rect x="36" y="26" width="6" height="6" rx="1" />
           <rect x="26" y="36" width="6" height="6" rx="1" />
           <rect x="36" y="36" width="6" height="6" rx="1" />
-          <rect x="22" y="20" width="4" height="4" rx="1" />
-          <rect x="38" y="20" width="4" height="4" rx="1" />
-          <rect x="20" y="38" width="4" height="4" rx="1" />
-          <rect x="42" y="38" width="4" height="4" rx="1" />
-          <rect x="28" y="14" width="4" height="4" rx="1" />
-          <rect x="32" y="46" width="4" height="4" rx="1" />
-          <rect x="46" y="30" width="4" height="4" rx="1" />
-          <rect x="14" y="30" width="4" height="4" rx="1" />
         </svg>
       </div>
       <div className="auth-brand-text">
         <div className="auth-brand-name">QR MENU</div>
-        <div className="auth-brand-tagline">{t("login.tagline")}</div>
+        <div className="auth-brand-tagline">{t("login.tagline") || "Smart Dining"}</div>
       </div>
     </div>
   );
