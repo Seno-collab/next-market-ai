@@ -30,6 +30,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Verify API URL secret
+        run: |
+          if [ -z "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
+            echo "❌ NEXT_PUBLIC_API_URL secret is not set!"
+            echo "Go to Settings → Secrets → Actions and add NEXT_PUBLIC_API_URL"
+            exit 1
+          fi
+          echo "✅ API URL configured: ${{ secrets.NEXT_PUBLIC_API_URL }}"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -40,6 +49,8 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.2.4
@@ -71,3 +82,64 @@ jobs:
             fi
             docker run -d --restart=always --name "$CONTAINER_NAME" -p "$APP_PORT:3000" $ENV_ARGS "$IMAGE"
             docker image prune -f
+            echo "✅ Container started successfully"
+
+      - name: Wait for application startup
+        run: sleep 15
+
+      - name: Health check deployment
+        if: secrets.DEPLOYMENT_URL != ''
+        run: |
+          URL="${{ secrets.DEPLOYMENT_URL }}"
+          echo "🔍 Checking deployment health at: $URL"
+
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              echo "✅ Health check passed! (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+
+            echo "⏳ Got HTTP $HTTP_CODE, waiting 10s..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "❌ Health check failed after $MAX_ATTEMPTS attempts"
+          exit 1
+
+      - name: Test API connectivity
+        if: secrets.DEPLOYMENT_URL != '' && secrets.NEXT_PUBLIC_API_URL != ''
+        run: |
+          API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}"
+          echo "🔍 Testing API connectivity: $API_URL"
+
+          # Try to reach the API (may not have /health endpoint)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" 2>/dev/null || echo "000")
+
+          if [ "$HTTP_CODE" != "000" ]; then
+            echo "✅ API is reachable (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️  Could not reach API (this may be expected if API has strict CORS/auth)"
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "================================================"
+          echo "📦 Deployment Summary"
+          echo "================================================"
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "API URL: ${{ secrets.NEXT_PUBLIC_API_URL }}"
+          if [ -n "${{ secrets.DEPLOYMENT_URL }}" ]; then
+            echo "Frontend URL: ${{ secrets.DEPLOYMENT_URL }}"
+          fi
+          echo "================================================"
