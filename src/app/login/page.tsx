@@ -59,7 +59,7 @@ export default function LoginPage() {
           {/* Login Form */}
           <div className="auth-form-panel">
             <Card variant="borderless" className="glass-card auth-card-3d">
-              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+              <Space orientation="vertical" size="large" style={{ width: "100%" }}>
                 <div className="auth-card-header">
                   <AuthBrand />
                   <div className="auth-header-actions">
@@ -122,8 +122,8 @@ export default function LoginPage() {
                   {t("login.secondaryHint") || "Enter your credentials to continue"}
                 </Text>
 
-                {success && <Alert message={success} type="success" showIcon />}
-                {error && <Alert message={error} type="error" showIcon />}
+                {success && <Alert title={success} type="success" showIcon />}
+                {error && <Alert title={error} type="error" showIcon />}
                 {session?.user && (
                   <Text type="secondary">
                     {t("login.signedInAs") || "Signed in as"}: {session.user.email}

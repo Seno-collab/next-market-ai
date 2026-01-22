@@ -1,10 +1,18 @@
 "use client";
 
-import { Alert, Avatar, Button, Card, Col, Form, Input, Row, Space, Typography } from "antd";
+import dynamic from "next/dynamic";
+import { Alert, Avatar, Button, Card, Col, Form, Input, Row, Space, Spin, Typography } from "antd";
+import { UserOutlined } from "@ant-design/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJson, notifyError } from "@/lib/api/client";
 import { useLocale } from "@/hooks/useLocale";
 import type { AuthPublicUser } from "@/features/auth/types";
+
+// Dynamic import for Three.js component (no SSR)
+const ProfileIdentityScene = dynamic(
+  () => import("@/features/admin/components/ProfileIdentityScene"),
+  { ssr: false, loading: () => <div className="profile-scene-loading"><Spin size="large" /></div> }
+);
 
 const { Title, Paragraph } = Typography;
 
@@ -163,7 +171,26 @@ export default function ProfilePage() {
     (typeof profileUser?.image_url === "string" && profileUser.image_url.trim() ? profileUser.image_url.trim() : undefined);
 
   return (
-    <Space orientation="vertical" size="large" className="profile-page">
+    <div className="profile-shell">
+      {/* 3D Background Header */}
+      <div className="profile-3d-header">
+        <ProfileIdentityScene />
+        <div className="profile-header-overlay">
+          <div className="profile-header-content">
+            <div className="profile-header-badge">
+              <UserOutlined /> {t("profile.title")}
+            </div>
+            <h1 className="profile-header-title">
+              {t("profile.heroTitle")}
+            </h1>
+            <p className="profile-header-subtitle">
+              {t("profile.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    <Space orientation="vertical" size="large" className="profile-page profile-content">
       <Card variant="borderless" className="glass-card profile-hero" loading={profileLoading}>
         <div className="profile-hero-content">
           <Avatar size={72} className="profile-avatar" src={profileAvatarSrc}>
@@ -289,5 +316,6 @@ export default function ProfilePage() {
         </Col>
       </Row>
     </Space>
+    </div>
   );
 }

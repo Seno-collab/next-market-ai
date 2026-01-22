@@ -1,11 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  ClusterOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -18,6 +20,7 @@ import {
   Popconfirm,
   Row,
   Space,
+  Spin,
   Switch,
   Table,
   Tag,
@@ -28,8 +31,16 @@ import type { OptionGroup, OptionItem, Topic } from "@/features/menu/types";
 import { useTopics } from "@/features/menu/hooks/useTopics";
 import { useOptionGroups } from "@/features/menu/hooks/useOptionGroups";
 import { useOptionItems } from "@/features/menu/hooks/useOptionItems";
+import { HolographicButton } from "@/features/menu/components/HolographicButton";
+import { Table3DEffect } from "@/features/menu/components/Table3DEffect";
 import { useLocale } from "@/hooks/useLocale";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
+
+// Dynamic import for Three.js component (no SSR)
+const TopicsNetworkScene = dynamic(
+  () => import("@/features/admin/components/TopicsNetworkScene"),
+  { ssr: false, loading: () => <div className="topics-scene-loading"><Spin size="large" /></div> }
+);
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -273,8 +284,13 @@ export default function TopicsPage() {
       title: t("topics.table.actions"),
       key: "actions",
       render: (_: unknown, record: Topic) => (
-        <Space className="menu-admin-actions">
-          <Button icon={<EditOutlined />} onClick={() => openTopicEdit(record)}>
+        <Space className="menu-admin-actions topics-3d-actions">
+          <Button
+            type="default"
+            icon={<EditOutlined />}
+            onClick={() => openTopicEdit(record)}
+            className="holographic-action-btn holographic-action-btn--default"
+          >
             {t("menu.actions.edit")}
           </Button>
           <Popconfirm
@@ -286,7 +302,12 @@ export default function TopicsPage() {
               await fetchTopics({ name: normalizedTopicSearch });
             }}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button
+              type="default"
+              danger
+              icon={<DeleteOutlined />}
+              className="holographic-action-btn holographic-action-btn--danger"
+            >
               {t("menu.actions.delete")}
             </Button>
           </Popconfirm>
@@ -337,8 +358,13 @@ export default function TopicsPage() {
       title: t("variants.groups.table.actions"),
       key: "actions",
       render: (_: unknown, record: OptionGroup) => (
-        <Space className="menu-admin-actions">
-          <Button icon={<EditOutlined />} onClick={() => openGroupEdit(record)}>
+        <Space className="menu-admin-actions topics-3d-actions">
+          <Button
+            type="default"
+            icon={<EditOutlined />}
+            onClick={() => openGroupEdit(record)}
+            className="holographic-action-btn holographic-action-btn--default"
+          >
             {t("menu.actions.edit")}
           </Button>
           <Popconfirm
@@ -352,7 +378,12 @@ export default function TopicsPage() {
               }
             }}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button
+              type="default"
+              danger
+              icon={<DeleteOutlined />}
+              className="holographic-action-btn holographic-action-btn--danger"
+            >
               {t("menu.actions.delete")}
             </Button>
           </Popconfirm>
@@ -403,8 +434,13 @@ export default function TopicsPage() {
       title: t("variants.items.table.actions"),
       key: "actions",
       render: (_: unknown, record: OptionItem) => (
-        <Space className="menu-admin-actions">
-          <Button icon={<EditOutlined />} onClick={() => openItemEdit(record)}>
+        <Space className="menu-admin-actions topics-3d-actions">
+          <Button
+            type="default"
+            icon={<EditOutlined />}
+            onClick={() => openItemEdit(record)}
+            className="holographic-action-btn holographic-action-btn--default"
+          >
             {t("menu.actions.edit")}
           </Button>
           <Popconfirm
@@ -418,7 +454,12 @@ export default function TopicsPage() {
               }
             }}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button
+              type="default"
+              danger
+              icon={<DeleteOutlined />}
+              className="holographic-action-btn holographic-action-btn--danger"
+            >
               {t("menu.actions.delete")}
             </Button>
           </Popconfirm>
@@ -428,8 +469,27 @@ export default function TopicsPage() {
   ];
 
   return (
-    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
-      <Card variant="borderless" className="glass-card">
+    <div className="topics-shell">
+      {/* 3D Background Header */}
+      <div className="topics-3d-header">
+        <TopicsNetworkScene />
+        <div className="topics-header-overlay">
+          <div className="topics-header-content">
+            <div className="topics-header-badge">
+              <ClusterOutlined /> {t("topics.title")}
+            </div>
+            <h1 className="topics-header-title">
+              {t("topics.heroTitle")}
+            </h1>
+            <p className="topics-header-subtitle">
+              {t("topics.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    <Space orientation="vertical" size="large" style={{ width: "100%" }} className="topics-content">
+      <Card variant="borderless" className="glass-card topics-table-card">
         <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
           <Space
             style={{ width: "100%", justifyContent: "space-between" }}
@@ -443,18 +503,18 @@ export default function TopicsPage() {
                 {t("topics.subtitle")}
               </Paragraph>
             </div>
-            <Button
-              type="primary"
+            <HolographicButton
+              variant="primary"
               icon={<PlusOutlined />}
               onClick={openTopicCreate}
             >
               {t("menu.actions.add")}
-            </Button>
+            </HolographicButton>
           </Space>
-          <div className="menu-admin-toolbar">
+          <div className="menu-admin-toolbar topics-3d-toolbar">
             <Row gutter={[16, 16]} align="bottom">
               <Col xs={24} md={14} lg={12}>
-                <div className="menu-admin-field">
+                <div className="menu-admin-field topics-3d-search-field">
                   <Text type="secondary">{t("topics.search.label")}</Text>
                   <Input
                     allowClear
@@ -471,35 +531,38 @@ export default function TopicsPage() {
                     onPressEnter={(event) => {
                       handleTopicSearch(event.currentTarget.value);
                     }}
+                    className="topics-3d-input"
                   />
                 </div>
               </Col>
               <Col xs={24} md={6} lg={4}>
-                <Button
-                  type="primary"
+                <HolographicButton
+                  variant="success"
                   icon={<SearchOutlined />}
-                  className="topic-search-button"
+                  className="topics-search-btn"
                   onClick={() => handleTopicSearch(topicSearch)}
-                  block
                 >
                   {t("topics.search.action")}
-                </Button>
+                </HolographicButton>
               </Col>
             </Row>
           </div>
           {topicsError && <Text type="danger">{topicsError}</Text>}
-          <Table
-            rowKey="id"
-            loading={topicsLoading}
-            columns={topicColumns}
-            dataSource={topics}
-            pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
-            className="glass-table"
-          />
+          <Table3DEffect className="topics-table-3d">
+            <Table
+              rowKey="id"
+              loading={topicsLoading}
+              columns={topicColumns}
+              dataSource={topics}
+              pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
+              className="glass-table holographic-table"
+              rowClassName="holographic-row"
+            />
+          </Table3DEffect>
         </Space>
       </Card>
 
-      <Card variant="borderless" className="glass-card">
+      <Card variant="borderless" className="glass-card topics-table-card">
         <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
           <Space
             style={{ width: "100%", justifyContent: "space-between" }}
@@ -513,18 +576,18 @@ export default function TopicsPage() {
                 {t("variants.groups.subtitle")}
               </Paragraph>
             </div>
-            <Button
-              type="primary"
+            <HolographicButton
+              variant="primary"
               icon={<PlusOutlined />}
               onClick={openGroupCreate}
             >
               {t("menu.actions.add")}
-            </Button>
+            </HolographicButton>
           </Space>
-          <div className="menu-admin-toolbar">
+          <div className="menu-admin-toolbar topics-3d-toolbar">
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12} md={8}>
-                <div className="menu-admin-field">
+                <div className="menu-admin-field topics-3d-search-field">
                   <Text type="secondary">
                     {t("variants.groups.menuItemId")}
                   </Text>
@@ -534,34 +597,39 @@ export default function TopicsPage() {
                     onChange={(value) => setMenuItemId(value ?? null)}
                     placeholder="101"
                     style={{ width: "100%" }}
+                    className="topics-3d-input"
                   />
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Button
+                <HolographicButton
+                  variant="success"
                   icon={<ReloadOutlined />}
                   onClick={() => menuItemId && fetchGroups(menuItemId)}
                   loading={groupAction === "fetch"}
                   disabled={!menuItemId}
                 >
                   {t("variants.groups.load")}
-                </Button>
+                </HolographicButton>
               </Col>
             </Row>
           </div>
           {groupsError && <Text type="danger">{groupsError}</Text>}
-          <Table
-            rowKey="id"
-            loading={groupsLoading}
-            columns={groupColumns}
-            dataSource={groups}
-            pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
-            className="glass-table"
-          />
+          <Table3DEffect className="topics-table-3d">
+            <Table
+              rowKey="id"
+              loading={groupsLoading}
+              columns={groupColumns}
+              dataSource={groups}
+              pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
+              className="glass-table holographic-table"
+              rowClassName="holographic-row"
+            />
+          </Table3DEffect>
         </Space>
       </Card>
 
-      <Card variant="borderless" className="glass-card">
+      <Card variant="borderless" className="glass-card topics-table-card">
         <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
           <Space
             style={{ width: "100%", justifyContent: "space-between" }}
@@ -575,18 +643,18 @@ export default function TopicsPage() {
                 {t("variants.items.subtitle")}
               </Paragraph>
             </div>
-            <Button
-              type="primary"
+            <HolographicButton
+              variant="primary"
               icon={<PlusOutlined />}
               onClick={openItemCreate}
             >
               {t("menu.actions.add")}
-            </Button>
+            </HolographicButton>
           </Space>
-          <div className="menu-admin-toolbar">
+          <div className="menu-admin-toolbar topics-3d-toolbar">
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12} md={8}>
-                <div className="menu-admin-field">
+                <div className="menu-admin-field topics-3d-search-field">
                   <Text type="secondary">{t("variants.items.groupId")}</Text>
                   <InputNumber
                     min={1}
@@ -594,30 +662,35 @@ export default function TopicsPage() {
                     onChange={(value) => setGroupId(value ?? null)}
                     placeholder="12"
                     style={{ width: "100%" }}
+                    className="topics-3d-input"
                   />
                 </div>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Button
+                <HolographicButton
+                  variant="success"
                   icon={<ReloadOutlined />}
                   onClick={() => groupId && fetchItems(groupId)}
                   loading={itemAction === "fetch"}
                   disabled={!groupId}
                 >
                   {t("variants.items.load")}
-                </Button>
+                </HolographicButton>
               </Col>
             </Row>
           </div>
           {itemsError && <Text type="danger">{itemsError}</Text>}
-          <Table
-            rowKey="id"
-            loading={itemsLoading}
-            columns={itemColumns}
-            dataSource={items}
-            pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
-            className="glass-table"
-          />
+          <Table3DEffect className="topics-table-3d">
+            <Table
+              rowKey="id"
+              loading={itemsLoading}
+              columns={itemColumns}
+              dataSource={items}
+              pagination={{ pageSize: 6, size: "small", showSizeChanger: false }}
+              className="glass-table holographic-table"
+              rowClassName="holographic-row"
+            />
+          </Table3DEffect>
         </Space>
       </Card>
 
@@ -855,5 +928,6 @@ export default function TopicsPage() {
         </>
       ) : null}
     </Space>
+    </div>
   );
 }

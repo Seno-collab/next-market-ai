@@ -1,7 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  TagsOutlined,
+  DatabaseOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -14,6 +24,7 @@ import {
   Segmented,
   Select,
   Space,
+  Spin,
   Pagination,
   Switch,
   Table,
@@ -23,6 +34,9 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import { MenuItemForm, type MenuItemFormValues } from "@/features/menu/components/MenuItemForm";
+import { HolographicButton } from "@/features/menu/components/HolographicButton";
+import { Table3DEffect } from "@/features/menu/components/Table3DEffect";
+import { MetricCard3D } from "@/features/menu/components/MetricCard3D";
 import { menuCategories } from "@/features/menu/constants";
 import { useMenuItems } from "@/features/menu/hooks/useMenuItems";
 import { useTopicCombobox } from "@/features/menu/hooks/useTopicCombobox";
@@ -31,6 +45,12 @@ import { useLocale } from "@/hooks/useLocale";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
 
 const { Title, Text, Paragraph } = Typography;
+
+// Dynamic import for Three.js components (no SSR)
+const MenuHeroScene = dynamic(
+  () => import("@/features/menu/components/MenuHeroScene"),
+  { ssr: false, loading: () => <div className="menu-hero-loading"><Spin size="large" /></div> }
+);
 
 export default function MenuManagementPage() {
   const {
@@ -181,14 +201,16 @@ export default function MenuManagementPage() {
       title: t("menu.table.image"),
       dataIndex: "imageUrl",
       key: "imageUrl",
-      width: 96,
+      width: 80,
       responsive: ["sm"],
       render: (value: string | undefined, record: MenuItem) => (
-        <div className="menu-item-thumb">
+        <div className="menu-item-thumb-3d">
           {value ? (
             <Image src={value} alt={t(record.name)} width={56} height={56} />
           ) : (
-            <span>QR</span>
+            <div className="menu-item-thumb-placeholder">
+              <AppstoreOutlined />
+            </div>
           )}
         </div>
       ),
@@ -198,10 +220,12 @@ export default function MenuManagementPage() {
       dataIndex: "name",
       key: "name",
       render: (_: string, record: MenuItem) => (
-        <Space orientation="vertical" size={0}>
-          <Text strong>{t(record.name)}</Text>
-          {record.description && <Text type="secondary">{t(record.description)}</Text>}
-        </Space>
+        <div className="menu-item-info">
+          <Text strong className="menu-item-name">{t(record.name)}</Text>
+          {record.description && (
+            <Text type="secondary" className="menu-item-desc">{t(record.description)}</Text>
+          )}
+        </div>
       ),
     },
     {
@@ -209,29 +233,34 @@ export default function MenuManagementPage() {
       dataIndex: "category",
       key: "category",
       responsive: ["md"],
-      render: (value: string) => <Tag color="blue">{categoryLabel(value)}</Tag>,
+      render: (value: string) => (
+        <Tag className="menu-category-tag">{categoryLabel(value)}</Tag>
+      ),
     },
     {
       title: t("menu.table.price"),
       dataIndex: "price",
       key: "price",
-      render: (value: number) => <Text>{formatter.format(value)}</Text>,
+      render: (value: number) => (
+        <Text className="menu-price-text">{formatter.format(value)}</Text>
+      ),
     },
     {
       title: t("menu.table.available"),
       dataIndex: "available",
       key: "available",
       render: (value: boolean, record: MenuItem) => (
-        <Space size="small">
+        <div className="menu-availability-cell">
           <Switch
             checked={value}
             onChange={(checked) => toggleAvailability(record.id, checked)}
             loading={action === "toggle" && pendingId === record.id}
+            className="menu-availability-switch"
           />
-          <Text type={value ? "success" : "secondary"}>
+          <span className={`menu-availability-text ${value ? "is-available" : ""}`}>
             {value ? t("menu.available") : t("menu.unavailable")}
-          </Text>
-        </Space>
+          </span>
+        </div>
       ),
     },
     {
@@ -239,15 +268,24 @@ export default function MenuManagementPage() {
       dataIndex: "updatedAt",
       key: "updatedAt",
       responsive: ["lg"],
-      render: (value: string) =>
-        hydrated ? new Date(value).toLocaleString(locale === "vi" ? "vi-VN" : "en-US") : "—",
+      render: (value: string) => (
+        <Text className="menu-date-text">
+          {hydrated ? new Date(value).toLocaleString(locale === "vi" ? "vi-VN" : "en-US") : "—"}
+        </Text>
+      ),
     },
     {
       title: t("menu.table.actions"),
       key: "actions",
+      width: 200,
       render: (_: string, record: MenuItem) => (
-        <Space className="menu-admin-actions">
-          <Button icon={<EditOutlined />} onClick={() => openEdit(record)}>
+        <Space className="menu-admin-actions menu-3d-actions">
+          <Button
+            type="default"
+            icon={<EditOutlined />}
+            onClick={() => openEdit(record)}
+            className="holographic-action-btn holographic-action-btn--default"
+          >
             {t("menu.actions.edit")}
           </Button>
           <Popconfirm
@@ -256,7 +294,12 @@ export default function MenuManagementPage() {
             cancelText={t("menu.form.cancel")}
             onConfirm={() => deleteItem(record.id)}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button
+              type="default"
+              danger
+              icon={<DeleteOutlined />}
+              className="holographic-action-btn holographic-action-btn--danger"
+            >
               {t("menu.actions.delete")}
             </Button>
           </Popconfirm>
@@ -266,40 +309,102 @@ export default function MenuManagementPage() {
   ];
 
   return (
-    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
-      <Card variant="borderless" className="glass-card">
-        <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-          <Space orientation="vertical" size={4}>
-            <Title level={3} style={{ margin: 0 }}>
-              {t("menu.title")}
-            </Title>
-            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              {t("menu.subtitle")}
-            </Paragraph>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t("menu.actions.add")}
-            </Button>
-          </Space>
-          <div className="menu-admin-toolbar">
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12} lg={10}>
-                <div className="menu-admin-field">
-                  <Text type="secondary">{t("menu.search.label")}</Text>
+    <div className="menu-management-shell">
+      {/* Immersive 3D Hero Section */}
+      <section className="menu-hero-section">
+        <MenuHeroScene />
+        <div className="menu-hero-overlay">
+          <div className="menu-hero-content">
+            <div className="menu-hero-badge">
+              <AppstoreOutlined />
+              <span>{t("menu.title") || "Menu Management"}</span>
+            </div>
+            <h1 className="menu-hero-title">
+              {t("menu.subtitle") || "Manage Your Menu"}
+            </h1>
+            <p className="menu-hero-description">
+              Create, edit, and organize your restaurant menu with powerful tools and real-time updates
+            </p>
+            <div className="menu-hero-actions">
+              <HolographicButton variant="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t("menu.actions.add")}
+              </HolographicButton>
+            </div>
+          </div>
+        </div>
+        <div className="menu-hero-gradient" />
+      </section>
+
+      {/* Metrics Section */}
+      <section className="menu-metrics-section">
+        <Row gutter={[20, 20]}>
+          <Col xs={24} sm={12} lg={6}>
+            <MetricCard3D
+              icon={<DatabaseOutlined />}
+              label={t("menu.metrics.totalItems") || "Total Items"}
+              value={totalItems}
+              variant="cyan"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <MetricCard3D
+              icon={<CheckCircleOutlined />}
+              label={t("analytics.availableItems") || "Available"}
+              value={availableItems}
+              variant="green"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <MetricCard3D
+              icon={<TagsOutlined />}
+              label={t("menu.metrics.categories") || "Categories"}
+              value={categoryCount}
+              variant="purple"
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <MetricCard3D
+              icon={<AppstoreOutlined />}
+              label={t("analytics.totalPages") || "Pages"}
+              value={totalPages}
+              variant="orange"
+            />
+          </Col>
+        </Row>
+      </section>
+
+      {/* Filter & Search Section */}
+      <section className="menu-filter-section">
+        <Card className="menu-filter-card glass-card-enhanced">
+          <div className="menu-filter-header">
+            <div className="menu-filter-title-group">
+              <Title level={4} className="menu-filter-title">
+                <SearchOutlined /> {t("menu.search.label") || "Search & Filter"}
+              </Title>
+              <Text type="secondary" className="menu-filter-results">
+                {totalItems} {t("menu.itemsFound") || "items found"}
+              </Text>
+            </div>
+          </div>
+          <div className="menu-filter-controls">
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} md={10} lg={8}>
+                <div className="menu-filter-field">
                   <Input
                     allowClear
                     prefix={<SearchOutlined />}
-                    placeholder={t("menu.search.placeholder")}
+                    placeholder={t("menu.search.placeholder") || "Search menu items..."}
                     value={searchTerm}
                     onChange={(event) => {
                       setSearchTerm(event.target.value);
                       setPage(1);
                     }}
+                    className="menu-search-input"
                   />
                 </div>
               </Col>
-              <Col xs={24} sm={12} md={6} lg={6}>
-                <div className="menu-admin-field">
-                  <Text type="secondary">{t("menu.form.category")}</Text>
+              <Col xs={24} sm={12} md={7} lg={6}>
+                <div className="menu-filter-field">
                   <Select
                     value={categoryFilter}
                     onChange={(value) => {
@@ -307,12 +412,13 @@ export default function MenuManagementPage() {
                       setPage(1);
                     }}
                     options={categoryOptions}
+                    className="menu-category-select"
+                    placeholder={t("menu.form.category")}
                   />
                 </div>
               </Col>
-              <Col xs={24} sm={12} md={6} lg={8}>
-                <div className="menu-admin-field">
-                  <Text type="secondary">{t("menu.table.available")}</Text>
+              <Col xs={24} sm={12} md={7} lg={10}>
+                <div className="menu-filter-field">
                   <Segmented
                     name="admin-menu-availability-toggle"
                     value={availabilityFilter}
@@ -321,69 +427,67 @@ export default function MenuManagementPage() {
                       setPage(1);
                     }}
                     options={availabilityOptions}
+                    className="menu-availability-segmented"
                   />
                 </div>
               </Col>
             </Row>
           </div>
-          <Text type="secondary" className="menu-admin-results">
-            {totalPages} {t("menu.pagesLabel")}
-          </Text>
-        </Space>
-      </Card>
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card variant="borderless" className="glass-card metric-card">
-            <Text type="secondary">{t("analytics.totalPages")}</Text>
-            <Title level={3} style={{ margin: 0 }}>
-              {totalPages}
-            </Title>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card variant="borderless" className="glass-card metric-card">
-            <Text type="secondary">{t("analytics.availableItems")}</Text>
-            <Title level={3} style={{ margin: 0 }}>
-              {availableItems}
-            </Title>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card variant="borderless" className="glass-card metric-card">
-            <Text type="secondary">{t("menu.metrics.categories")}</Text>
-            <Title level={3} style={{ margin: 0 }}>
-              {categoryCount}
-            </Title>
-          </Card>
-        </Col>
-      </Row>
-      <Card variant="borderless" className="glass-card">
-        {error && <Text type="danger">{error}</Text>}
-        <Table
-          rowKey="id"
-          loading={loading || action === "fetch"}
-          columns={columns}
-          dataSource={items}
-          pagination={false}
-          size="small"
-          className="glass-table"
-        />
-        <Pagination
-          current={page}
-          total={totalPages}
-          pageSize={1}
-          showSizeChanger={false}
-          onChange={(nextPage) => setPage(nextPage)}
-        />
-      </Card>
+        </Card>
+      </section>
+
+      {/* Table Section */}
+      <section className="menu-table-section">
+        <Card className="menu-table-card-enhanced glass-card-enhanced">
+          {error && (
+            <div className="menu-error-banner">
+              <Text type="danger">{error}</Text>
+            </div>
+          )}
+          <Table3DEffect className="menu-table-3d-enhanced">
+            <Table
+              rowKey="id"
+              loading={loading || action === "fetch"}
+              columns={columns}
+              dataSource={items}
+              pagination={false}
+              size="middle"
+              className="menu-data-table"
+              rowClassName="menu-table-row"
+            />
+          </Table3DEffect>
+          <div className="menu-pagination-wrapper">
+            <Pagination
+              current={page}
+              total={totalPages}
+              pageSize={1}
+              showSizeChanger={false}
+              onChange={(nextPage) => setPage(nextPage)}
+              className="menu-pagination"
+            />
+          </div>
+        </Card>
+      </section>
+
+      {/* Modal */}
       {hydrated ? (
         <Modal
           open={open}
-          title={editingItem ? t("menu.actions.edit") : t("menu.actions.add")}
+          title={
+            <div className="menu-modal-title">
+              {editingItem ? (
+                <><EditOutlined /> {t("menu.actions.edit")}</>
+              ) : (
+                <><PlusOutlined /> {t("menu.actions.add")}</>
+              )}
+            </div>
+          }
           onCancel={() => setOpen(false)}
           footer={null}
           forceRender
           getContainer={false}
+          className="menu-modal-enhanced"
+          width={600}
         >
           <MenuItemForm
             form={form}
@@ -396,6 +500,6 @@ export default function MenuManagementPage() {
           />
         </Modal>
       ) : null}
-    </Space>
+    </div>
   );
 }

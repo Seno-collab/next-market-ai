@@ -228,6 +228,7 @@ export const messages = {
     topics: {
       title: "Chủ đề",
       subtitle: "Quản lý topic theo nhà hàng.",
+      heroTitle: "Bản đồ chủ đề",
       restaurantId: "Restaurant ID",
       load: "Tải topics",
       search: {
@@ -399,6 +400,7 @@ export const messages = {
     profile: {
       title: "Hồ sơ",
       subtitle: "Cập nhật thông tin tài khoản và đổi mật khẩu.",
+      heroTitle: "Danh tính của bạn",
       infoTitle: "Thông tin cá nhân",
       infoSubtitle: "Chỉnh sửa tên hiển thị của bạn.",
       passwordTitle: "Đổi mật khẩu",
@@ -435,8 +437,8 @@ export const messages = {
       visualCaption: "Robot canh gác + huy hiệu QR xác thực mọi phiên.",
     },
     logout: {
-      tagline: "Secure session",
-      eyebrow: "Sign out",
+      tagline: "Phiên bảo mật",
+      eyebrow: "Đăng xuất",
       title: "Đăng xuất khỏi hệ thống",
       subtitle: "Bảo vệ tài khoản trước khi rời dashboard.",
       cta: "Đăng xuất",
@@ -445,6 +447,12 @@ export const messages = {
       noSession: "Chưa có phiên đăng nhập.",
       backToLogin: "Quay về trang đăng nhập",
       visualCaption: "Phiên đăng nhập được bảo vệ bằng mã hoá.",
+      vortexBadge: "Rời cổng",
+      features: {
+        sessionSecured: "Phiên đã khoá",
+        dataSaved: "Dữ liệu an toàn",
+        tokenCleared: "Đã xoá token",
+      },
     },
     errors: {
       label: "Trạng thái hệ thống",
@@ -762,6 +770,7 @@ export const messages = {
     topics: {
       title: "Topics",
       subtitle: "Manage menu topics by restaurant.",
+      heroTitle: "Topic network",
       restaurantId: "Restaurant ID",
       load: "Load topics",
       search: {
@@ -933,6 +942,7 @@ export const messages = {
     profile: {
       title: "Profile",
       subtitle: "Update your account information and password.",
+      heroTitle: "Your identity",
       infoTitle: "Personal information",
       infoSubtitle: "Edit your display name.",
       passwordTitle: "Change password",
@@ -979,6 +989,12 @@ export const messages = {
       noSession: "No active session found.",
       backToLogin: "Back to login",
       visualCaption: "Sessions are encrypted and monitored.",
+      vortexBadge: "Into the Void",
+      features: {
+        sessionSecured: "Session secured",
+        dataSaved: "Data saved",
+        tokenCleared: "Token cleared",
+      },
     },
     errors: {
       label: "System status",

@@ -60,7 +60,7 @@ export default function LogoutPage() {
           {/* Logout Card */}
           <div className="logout-card-panel">
             <Card variant="borderless" className="glass-card logout-card-3d">
-              <Space direction="vertical" size="large" style={{ width: "100%" }} align="center">
+              <Space orientation="vertical" size="large" style={{ width: "100%" }} align="center">
                 {/* Animated icon */}
                 <div className="logout-icon-wrapper">
                   <div className="logout-icon-ring" />
@@ -70,14 +70,12 @@ export default function LogoutPage() {
                 </div>
 
                 <div className="logout-content">
-                  <div className="logout-badge">
-                    {t("logout.eyebrow") || "Session Ending"}
-                  </div>
+                  <div className="logout-badge">{t("logout.eyebrow")}</div>
                   <Title level={2} className="logout-title">
-                    {t("logout.title") || "Goodbye"}
+                    {t("logout.title")}
                   </Title>
                   <Paragraph className="logout-subtitle">
-                    {t("logout.subtitle") || "You have been securely signed out"}
+                    {t("logout.subtitle")}
                   </Paragraph>
                 </div>
 
@@ -99,13 +97,13 @@ export default function LogoutPage() {
                       className="logout-btn"
                       block
                     >
-                      {loadingAction === "logout" ? "Signing out..." : t("logout.cta") || "Sign Out"}
+                      {loadingAction === "logout" ? t("logout.cta") : t("logout.cta")}
                     </Button>
                   </div>
                 ) : (
                   <div className="logout-actions">
                     <Text type="secondary" className="logout-no-session">
-                      {t("logout.noSession") || "No active session"}
+                      {t("logout.noSession")}
                     </Text>
                     <div className="logout-links">
                       <Link href="/login">
@@ -115,7 +113,7 @@ export default function LogoutPage() {
                           icon={<LoginOutlined />}
                           className="logout-login-btn"
                         >
-                          {t("logout.backToLogin") || "Sign In"}
+                          {t("logout.backToLogin")}
                         </Button>
                       </Link>
                       <Link href="/">
@@ -124,7 +122,7 @@ export default function LogoutPage() {
                           icon={<HomeOutlined />}
                           className="logout-home-btn"
                         >
-                          Home
+                          {t("nav.home") || "Home"}
                         </Button>
                       </Link>
                     </div>
@@ -141,10 +139,10 @@ export default function LogoutPage() {
           <div className="logout-visual-panel">
             <div className="logout-visual-content">
               <div className="vortex-info">
-                <div className="vortex-badge">Into the Void</div>
-                <h3 className="vortex-title">{t("logout.tagline") || "Until Next Time"}</h3>
+                <div className="vortex-badge">{t("logout.vortexBadge")}</div>
+                <h3 className="vortex-title">{t("logout.tagline")}</h3>
                 <p className="vortex-description">
-                  {t("logout.visualCaption") || "Your session has been securely terminated. All data has been safely stored."}
+                  {t("logout.visualCaption")}
                 </p>
               </div>
               <div className="vortex-features">
@@ -154,7 +152,7 @@ export default function LogoutPage() {
                       <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
                     </svg>
                   </div>
-                  <span>Session Secured</span>
+                  <span>{t("logout.features.sessionSecured")}</span>
                 </div>
                 <div className="vortex-feature">
                   <div className="vortex-feature-icon">
@@ -162,7 +160,7 @@ export default function LogoutPage() {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                     </svg>
                   </div>
-                  <span>Data Saved</span>
+                  <span>{t("logout.features.dataSaved")}</span>
                 </div>
                 <div className="vortex-feature">
                   <div className="vortex-feature-icon">
@@ -170,7 +168,7 @@ export default function LogoutPage() {
                       <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
                     </svg>
                   </div>
-                  <span>Token Cleared</span>
+                  <span>{t("logout.features.tokenCleared")}</span>
                 </div>
               </div>
             </div>

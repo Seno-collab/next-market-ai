@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminShell from "@/app/(admin)/AdminShell";
 import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+  description: "QR Lynx Admin - Manage your restaurant, menus, and analytics with powerful 3D visualizations",
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();

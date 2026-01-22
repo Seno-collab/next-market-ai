@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { MenuItemPreview3D } from "@/features/menu/components/MenuItemPreview3D";
 import { OrderBurstCanvas, type OrderBurstHandle } from "@/features/menu/components/OrderBurstCanvas";
 import { menuCategories } from "@/features/menu/constants";
@@ -7,7 +8,7 @@ import { useMenuItems } from "@/features/menu/hooks/useMenuItems";
 import type { MenuItem } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
 import { useTheme } from "@/hooks/useTheme";
-import { BulbOutlined, MoonOutlined, SearchOutlined } from "@ant-design/icons";
+import { BulbOutlined, MoonOutlined, SearchOutlined, CoffeeOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -18,6 +19,7 @@ import {
   Segmented,
   Select,
   Space,
+  Spin,
   Switch,
   Tag,
   Typography,
@@ -25,6 +27,12 @@ import {
 import { Playfair_Display, Space_Grotesk } from "next/font/google";
 import Image from "next/image";
 import { useMemo, useRef, useState, type CSSProperties } from "react";
+
+// Dynamic import for Three.js component (no SSR)
+const PublicMenuScene = dynamic(
+  () => import("@/features/menu/components/PublicMenuScene"),
+  { ssr: false, loading: () => <div className="public-menu-scene-loading"><Spin size="large" /></div> }
+);
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -211,9 +219,27 @@ export default function MenuPage() {
 
   return (
     <div className={`menu-shell ${displayFont.variable} ${bodyFont.variable}`}>
+      {/* 3D Background Header */}
+      <div className="public-menu-3d-header">
+        <PublicMenuScene />
+        <div className="public-menu-header-overlay">
+          <div className="public-menu-header-content">
+            <div className="public-menu-header-badge">
+              <CoffeeOutlined /> {t("menu.heroBadge") || "Premium Selection"}
+            </div>
+            <h1 className="public-menu-header-title">
+              {t("menu.qrTitle") || "Our Menu"}
+            </h1>
+            <p className="public-menu-header-subtitle">
+              {t("menu.qrSubtitle") || "Discover our carefully crafted selection"}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="menu-backdrop" />
       <OrderBurstCanvas ref={burstRef} />
-      <Space direction="vertical" size="large" style={{ width: "100%" }} className="menu-content">
+      <Space orientation="vertical" size="large" style={{ width: "100%" }} className="menu-content">
         <div className="menu-topbar">
           <div className="menu-theme-toggle">
             <Text className="menu-theme-label">{t("menu.theme.label")}</Text>
@@ -242,7 +268,7 @@ export default function MenuPage() {
         <Card variant="borderless" className="menu-hero glass-card">
           <Row gutter={[32, 32]} align="middle">
             <Col xs={24} lg={14}>
-              <Space direction="vertical" size="middle">
+              <Space orientation="vertical" size="middle">
                 <Tag className="menu-badge">{t("menu.heroBadge")}</Tag>
                 <Title level={1} className="menu-title" style={{ margin: 0 }}>
                   {t("menu.qrTitle")}
@@ -274,7 +300,7 @@ export default function MenuPage() {
                 <Card variant="borderless" className="menu-spotlight-card">
                   <Text className="menu-spotlight-label">{t("menu.spotlightTitle")}</Text>
                   {spotlightItem ? (
-                    <Space direction="vertical" size={8}>
+                    <Space orientation="vertical" size={8}>
                       <MenuItemPreview3D
                         imageUrl={spotlightItem.imageUrl}
                         accent={accentMap[spotlightItem.category] ?? "#f97316"}
