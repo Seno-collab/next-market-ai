@@ -281,7 +281,7 @@ function withLocaleHeader(init?: RequestInit) {
       headers.set(RESTAURANT_HEADER_NAME, restaurantId);
     }
   }
-  return { ...init, headers };
+  return { ...init, headers, credentials: "include" as RequestCredentials };
 }
 
 function resolveRequestUrl(input: RequestInfo | URL): string {
@@ -413,7 +413,7 @@ async function expireSession() {
     setStoredAuthTokens(null);
     try {
       const initWithLocale = withLocaleHeader({ method: "POST" });
-      await fetch(AUTH_LOGOUT_PATH, initWithLocale);
+      await fetch(AUTH_LOGOUT_PATH, { ...initWithLocale, credentials: "include" });
     } catch {
       // Ignore network errors; local session is already cleared.
     }
@@ -553,10 +553,11 @@ export async function fetchJson<T>(
     if (canRefresh) {
       const refreshed = await refreshAuthTokens();
       if (refreshed?.accessToken) {
-        const retryResponse = await fetch(
-          input,
-          withLocaleHeader(withAuthHeader(init, refreshed.accessToken))
-        );
+        const retryInit = withLocaleHeader(withAuthHeader(init, refreshed.accessToken));
+        const retryResponse = await fetch(input, {
+          ...retryInit,
+          credentials: "include",
+        });
         if (retryResponse.ok) {
           return (await retryResponse.json()) as T;
         }
