@@ -28,10 +28,15 @@ import { Playfair_Display, Space_Grotesk } from "next/font/google";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-// Dynamic import for Three.js component (no SSR)
+// Dynamic import for Three.js components (no SSR)
 const PublicMenuScene = dynamic(
   () => import("@/features/menu/components/PublicMenuScene"),
   { ssr: false, loading: () => <div className="public-menu-scene-loading"><Spin size="large" /></div> }
+);
+
+const SignaturePicksScene = dynamic(
+  () => import("@/features/menu/components/SignaturePicksScene"),
+  { ssr: false, loading: () => <div className="signature-picks-scene-loading"><Spin size="small" /></div> }
 );
 
 const { Title, Paragraph, Text } = Typography;
@@ -318,18 +323,9 @@ export default function MenuPage() {
     if (availableItems.length === 0) {
       return [];
     }
+    // Lấy 3 món đắt nhất (top 3 highest price)
     const sortedByPrice = [...availableItems].sort((a, b) => b.price - a.price);
-    const picks: MenuItem[] = [];
-    const pushUnique = (item: MenuItem | undefined) => {
-      if (!item || picks.some((existing) => existing.id === item.id)) {
-        return;
-      }
-      picks.push(item);
-    };
-    pushUnique(sortedByPrice[0]);
-    pushUnique(sortedByPrice[Math.floor(sortedByPrice.length / 2)]);
-    pushUnique(sortedByPrice[sortedByPrice.length - 1]);
-    return picks;
+    return sortedByPrice.slice(0, 3);
   }, [availableItems]);
 
   const specialBadgeKeys = [
@@ -342,20 +338,58 @@ export default function MenuPage() {
 
   return (
     <div className={`menu-shell ${displayFont.variable} ${bodyFont.variable}`}>
-      {/* 3D Background Header */}
+      {/* 3D Hero Header with Controls */}
       <div className="public-menu-3d-header">
         <PublicMenuScene />
         <div className="public-menu-header-overlay">
           <div className="public-menu-header-content">
-            <div className="public-menu-header-badge">
-              <CoffeeOutlined /> {t("menu.heroBadge") || "Premium Selection"}
+            <div className="menu-header-top">
+              <div className="menu-header-controls">
+                <div className="menu-control-group">
+                  <BulbOutlined style={{ fontSize: "16px", color: "#fff" }} />
+                  <Switch
+                    checked={isDark}
+                    checkedChildren={<MoonOutlined />}
+                    unCheckedChildren={<BulbOutlined />}
+                    onChange={(checked) => setMode(checked ? "dark" : "light")}
+                    aria-label={t("menu.theme.label")}
+                    size="small"
+                  />
+                </div>
+                <Segmented
+                  size="small"
+                  name="public-menu-locale-toggle"
+                  options={[
+                    { label: "VI", value: "vi" },
+                    { label: "EN", value: "en" },
+                  ]}
+                  value={locale}
+                  onChange={(value) => setLocale(value as "vi" | "en")}
+                  style={{ backgroundColor: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+                />
+              </div>
             </div>
-            <h1 className="public-menu-header-title">
-              {t("menu.qrTitle") || "Our Menu"}
-            </h1>
-            <p className="public-menu-header-subtitle">
-              {t("menu.qrSubtitle") || "Discover our carefully crafted selection"}
-            </p>
+            <div className="menu-header-main">
+              <div className="public-menu-header-badge">
+                <CoffeeOutlined /> {t("menu.heroBadge") || "Premium Selection"}
+              </div>
+              <h1 className="public-menu-header-title">
+                {t("menu.qrTitle") || "Our Menu"}
+              </h1>
+              <p className="public-menu-header-subtitle">
+                {t("menu.qrSubtitle") || "Discover our carefully crafted selection"}
+              </p>
+              <div className="menu-header-stats">
+                <div className="menu-stat">
+                  <span className="menu-stat-value">{availableItems.length}</span>
+                  <span className="menu-stat-label">{t("analytics.totalItems")}</span>
+                </div>
+                <div className="menu-stat">
+                  <span className="menu-stat-value">{formatter.format(averagePrice)}</span>
+                  <span className="menu-stat-label">{t("analytics.averagePrice")}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -363,100 +397,6 @@ export default function MenuPage() {
       <div className="menu-backdrop" />
       <OrderBurstCanvas ref={burstRef} />
       <Space orientation="vertical" size="large" style={{ width: "100%" }} className="menu-content">
-        <div className="menu-topbar">
-          <div className="menu-theme-toggle">
-            <Text className="menu-theme-label">{t("menu.theme.label")}</Text>
-            <Switch
-              checked={isDark}
-              checkedChildren={<MoonOutlined />}
-              unCheckedChildren={<BulbOutlined />}
-              onChange={(checked) => setMode(checked ? "dark" : "light")}
-              aria-label={t("menu.theme.label")}
-            />
-          </div>
-          <div className="menu-locale-toggle">
-            <Text className="menu-locale-label">{t("menu.language.label")}</Text>
-            <Segmented
-              size="small"
-              name="public-menu-locale-toggle"
-              options={[
-                { label: "VI", value: "vi" },
-                { label: "EN", value: "en" },
-              ]}
-              value={locale}
-              onChange={(value) => setLocale(value as "vi" | "en")}
-            />
-          </div>
-        </div>
-        <Card variant="borderless" className="menu-hero glass-card">
-          <Row gutter={[32, 32]} align="middle">
-            <Col xs={24} lg={14}>
-              <Space orientation="vertical" size="middle">
-                <Tag className="menu-badge">{t("menu.heroBadge")}</Tag>
-                <Title level={1} className="menu-title" style={{ margin: 0 }}>
-                  {t("menu.qrTitle")}
-                </Title>
-                <Paragraph className="menu-subtitle">{t("menu.qrSubtitle")}</Paragraph>
-                <Space size="middle" wrap>
-                  <Button type="primary" size="large" className="menu-primary">
-                    {t("menu.heroPrimary")}
-                  </Button>
-                  <Button size="large" className="menu-secondary">
-                    {t("menu.heroSecondary")}
-                  </Button>
-                </Space>
-                <div className="menu-metrics">
-                  <div>
-                    <Text type="secondary">{t("analytics.totalItems")}</Text>
-                    <Text className="menu-metric-value">{availableItems.length}</Text>
-                  </div>
-                  <div>
-                    <Text type="secondary">{t("analytics.averagePrice")}</Text>
-                    <Text className="menu-metric-value">{formatter.format(averagePrice)}</Text>
-                  </div>
-                </div>
-              </Space>
-            </Col>
-            <Col xs={24} lg={10}>
-              <div className="menu-spotlight">
-                <div className="menu-spotlight-glow" />
-                <Card variant="borderless" className="menu-spotlight-card">
-                  <Text className="menu-spotlight-label">{t("menu.spotlightTitle")}</Text>
-                  {spotlightItem ? (
-                    <Space orientation="vertical" size={8}>
-                      <MenuItemPreview3D
-                        imageUrl={spotlightItem.imageUrl}
-                        accent={accentMap[spotlightItem.category] ?? "#f97316"}
-                      />
-                      <Text className="menu-spotlight-name">{t(spotlightItem.name)}</Text>
-                      {spotlightItem.description && (
-                        <Text type="secondary">{t(spotlightItem.description)}</Text>
-                      )}
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        {spotlightItem.basePrice && spotlightItem.basePrice > spotlightItem.price ? (
-                          <>
-                            <Text delete type="secondary" style={{ fontSize: "14px" }}>
-                              {formatter.format(spotlightItem.basePrice)}
-                            </Text>
-                            <Text className="menu-spotlight-price" style={{ color: "#ef4444" }}>
-                              {formatter.format(spotlightItem.price)}
-                            </Text>
-                          </>
-                        ) : (
-                          <Text className="menu-spotlight-price">
-                            {formatter.format(spotlightItem.price)}
-                          </Text>
-                        )}
-                      </div>
-                    </Space>
-                  ) : (
-                    <Text type="secondary">{t("menu.spotlightEmpty")}</Text>
-                  )}
-                </Card>
-              </div>
-            </Col>
-          </Row>
-        </Card>
 
         {specialItems.length > 0 && (
           <div className="menu-specials">
@@ -471,6 +411,12 @@ export default function MenuPage() {
               </div>
               <Tag className="menu-specials-tag">{t("menu.specials.tag")}</Tag>
             </div>
+
+            {/* 3D Signature Picks Scene */}
+            <div className="signature-picks-3d-showcase">
+              <SignaturePicksScene items={specialItems} />
+            </div>
+
             <Row gutter={[20, 20]} className="menu-specials-grid">
               {specialItems.map((item, index) => {
                 const accent = accentMap[item.category] ?? "#f97316";
@@ -548,54 +494,54 @@ export default function MenuPage() {
           </div>
         )}
 
-        <div className="menu-section-header">
-          <div>
-            <Title level={3} className="menu-section-title">
-              {t("menu.browseTitle")}
-            </Title>
-            <Text type="secondary" className="menu-section-subtitle">
-              {t("menu.browseSubtitle")}
-            </Text>
+        {/* Browse Section with Integrated Search/Filter */}
+        <div className="menu-browse-section">
+          <div className="menu-browse-header">
+            <div>
+              <Title level={2} className="menu-browse-title" style={{ margin: 0 }}>
+                {t("menu.browseTitle")}
+              </Title>
+              <Text type="secondary" style={{ fontSize: "15px" }}>
+                {filteredItems.length} {t("menu.itemsLabel")}
+              </Text>
+            </div>
           </div>
-          <Tag className="menu-count">
-            {filteredItems.length} {t("menu.itemsLabel")}
-          </Tag>
-        </div>
-        <div className="menu-toolbar">
-          <div className="menu-toolbar-field">
-            <Text className="menu-field-label">{t("menu.search.label")}</Text>
+
+          <div className="menu-browse-controls">
             <Input
               allowClear
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ fontSize: "18px", color: "var(--menu-accent)" }} />}
               placeholder={t("menu.search.placeholder")}
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               size="large"
+              className="menu-search-input"
             />
-          </div>
-          <div className="menu-toolbar-field">
-            <Text className="menu-field-label">{t("menu.sort.label")}</Text>
-            <Select
-              value={sortKey}
-              onChange={(value) => setSortKey(value as SortKey)}
-              options={sortOptions}
-              size="large"
-              classNames={{ popup: { root: "menu-sort-dropdown" } }}
-            />
+            <div className="menu-filter-sort-group">
+              <Space wrap className="menu-category-filters">
+                {filterOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type={activeCategory === option.value ? "primary" : "default"}
+                    className={`menu-category-btn ${activeCategory === option.value ? "is-active" : ""}`}
+                    onClick={() => setActiveCategory(option.value)}
+                    size="middle"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </Space>
+              <Select
+                value={sortKey}
+                onChange={(value) => setSortKey(value as SortKey)}
+                options={sortOptions}
+                size="large"
+                className="menu-sort-select"
+                suffixIcon={<span style={{ fontSize: "12px" }}>▼</span>}
+              />
+            </div>
           </div>
         </div>
-        <Space wrap className="menu-filters">
-          {filterOptions.map((option) => (
-            <Button
-              key={option.value}
-              type="text"
-              className={`menu-filter ${activeCategory === option.value ? "is-active" : ""}`}
-              onClick={() => setActiveCategory(option.value)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </Space>
 
         <Row gutter={[24, 24]}>
           {filteredItems.map((item) => {

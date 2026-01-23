@@ -10,7 +10,7 @@ export default function PublicMenuScene() {
     const mountEl = mountRef.current;
     if (!mountEl) return undefined;
 
-    // Renderer
+    // Renderer với post-processing
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -21,383 +21,312 @@ export default function PublicMenuScene() {
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.5;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountEl.appendChild(renderer.domElement);
 
-    // Scene
+    // Scene với fog
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0a0a0f, 0.015);
+    scene.fog = new THREE.FogExp2(0x0a0a1f, 0.012);
 
     // Camera
     const camera = new THREE.PerspectiveCamera(
-      55,
+      60,
       mountEl.clientWidth / mountEl.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(0, 2, 25);
+    camera.position.set(0, 5, 30);
 
     const geometries: THREE.BufferGeometry[] = [];
     const materials: THREE.Material[] = [];
 
-    // Restaurant & Hotel color palette
+    // Premium color palette
     const colors = {
-      gold: 0xfbbf24,
-      orange: 0xf97316,
-      red: 0xef4444,
-      green: 0x22c55e,
-      cyan: 0x0ea5e9,
-      purple: 0xa855f7,
+      gold: 0xffd700,
+      rose: 0xff6b9d,
+      cyan: 0x00d4ff,
+      purple: 0xb794f6,
+      green: 0x4ade80,
+      orange: 0xff8c42,
+      white: 0xffffff,
     };
 
-    // === RESPONSIVE QUALITY SETTINGS ===
+    // === RESPONSIVE QUALITY ===
     const isMobile = mountEl.clientWidth < 768;
     const isLowEnd = mountEl.clientWidth < 480;
 
     const quality = {
-      qrCount: isLowEnd ? 4 : isMobile ? 6 : 8,
-      menuItemCount: isLowEnd ? 10 : isMobile ? 15 : 25,
-      particleCount: isLowEnd ? 150 : isMobile ? 300 : 600,
-      orbCount: isLowEnd ? 5 : isMobile ? 8 : 15,
-      starCount: isLowEnd ? 100 : isMobile ? 150 : 300,
-      scanLineCount: isLowEnd ? 5 : isMobile ? 7 : 10,
-      enableHologramBoard: !isLowEnd, // Disable on very low-end
-      enableMouseParallax: !isMobile, // Disable parallax on mobile
+      menuItemCount: isLowEnd ? 12 : isMobile ? 18 : 30,
+      particleCount: isLowEnd ? 200 : isMobile ? 400 : 800,
+      orbCount: isLowEnd ? 8 : isMobile ? 12 : 20,
+      trailCount: isLowEnd ? 0 : isMobile ? 3 : 6,
+      enableHologram: !isLowEnd,
+      enableShadows: !isLowEnd,
+      enableTrails: !isLowEnd,
     };
 
-    // === CENTRAL HOLOGRAPHIC MENU BOARD ===
-    const menuBoardGroup = new THREE.Group();
-    menuBoardGroup.position.set(0, 0, -8);
-    const scanLines: THREE.Mesh[] = [];
-    let borderMaterial: THREE.LineBasicMaterial | null = null;
+    // === HOLOGRAPHIC GRID FLOOR ===
+    if (quality.enableHologram) {
+      const gridSize = 50;
+      const divisions = 50;
+      const gridHelper = new THREE.GridHelper(gridSize, divisions, colors.cyan, colors.purple);
+      gridHelper.position.y = -5;
+      gridHelper.material.opacity = 0.15;
+      gridHelper.material.transparent = true;
+      scene.add(gridHelper);
 
-    if (quality.enableHologramBoard) {
-      // Hologram frame
-      const frameGeometry = new THREE.BoxGeometry(8, 5, 0.2);
-      const frameMaterial = new THREE.MeshPhysicalMaterial({
-        color: colors.cyan,
-        metalness: 0.9,
-        roughness: 0.1,
-        transparent: true,
-        opacity: 0.3,
-        emissive: new THREE.Color(colors.cyan),
-        emissiveIntensity: 0.4,
-      });
-      geometries.push(frameGeometry);
-      materials.push(frameMaterial);
-      const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-      menuBoardGroup.add(frame);
-
-      // Hologram scan lines
-      for (let i = 0; i < quality.scanLineCount; i++) {
-        const lineGeo = new THREE.PlaneGeometry(7.8, 0.1);
-        const lineMat = new THREE.MeshBasicMaterial({
+      // Pulsing grid lines
+      const pulsingLines: THREE.Line[] = [];
+      for (let i = 0; i < 5; i++) {
+        const points = [];
+        points.push(new THREE.Vector3(-gridSize / 2, -5, -gridSize / 2 + i * 10));
+        points.push(new THREE.Vector3(gridSize / 2, -5, -gridSize / 2 + i * 10));
+        const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+        const lineMaterial = new THREE.LineBasicMaterial({
           color: colors.cyan,
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.4,
           blending: THREE.AdditiveBlending,
         });
-        geometries.push(lineGeo);
-        materials.push(lineMat);
-        const line = new THREE.Mesh(lineGeo, lineMat);
-        line.position.y = -2 + (i / (quality.scanLineCount - 1)) * 4;
-        line.position.z = 0.2;
-        menuBoardGroup.add(line);
-        scanLines.push(line);
+        geometries.push(lineGeometry);
+        materials.push(lineMaterial);
+        const line = new THREE.Line(lineGeometry, lineMaterial);
+        line.userData = { pulseOffset: i * 0.5 };
+        pulsingLines.push(line);
+        scene.add(line);
       }
-
-      // Glowing border
-      const borderEdges = new THREE.EdgesGeometry(frameGeometry);
-      borderMaterial = new THREE.LineBasicMaterial({
-        color: colors.gold,
-        transparent: true,
-        opacity: 0.8,
-      });
-      geometries.push(borderEdges);
-      materials.push(borderMaterial);
-      const border = new THREE.LineSegments(borderEdges, borderMaterial);
-      menuBoardGroup.add(border);
-
-      scene.add(menuBoardGroup);
     }
 
-    // === FLOATING QR CODES ===
-    const qrCodeGroup = new THREE.Group();
-    const qrCodes: THREE.Mesh[] = [];
+    // === FLOATING HOLOGRAPHIC TEXT ===
+    const textGroup = new THREE.Group();
+    textGroup.position.set(0, 8, -15);
 
-    for (let i = 0; i < quality.qrCount; i++) {
-      const qrGroup = new THREE.Group();
-
-      // QR base
-      const qrBaseGeo = new THREE.PlaneGeometry(1.5, 1.5);
-      const qrBaseMat = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        metalness: 0.2,
-        roughness: 0.3,
-        transparent: true,
-        opacity: 0.9,
-      });
-      geometries.push(qrBaseGeo);
-      materials.push(qrBaseMat);
-      const qrBase = new THREE.Mesh(qrBaseGeo, qrBaseMat);
-      qrGroup.add(qrBase);
-
-      // QR pattern (simple squares)
-      const squareSize = 0.2;
-      const positions = [
-        [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5],
-        [0, 0], [-0.25, 0.25], [0.25, -0.25]
-      ];
-
-      positions.forEach(([x, y]) => {
-        const squareGeo = new THREE.PlaneGeometry(squareSize, squareSize);
-        const squareMat = new THREE.MeshBasicMaterial({
-          color: 0x0ea5e9,
-          transparent: true,
-          opacity: 0.8,
-        });
-        geometries.push(squareGeo);
-        materials.push(squareMat);
-        const square = new THREE.Mesh(squareGeo, squareMat);
-        square.position.set(x, y, 0.01);
-        qrGroup.add(square);
-      });
-
-      // Position QR codes in circle
-      const angle = (i / quality.qrCount) * Math.PI * 2;
-      const radius = 12;
-      qrGroup.position.set(
-        Math.cos(angle) * radius,
-        Math.sin(angle) * 3,
-        Math.sin(angle) * radius - 10
-      );
-      qrGroup.rotation.y = -angle;
-
-      qrGroup.userData = {
-        baseAngle: angle,
-        radius: radius,
-        floatOffset: i * Math.PI / 4,
-      };
-
-      qrCodes.push(qrBase);
-      qrCodeGroup.add(qrGroup);
-    }
-    scene.add(qrCodeGroup);
-
-    // === FLOATING RESTAURANT ITEMS (Holographic) ===
-    const menuItems: THREE.Mesh[] = [];
-    const itemData: Array<{
-      baseY: number;
-      floatSpeed: number;
-      rotationSpeed: number;
-      orbitRadius: number;
-      orbitSpeed: number;
-      orbitOffset: number;
-    }> = [];
-
-    const createMenuItem = (index: number): THREE.BufferGeometry => {
-      const type = index % 6;
-      switch (type) {
-        case 0: // Plate (cylinder)
-          return new THREE.CylinderGeometry(0.6, 0.7, 0.15, 24);
-        case 1: // Glass
-          return new THREE.CylinderGeometry(0.25, 0.3, 0.8, 16);
-        case 2: // Bowl (sphere)
-          return new THREE.SphereGeometry(0.5, 16, 16);
-        case 3: // Utensil (box)
-          return new THREE.BoxGeometry(0.1, 1.2, 0.1);
-        case 4: // Dome cover
-          return new THREE.SphereGeometry(0.6, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-        default: // Tray
-          return new THREE.BoxGeometry(1.2, 0.1, 0.9);
-      }
-    };
-
-    const itemColors = [colors.gold, colors.orange, colors.cyan, colors.green, colors.purple];
-
-    for (let i = 0; i < quality.menuItemCount; i++) {
-      const geometry = createMenuItem(i);
-      geometries.push(geometry);
-
-      const color = itemColors[i % itemColors.length];
-      const material = new THREE.MeshPhysicalMaterial({
+    // Create "MENU" text using planes with glow
+    const createTextPlane = (offsetX: number, color: number) => {
+      const planeGeo = new THREE.PlaneGeometry(2, 3);
+      const planeMat = new THREE.MeshBasicMaterial({
         color,
-        metalness: 0.7,
-        roughness: 0.2,
         transparent: true,
         opacity: 0.7,
-        emissive: new THREE.Color(color),
-        emissiveIntensity: 0.25,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+      });
+      geometries.push(planeGeo);
+      materials.push(planeMat);
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      plane.position.x = offsetX;
+      return plane;
+    };
+
+    if (quality.enableHologram) {
+      const letter1 = createTextPlane(-6, colors.cyan);
+      const letter2 = createTextPlane(-2, colors.purple);
+      const letter3 = createTextPlane(2, colors.rose);
+      const letter4 = createTextPlane(6, colors.gold);
+
+      textGroup.add(letter1, letter2, letter3, letter4);
+      scene.add(textGroup);
+    }
+
+    // === PREMIUM FLOATING MENU ITEMS ===
+    const menuItems: Array<{
+      mesh: THREE.Mesh;
+      basePos: THREE.Vector3;
+      velocity: THREE.Vector3;
+      rotationSpeed: THREE.Vector3;
+      targetY: number;
+      hoverOffset: number;
+    }> = [];
+
+    const menuItemTypes = [
+      { geo: new THREE.SphereGeometry(0.7, 20, 20), color: colors.rose, name: 'sphere' },
+      { geo: new THREE.BoxGeometry(1.2, 1.2, 1.2), color: colors.cyan, name: 'box' },
+      { geo: new THREE.ConeGeometry(0.6, 1.4, 8), color: colors.purple, name: 'cone' },
+      { geo: new THREE.TorusGeometry(0.6, 0.25, 16, 32), color: colors.gold, name: 'torus' },
+      { geo: new THREE.OctahedronGeometry(0.8), color: colors.green, name: 'oct' },
+      { geo: new THREE.TetrahedronGeometry(0.9), color: colors.orange, name: 'tetra' },
+    ];
+
+    for (let i = 0; i < quality.menuItemCount; i++) {
+      const type = menuItemTypes[i % menuItemTypes.length];
+      const geometry = type.geo.clone();
+      geometries.push(geometry);
+
+      const material = new THREE.MeshPhysicalMaterial({
+        color: type.color,
+        metalness: 0.8,
+        roughness: 0.2,
+        transparent: true,
+        opacity: 0.85,
+        emissive: new THREE.Color(type.color),
+        emissiveIntensity: 0.4,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
       });
       materials.push(material);
 
       const mesh = new THREE.Mesh(geometry, material);
 
-      const angle = (i / quality.menuItemCount) * Math.PI * 2;
-      const radius = 10 + Math.random() * 6;
-      const y = (Math.random() - 0.5) * 12;
+      // Spiral distribution
+      const angle = (i / quality.menuItemCount) * Math.PI * 4;
+      const radius = 8 + (i % 3) * 4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius - 10;
+      const y = (Math.random() - 0.5) * 8;
 
-      mesh.position.set(
-        Math.cos(angle) * radius,
-        y,
-        Math.sin(angle) * radius - 8
+      mesh.position.set(x, y, z);
+      mesh.castShadow = quality.enableShadows;
+      mesh.receiveShadow = quality.enableShadows;
+
+      const basePos = new THREE.Vector3(x, y, z);
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02
+      );
+      const rotationSpeed = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.01
       );
 
-      itemData.push({
-        baseY: y,
-        floatSpeed: 0.4 + Math.random() * 0.6,
-        rotationSpeed: (Math.random() - 0.5) * 0.02,
-        orbitRadius: radius,
-        orbitSpeed: 0.08 + Math.random() * 0.12,
-        orbitOffset: angle,
+      menuItems.push({
+        mesh,
+        basePos: basePos.clone(),
+        velocity,
+        rotationSpeed,
+        targetY: y,
+        hoverOffset: i * 0.2,
       });
 
-      menuItems.push(mesh);
       scene.add(mesh);
     }
 
-    // === AI SECURITY PARTICLES ===
+    // === PARTICLE SYSTEM ===
     const particleCount = quality.particleCount;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
-    const particleSpeeds: number[] = [];
+    const particleSizes = new Float32Array(particleCount);
+
+    const colorPalette = [colors.cyan, colors.purple, colors.rose, colors.gold];
 
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3] = (Math.random() - 0.5) * 50;
-      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 40 - 10;
+      particlePositions[i * 3] = (Math.random() - 0.5) * 60;
+      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 40;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 50 - 10;
 
-      // Cyan/Gold particles for AI + premium feel
-      const useCyan = Math.random() > 0.5;
-      if (useCyan) {
-        particleColors[i * 3] = 0.05;
-        particleColors[i * 3 + 1] = 0.65;
-        particleColors[i * 3 + 2] = 0.91;
-      } else {
-        particleColors[i * 3] = 0.98;
-        particleColors[i * 3 + 1] = 0.75;
-        particleColors[i * 3 + 2] = 0.14;
-      }
+      const color = new THREE.Color(colorPalette[Math.floor(Math.random() * colorPalette.length)]);
+      particleColors[i * 3] = color.r;
+      particleColors[i * 3 + 1] = color.g;
+      particleColors[i * 3 + 2] = color.b;
 
-      particleSpeeds.push(0.015 + Math.random() * 0.025);
+      particleSizes[i] = Math.random() * 2 + 0.5;
     }
 
     const particleGeometry = new THREE.BufferGeometry();
     particleGeometry.setAttribute("position", new THREE.Float32BufferAttribute(particlePositions, 3));
     particleGeometry.setAttribute("color", new THREE.Float32BufferAttribute(particleColors, 3));
+    particleGeometry.setAttribute("size", new THREE.Float32BufferAttribute(particleSizes, 1));
+
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.12,
+      size: 0.15,
       vertexColors: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      sizeAttenuation: true,
     });
+
     geometries.push(particleGeometry);
     materials.push(particleMaterial);
     const particles = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(particles);
 
-    // === PREMIUM GLOWING ORBS ===
-    const premiumOrbs: THREE.Mesh[] = [];
+    // === GLOWING ORBS ===
+    const orbs: Array<{
+      mesh: THREE.Mesh;
+      basePos: THREE.Vector3;
+      phase: number;
+      speed: number;
+    }> = [];
+
     for (let i = 0; i < quality.orbCount; i++) {
-      const orbGeo = new THREE.SphereGeometry(0.4 + Math.random() * 0.5, 20, 20);
-      const orbColor = i % 2 === 0 ? colors.gold : colors.cyan;
+      const orbGeo = new THREE.SphereGeometry(0.5 + Math.random() * 0.8, 16, 16);
+      const orbColor = colorPalette[i % colorPalette.length];
       const orbMat = new THREE.MeshBasicMaterial({
         color: orbColor,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.4,
         blending: THREE.AdditiveBlending,
       });
       geometries.push(orbGeo);
       materials.push(orbMat);
 
       const orb = new THREE.Mesh(orbGeo, orbMat);
-      orb.position.set(
-        (Math.random() - 0.5) * 30,
-        (Math.random() - 0.5) * 20,
-        (Math.random() - 0.5) * 20 - 5
-      );
-      orb.userData = {
-        basePos: orb.position.clone(),
-        speed: 0.6 + Math.random() * 0.6,
-        amplitude: 1.5 + Math.random() * 2,
+      const x = (Math.random() - 0.5) * 40;
+      const y = (Math.random() - 0.5) * 20;
+      const z = (Math.random() - 0.5) * 30 - 10;
+      orb.position.set(x, y, z);
+
+      orbs.push({
+        mesh: orb,
+        basePos: new THREE.Vector3(x, y, z),
         phase: Math.random() * Math.PI * 2,
-      };
-      premiumOrbs.push(orb);
+        speed: 0.5 + Math.random() * 0.5,
+      });
+
       scene.add(orb);
     }
 
-    // === ROTATING RINGS (Restaurant Vibe) ===
-    const rings: THREE.Mesh[] = [];
-    const ringRadii = [6, 8, 10];
-    const ringColors = [colors.gold, colors.orange, colors.cyan];
+    // === DYNAMIC LIGHTING ===
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambientLight);
 
-    ringRadii.forEach((radius, i) => {
-      const ringGeo = new THREE.TorusGeometry(radius, 0.08, 16, 100);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: ringColors[i],
-        transparent: true,
-        opacity: 0.35,
-        blending: THREE.AdditiveBlending,
-      });
-      geometries.push(ringGeo);
-      materials.push(ringMat);
-
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI / 2 + (i * Math.PI) / 12;
-      ring.position.z = -8;
-      rings.push(ring);
-      scene.add(ring);
-    });
-
-    // === BACKGROUND STARS ===
-    const starCount = quality.starCount;
-    const starPositions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount; i++) {
-      starPositions[i * 3] = (Math.random() - 0.5) * 80;
-      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 50;
-      starPositions[i * 3 + 2] = -30 - Math.random() * 30;
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    mainLight.position.set(10, 15, 10);
+    if (quality.enableShadows) {
+      mainLight.castShadow = true;
+      mainLight.shadow.mapSize.width = 1024;
+      mainLight.shadow.mapSize.height = 1024;
     }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
-    const starMat = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.1,
-      transparent: true,
-      opacity: 0.6,
+    scene.add(mainLight);
+
+    // Colored point lights
+    const lights = [
+      { color: colors.cyan, pos: [-15, 5, 5] },
+      { color: colors.rose, pos: [15, 5, -5] },
+      { color: colors.purple, pos: [0, 10, -15] },
+      { color: colors.gold, pos: [0, -3, 10] },
+    ];
+
+    lights.forEach(({ color, pos }) => {
+      const light = new THREE.PointLight(color, 2, 40);
+      light.position.set(pos[0], pos[1], pos[2]);
+      scene.add(light);
     });
-    geometries.push(starGeo);
-    materials.push(starMat);
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
-
-    // === LIGHTING ===
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambient);
-
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1);
-    keyLight.position.set(8, 12, 12);
-    scene.add(keyLight);
-
-    const goldLight = new THREE.PointLight(colors.gold, 2, 40);
-    goldLight.position.set(-10, 5, 5);
-    scene.add(goldLight);
-
-    const cyanLight = new THREE.PointLight(colors.cyan, 1.5, 35);
-    cyanLight.position.set(10, -3, 3);
-    scene.add(cyanLight);
 
     // === MOUSE INTERACTION ===
     let mouseX = 0;
     let mouseY = 0;
+    let scrollY = 0;
 
     const handleMouseMove = (event: MouseEvent) => {
       const rect = mountEl.getBoundingClientRect();
       mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     };
-    mountEl.addEventListener("mousemove", handleMouseMove);
+
+    const handleScroll = () => {
+      scrollY = globalThis.window.scrollY || 0;
+    };
+
+    if (quality.enableHologram) {
+      mountEl.addEventListener("mousemove", handleMouseMove);
+      globalThis.window.addEventListener("scroll", handleScroll);
+    }
 
     // === RESIZE ===
     const handleResize = () => {
@@ -408,91 +337,126 @@ export default function PublicMenuScene() {
     };
     globalThis.window.addEventListener("resize", handleResize);
 
-    // === ANIMATION ===
+    // === ANIMATION LOOP ===
     const clock = new THREE.Clock();
     let frameId = 0;
 
     const animate = () => {
       const t = clock.getElapsedTime();
+      const deltaTime = clock.getDelta();
 
-      // Holographic menu board effects
-      menuBoardGroup.position.y = Math.sin(t * 0.5) * 0.3;
-      menuBoardGroup.rotation.y = Math.sin(t * 0.3) * 0.1;
+      // Camera parallax với scroll
+      const scrollOffset = scrollY * 0.002;
+      camera.position.y = 5 - scrollOffset * 3;
+      camera.position.z = 30 - scrollOffset * 2;
+      camera.lookAt(0, 0, -10);
 
-      // Scan lines animation
-      scanLines.forEach((line, i) => {
-        line.material.opacity = 0.1 + Math.sin(t * 3 + i * 0.5) * 0.15;
-      });
-
-      if (borderMaterial) {
-        borderMaterial.opacity = 0.6 + Math.sin(t * 2) * 0.2;
+      // Mouse parallax
+      if (quality.enableHologram) {
+        camera.position.x += (mouseX * 3 - camera.position.x) * 0.05;
+        camera.rotation.y += (mouseX * 0.1 - camera.rotation.y) * 0.05;
       }
 
-      // Floating QR codes
-      qrCodeGroup.children.forEach((qrGroup) => {
-        const data = qrGroup.userData;
-        const angle = data.baseAngle + t * 0.15;
-        qrGroup.position.x = Math.cos(angle) * data.radius;
-        qrGroup.position.z = Math.sin(angle) * data.radius - 10;
-        qrGroup.position.y = Math.sin(t * 0.6 + data.floatOffset) * 2;
-        qrGroup.rotation.y = -angle + Math.sin(t * 0.5) * 0.2;
-      });
+      // Holographic text animation
+      if (quality.enableHologram) {
+        textGroup.rotation.y = Math.sin(t * 0.5) * 0.2;
+        textGroup.position.y = 8 + Math.sin(t * 0.8) * 0.5;
+        textGroup.children.forEach((child, i) => {
+          const mesh = child as THREE.Mesh;
+          const material = mesh.material as THREE.MeshBasicMaterial;
+          material.opacity = 0.5 + Math.sin(t * 2 + i * 0.5) * 0.3;
+          mesh.rotation.y = Math.sin(t + i) * 0.1;
+        });
+      }
 
-      // Menu items animation
+      // Premium menu items với physics
       menuItems.forEach((item, i) => {
-        const data = itemData[i];
-        const angle = data.orbitOffset + t * data.orbitSpeed;
-        item.position.x = Math.cos(angle) * data.orbitRadius;
-        item.position.z = Math.sin(angle) * data.orbitRadius - 8;
-        item.position.y = data.baseY + Math.sin(t * data.floatSpeed + i) * 1.2;
-        item.rotation.y += data.rotationSpeed;
+        const { mesh, basePos, velocity, rotationSpeed, targetY, hoverOffset } = item;
+
+        // Floating motion
+        const hoverY = Math.sin(t * 0.6 + hoverOffset) * 1.5;
+        mesh.position.y = targetY + hoverY;
+
+        // Gentle drift
+        mesh.position.x += velocity.x;
+        mesh.position.z += velocity.z;
+
+        // Boundaries - bounce back
+        if (Math.abs(mesh.position.x - basePos.x) > 3) velocity.x *= -1;
+        if (Math.abs(mesh.position.z - basePos.z) > 3) velocity.z *= -1;
+
+        // Rotation
+        mesh.rotation.x += rotationSpeed.x;
+        mesh.rotation.y += rotationSpeed.y;
+        mesh.rotation.z += rotationSpeed.z;
+
+        // Pulsing glow
+        const material = mesh.material as THREE.MeshPhysicalMaterial;
+        material.emissiveIntensity = 0.3 + Math.sin(t * 2 + i * 0.3) * 0.2;
+
+        // Scale pulse
+        const scale = 1 + Math.sin(t * 3 + i * 0.5) * 0.05;
+        mesh.scale.set(scale, scale, scale);
       });
 
-      // Particles (AI security effect)
+      // Particle system - rising và swirling
       const positions = particleGeometry.attributes.position.array as Float32Array;
       for (let i = 0; i < particleCount; i++) {
-        positions[i * 3 + 1] += particleSpeeds[i];
-        if (positions[i * 3 + 1] > 15) {
-          positions[i * 3 + 1] = -15;
+        const i3 = i * 3;
+
+        // Rising motion
+        positions[i3 + 1] += 0.02;
+
+        // Swirl effect
+        const swirl = Math.sin(t + positions[i3 + 1] * 0.1) * 0.05;
+        positions[i3] += swirl;
+        positions[i3 + 2] += Math.cos(t + positions[i3 + 1] * 0.1) * 0.05;
+
+        // Reset if too high
+        if (positions[i3 + 1] > 20) {
+          positions[i3 + 1] = -20;
+          positions[i3] = (Math.random() - 0.5) * 60;
+          positions[i3 + 2] = (Math.random() - 0.5) * 50 - 10;
         }
       }
       particleGeometry.attributes.position.needsUpdate = true;
 
-      // Premium orbs
-      premiumOrbs.forEach((orb) => {
-        const { basePos, speed, amplitude, phase } = orb.userData;
-        orb.position.x = basePos.x + Math.sin(t * speed + phase) * amplitude;
-        orb.position.y = basePos.y + Math.cos(t * speed * 0.8 + phase) * amplitude * 0.6;
-        orb.material.opacity = 0.25 + Math.sin(t * 2 + phase) * 0.15;
+      // Particle opacity pulse
+      particleMaterial.opacity = 0.6 + Math.sin(t * 0.5) * 0.2;
+
+      // Glowing orbs
+      orbs.forEach((orb) => {
+        const { mesh, basePos, phase, speed } = orb;
+
+        // Orbital motion
+        mesh.position.x = basePos.x + Math.sin(t * speed + phase) * 3;
+        mesh.position.y = basePos.y + Math.cos(t * speed * 0.7 + phase) * 2;
+        mesh.position.z = basePos.z + Math.sin(t * speed * 0.5 + phase) * 2;
+
+        // Pulsing scale
+        const scale = 1 + Math.sin(t * 2 + phase) * 0.3;
+        mesh.scale.set(scale, scale, scale);
+
+        // Opacity pulse
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.opacity = 0.3 + Math.sin(t * 1.5 + phase) * 0.2;
       });
 
-      // Rings rotation
-      rings.forEach((ring, i) => {
-        ring.rotation.z = t * (0.15 + i * 0.05) * (i % 2 === 0 ? 1 : -1);
-        ring.material.opacity = 0.25 + Math.sin(t * 1.5 + i) * 0.12;
-      });
-
-      // Stars twinkle
-      stars.rotation.y = t * 0.008;
-      stars.rotation.x = t * 0.005;
-
-      // Camera parallax with mouse (disabled on mobile for performance)
-      if (quality.enableMouseParallax) {
-        camera.position.x += (mouseX * 5 - camera.position.x) * 0.03;
-        camera.position.y += (mouseY * 4 + 2 - camera.position.y) * 0.03;
-      }
-      camera.lookAt(0, 0, -8);
-
+      // Render scene
       renderer.render(scene, camera);
       frameId = globalThis.requestAnimationFrame(animate);
     };
 
     animate();
 
+    // === CLEANUP ===
     return () => {
       globalThis.cancelAnimationFrame(frameId);
       globalThis.window.removeEventListener("resize", handleResize);
-      mountEl.removeEventListener("mousemove", handleMouseMove);
+      if (quality.enableHologram) {
+        mountEl.removeEventListener("mousemove", handleMouseMove);
+        globalThis.window.removeEventListener("scroll", handleScroll);
+      }
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
       renderer.dispose();
