@@ -129,8 +129,8 @@ export default function LogoutPage() {
                   </div>
                 )}
 
-                {success && <Alert message={success} type="success" showIcon className="logout-alert" />}
-                {error && <Alert message={error} type="error" showIcon className="logout-alert" />}
+                {success && <Alert title={success} type="success" showIcon className="logout-alert" />}
+                {error && <Alert title={error} type="error" showIcon className="logout-alert" />}
               </Space>
             </Card>
           </div>

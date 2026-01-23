@@ -90,7 +90,7 @@ export default function LoginPage() {
                       type="email"
                       autoComplete="email"
                       prefix={<UserOutlined />}
-                      placeholder="admin@restaurant.com"
+                      placeholder={t("login.emailPlaceholder")}
                       size="large"
                     />
                   </Form.Item>
@@ -145,16 +145,16 @@ export default function LoginPage() {
               </div>
               <div className="portal-stats">
                 <div className="portal-stat">
-                  <span className="portal-stat-value">AI</span>
-                  <span className="portal-stat-label">Security</span>
+                  <span className="portal-stat-value">{t("login.portalStats.aiValue")}</span>
+                  <span className="portal-stat-label">{t("login.portalStats.aiLabel")}</span>
                 </div>
                 <div className="portal-stat">
-                  <span className="portal-stat-value">QR</span>
-                  <span className="portal-stat-label">Auth</span>
+                  <span className="portal-stat-value">{t("login.portalStats.qrValue")}</span>
+                  <span className="portal-stat-label">{t("login.portalStats.qrLabel")}</span>
                 </div>
                 <div className="portal-stat">
-                  <span className="portal-stat-value">3D</span>
-                  <span className="portal-stat-label">Hologram</span>
+                  <span className="portal-stat-value">{t("login.portalStats.holoValue")}</span>
+                  <span className="portal-stat-label">{t("login.portalStats.holoLabel")}</span>
                 </div>
               </div>
             </div>
