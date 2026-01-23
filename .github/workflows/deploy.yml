@@ -9,6 +9,8 @@ env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
   CONTAINER_NAME: next-ai
   APP_PORT: 3000
+  NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+  DEPLOYMENT_URL: ${{ secrets.DEPLOYMENT_URL }}
 
 jobs:
   build-and-deploy:
@@ -42,7 +44,7 @@ jobs:
           MASKED_URL=$(echo "$NEXT_PUBLIC_API_URL" | sed -E 's|^(https?://)([^/]+)(.*)|\1***masked***\3|')
           echo "✅ API URL configured: $MASKED_URL (length: $URL_LENGTH chars)"
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -53,7 +55,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -93,9 +95,9 @@ jobs:
         run: sleep 15
 
       - name: Health check deployment
-        if: secrets.DEPLOYMENT_URL != ''
+        if: env.DEPLOYMENT_URL != ''
         run: |
-          URL="${{ secrets.DEPLOYMENT_URL }}"
+          URL="${{ env.DEPLOYMENT_URL }}"
           echo "🔍 Checking deployment health at: $URL"
 
           MAX_ATTEMPTS=10
@@ -120,7 +122,7 @@ jobs:
           exit 1
 
       - name: Test API connectivity
-        if: secrets.DEPLOYMENT_URL != '' && secrets.NEXT_PUBLIC_API_URL != ''
+        if: env.DEPLOYMENT_URL != '' && env.NEXT_PUBLIC_API_URL != ''
         run: |
           echo "🔍 Testing API connectivity..."
 
@@ -133,7 +135,7 @@ jobs:
             echo "⚠️  Could not reach API (this may be expected if API has strict CORS/auth)"
           fi
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
 
       - name: Deployment summary
         if: always()
@@ -154,5 +156,5 @@ jobs:
           fi
           echo "================================================"
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          DEPLOYMENT_URL: ${{ secrets.DEPLOYMENT_URL }}
+          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
+          DEPLOYMENT_URL: ${{ env.DEPLOYMENT_URL }}
