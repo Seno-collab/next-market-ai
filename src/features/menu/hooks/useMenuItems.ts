@@ -610,11 +610,12 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
                 : typeof payload.price === "string" && Number.isFinite(Number(payload.price))
                   ? Number(payload.price)
                   : item.price;
+            const payloadBasePrice = (payload as unknown as { basePrice?: number | string }).basePrice;
             const nextBasePrice =
-              typeof (payload as { basePrice?: number | string }).basePrice === "number"
-                ? (payload as { basePrice: number }).basePrice
-                : typeof (payload as { basePrice?: number | string }).basePrice === "string" && Number.isFinite(Number((payload as { basePrice: string }).basePrice))
-                  ? Number((payload as { basePrice: string }).basePrice)
+              typeof payloadBasePrice === "number"
+                ? payloadBasePrice
+                : typeof payloadBasePrice === "string" && Number.isFinite(Number(payloadBasePrice))
+                  ? Number(payloadBasePrice)
                   : item.basePrice;
             return {
               ...item,
