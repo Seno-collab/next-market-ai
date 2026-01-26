@@ -116,6 +116,10 @@ export default function MenuPage() {
   // Update hasMore based on searchMeta
   useEffect(() => {
     if (searchMeta) {
+      if (typeof searchMeta.hasMore === "boolean") {
+        setHasMore(searchMeta.hasMore);
+        return;
+      }
       const { page, totalPages } = searchMeta;
       if (page !== null && totalPages !== null) {
         setHasMore(page < totalPages);
@@ -130,13 +134,15 @@ export default function MenuPage() {
     setIsLoadingMore(true);
     const nextPage = currentPage + 1;
     setCurrentPage(nextPage);
+    const nextCursor = searchMeta?.nextCursor;
     await searchItems({
       limit: ITEMS_PER_PAGE,
-      page: nextPage,
+      page: nextCursor ? undefined : nextPage,
+      cursor: nextCursor ?? undefined,
       filter: searchTerm || undefined,
       category: activeCategory === "all" ? undefined : activeCategory,
     });
-  }, [activeCategory, currentPage, hasMore, hookLoading, isLoadingMore, searchItems, searchTerm, ITEMS_PER_PAGE]);
+  }, [activeCategory, currentPage, hasMore, hookLoading, isLoadingMore, searchItems, searchTerm, ITEMS_PER_PAGE, searchMeta?.nextCursor]);
 
   // Reset when category changes
   useEffect(() => {

@@ -50,10 +50,13 @@ type MenuItemsRefreshPayload =
 
 type MenuSearchParams = {
   category?: string;
+  type?: string;
   filter?: string;
   isActive?: boolean;
   limit?: number;
   page?: number;
+  cursor?: string | number;
+  topics?: Array<string | number>;
 };
 
 type MenuSearchResponse = {
@@ -62,6 +65,13 @@ type MenuSearchResponse = {
     items?: unknown[];
     limit?: number;
     page?: number;
+    cursor?: string | number;
+    next_cursor?: string | number | null;
+    prev_cursor?: string | number | null;
+    has_more?: boolean;
+    nextCursor?: string | number | null;
+    prevCursor?: string | number | null;
+    hasMore?: boolean;
     total_items?: number;
     total_pages?: number;
     totalItems?: number;
@@ -77,6 +87,10 @@ type MenuSearchMeta = {
   page: number | null;
   totalItems: number | null;
   totalPages: number | null;
+  cursor: string | null;
+  nextCursor: string | null;
+  prevCursor: string | null;
+  hasMore: boolean | null;
 };
 
 type MenuItemRecord = Record<string, unknown>;
@@ -429,6 +443,9 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
       if (params.category) {
         payload.category = params.category;
       }
+      if (params.type) {
+        payload.type = params.type;
+      }
       if (typeof params.isActive === "boolean") {
         payload.is_active = params.isActive;
       }
@@ -437,6 +454,12 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
       }
       if (typeof params.page === "number") {
         payload.page = params.page;
+      }
+      if (typeof params.cursor === "string" || typeof params.cursor === "number") {
+        payload.cursor = params.cursor;
+      }
+      if (Array.isArray(params.topics) && params.topics.length > 0) {
+        payload.topics = params.topics;
       }
       try {
         const apiInit: RequestInit = {
@@ -454,6 +477,10 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
           const url = new URL(searchPath, globalThis.window?.location?.origin ?? "http://localhost");
           Object.entries(payload).forEach(([key, value]) => {
             if (value === undefined || value === null) return;
+            if (Array.isArray(value)) {
+              value.forEach((entry) => url.searchParams.append(`${key}`, String(entry)));
+              return;
+            }
             url.searchParams.set(key, String(value));
           });
           const isAbsolute = searchPath.startsWith("http://") || searchPath.startsWith("https://");
@@ -481,6 +508,13 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         setSearchMeta({
           limit: readNumber(metaSource?.limit) ?? null,
           page: readNumber(metaSource?.page) ?? null,
+          cursor: readString(metaSource?.cursor ?? metaSource?.current_cursor ?? metaSource?.currentCursor) ??
+            (readNumber(metaSource?.cursor ?? metaSource?.current_cursor ?? metaSource?.currentCursor)?.toString() ?? null),
+          nextCursor: readString(metaSource?.next_cursor ?? metaSource?.nextCursor) ??
+            (readNumber(metaSource?.next_cursor ?? metaSource?.nextCursor)?.toString() ?? null),
+          prevCursor: readString(metaSource?.prev_cursor ?? metaSource?.prevCursor) ??
+            (readNumber(metaSource?.prev_cursor ?? metaSource?.prevCursor)?.toString() ?? null),
+          hasMore: readBoolean(metaSource?.has_more ?? metaSource?.hasMore),
           totalItems:
             readNumber(metaSource?.total_items ?? metaSource?.totalItems) ??
             null,

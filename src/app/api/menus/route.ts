@@ -31,14 +31,22 @@ function resolveRestaurantHeader(request: NextRequest) {
 }
 
 
-function parseTopics(value: string | null) {
-  if (!value) {
+function parseTopics(value: string | string[] | null) {
+  const rawParts = Array.isArray(value)
+    ? value
+    : value
+      ? [value]
+      : [];
+
+  if (rawParts.length === 0) {
     return { ids: [] as number[], keywords: [] as string[] };
   }
+
   const ids = new Set<number>();
   const keywords: string[] = [];
-  value
-    .split(/[,|]/)
+
+  rawParts
+    .flatMap((part) => part.split(/[,|]/))
     .map((part) => part.trim())
     .filter(Boolean)
     .forEach((part) => {
@@ -49,7 +57,42 @@ function parseTopics(value: string | null) {
       }
       keywords.push(part.toLowerCase());
     });
+
   return { ids: Array.from(ids), keywords };
+}
+
+function parseCursor(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric >= 0) {
+    return numeric;
+  }
+
+  try {
+    const decoded = Buffer.from(value, "base64").toString("utf8");
+    const decodedNumber = Number(decoded);
+    if (Number.isFinite(decodedNumber) && decodedNumber >= 0) {
+      return decodedNumber;
+    }
+    const parsed = JSON.parse(decoded);
+    if (parsed && typeof parsed === "object") {
+      const offsetCandidate = (parsed as Record<string, unknown>).offset ??
+        (parsed as Record<string, unknown>).cursor ??
+        (parsed as Record<string, unknown>).start ??
+        (parsed as Record<string, unknown>).index;
+      const offsetNumber = Number(offsetCandidate);
+      if (Number.isFinite(offsetNumber) && offsetNumber >= 0) {
+        return offsetNumber;
+      }
+    }
+  } catch {
+    // ignore malformed cursor values
+  }
+
+  return null;
 }
 
 function readNumber(value: unknown) {
@@ -75,10 +118,16 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   const url = new URL(request.url);
   const typeParam = url.searchParams.get("type");
   const categoryParam = url.searchParams.get("category");
-  const topicsParam = url.searchParams.get("topics") ?? url.searchParams.get("topic");
+  const topicsParam = [
+    ...url.searchParams.getAll("topics"),
+    ...url.searchParams.getAll("topic"),
+    ...url.searchParams.getAll("topics[]"),
+    ...url.searchParams.getAll("topic[]"),
+  ];
   const filterParam = url.searchParams.get("filter") ?? url.searchParams.get("q");
   const limitParam = url.searchParams.get("limit");
   const pageParam = url.searchParams.get("page");
+  const cursorParam = url.searchParams.get("cursor");
   const origin = url.origin;
   const shouldProxy = API_BASE_URL && API_BASE_URL !== origin;
 
@@ -123,12 +172,13 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   }
 
   const normalizedCategory = normalizeCategory(categoryParam ?? typeParam);
-  const topics = parseTopics(topicsParam);
+  const topics = parseTopics(topicsParam.length > 0 ? topicsParam : null);
   const keywords = topics.keywords;
   const topicIds = topics.ids;
   const filter = typeof filterParam === "string" ? filterParam.trim().toLowerCase() : "";
   const limit = readNumber(limitParam);
   const page = readNumber(pageParam);
+  const cursor = parseCursor(cursorParam);
 
   let items = listMenuItems();
   if (normalizedCategory) {
@@ -156,17 +206,29 @@ export const GET = withApiLogging(async (request: NextRequest) => {
 
   const totalItems = items.length;
   const safeLimit = limit && limit > 0 ? limit : totalItems > 0 ? totalItems : 1;
-  const pageIndex = page && page > 0 ? page - 1 : 0;
-  const totalPages = safeLimit > 0 ? Math.max(1, Math.ceil(totalItems / safeLimit)) : 1;
-  const start = pageIndex * safeLimit;
+
+  const start = cursor !== null ? Math.max(0, Math.floor(cursor)) : (() => {
+    const pageIndex = page && page > 0 ? page - 1 : 0;
+    return pageIndex * safeLimit;
+  })();
+
   const pagedItems = items.slice(start, start + safeLimit);
+  const totalPages = safeLimit > 0 ? Math.max(1, Math.ceil(totalItems / safeLimit)) : 1;
+  const currentPage = Math.min(Math.max(1, Math.floor(start / safeLimit) + 1), totalPages);
+  const nextCursor = start + safeLimit < totalItems ? String(start + safeLimit) : null;
+  const prevCursor = start > 0 ? String(Math.max(0, start - safeLimit)) : null;
+  const hasMore = Boolean(nextCursor);
 
   return NextResponse.json({
     items: pagedItems,
     data: {
       items: pagedItems,
       limit: safeLimit,
-      page: pageIndex + 1,
+      page: currentPage,
+      cursor: String(start),
+      next_cursor: nextCursor,
+      prev_cursor: prevCursor,
+      has_more: hasMore,
       total_items: totalItems,
       total_pages: totalPages,
     },
