@@ -44,7 +44,8 @@ export const messages = {
       topics: "Chủ đề & biến thể",
       profile: "Hồ sơ",
       qrMenu: "QR menu",
-      home: "Đăng xuất",
+      home: "Trang chủ",
+      logout: "Đăng xuất",
     },
     adminHero: {
       badge: "AI + QR SECURITY",
@@ -598,7 +599,8 @@ export const messages = {
       topics: "Topics & variants",
       profile: "Profile",
       qrMenu: "QR menu",
-      home: "Logout",
+      home: "Home",
+      logout: "Sign out",
     },
     adminHero: {
       badge: "AI + QR SECURITY",

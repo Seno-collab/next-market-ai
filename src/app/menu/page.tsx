@@ -34,6 +34,11 @@ const PublicMenuScene = dynamic(
   { ssr: false, loading: () => <div className="public-menu-scene-loading"><Spin size="large" /></div> }
 );
 
+const MenuShowcaseScene = dynamic(
+  () => import("@/features/menu/components/MenuShowcaseScene"),
+  { ssr: false, loading: () => <div className="menu-showcase-scene-loading"><Spin size="large" /></div> }
+);
+
 const SignaturePicksScene = dynamic(
   () => import("@/features/menu/components/SignaturePicksScene"),
   { ssr: false, loading: () => <div className="signature-picks-scene-loading"><Spin size="small" /></div> }
@@ -344,9 +349,11 @@ export default function MenuPage() {
 
   return (
     <div className={`menu-shell ${displayFont.variable} ${bodyFont.variable}`}>
+      {/* SPECTACULAR 3D SHOWCASE - Full Screen Background */}
+      <MenuShowcaseScene />
+
       {/* 3D Hero Header with Controls */}
       <div className="public-menu-3d-header">
-        <PublicMenuScene />
         <div className="public-menu-header-overlay">
           <div className="public-menu-header-content">
             <div className="menu-header-top">

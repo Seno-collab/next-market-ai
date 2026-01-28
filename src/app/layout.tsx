@@ -71,7 +71,26 @@ export default function RootLayout({
 }>) {
   // Ignore hydration mismatches caused by extensions injecting attributes into <html>/<body>.
   return (
-    <html lang={defaultLocale} data-theme="dark" suppressHydrationWarning>
+    <html lang={defaultLocale} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const stored = localStorage.getItem('next-ai-theme');
+                  const theme = (stored === 'dark' || stored === 'light')
+                    ? stored
+                    : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                  document.documentElement.dataset.theme = theme;
+                } catch (e) {
+                  document.documentElement.dataset.theme = 'dark';
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${jetbrainsMono.variable} antialiased`}

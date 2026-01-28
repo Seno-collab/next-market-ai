@@ -12,6 +12,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
+  LogoutOutlined,
   QrcodeOutlined,
   SettingOutlined,
   TagsOutlined,
@@ -61,6 +62,11 @@ const navItems = [
     key: "/menu",
     icon: <QrcodeOutlined />,
     labelKey: "nav.qrMenu",
+  },
+  {
+    key: "/logout",
+    icon: <LogoutOutlined />,
+    labelKey: "nav.logout",
   },
   {
     key: "/",
