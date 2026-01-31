@@ -18,14 +18,14 @@ services:
       - NODE_ENV=production
     restart: unless-stopped
 
-  # Uncomment if you want to run a reverse proxy
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #   depends_on:
-  #     - next-ai
-  #   restart: unless-stopped
+  # Reverse proxy with proper DNS resolution for Docker
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - next-ai
+    restart: unless-stopped
