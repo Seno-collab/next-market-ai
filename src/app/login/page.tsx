@@ -37,7 +37,9 @@ export default function LoginPage() {
         password: values.password,
       });
       setSuccess(t("login.success"));
-      router.push("/admin/dashboard");
+      // Force a full page reload to ensure cookies are properly read by server components
+      // This fixes the issue where router.push doesn't work on VPS due to cache
+      window.location.href = "/admin/dashboard";
     } catch {
       // Error state is handled in the auth hook.
     }
