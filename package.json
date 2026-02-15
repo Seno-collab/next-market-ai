@@ -11,7 +11,7 @@
     "api:gen": "swagger-typescript-api -p http://localhost:3000/swagger.json -o src/api -n index.ts --axios --modular --unwrap-response-data"
   },
   "dependencies": {
-    "@ant-design/cssinjs": "^2.0.3",
+    "@ant-design/cssinjs": "^2.1.0",
     "@ant-design/icons": "^6.1.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
