@@ -12243,6 +12243,85 @@ button {
   color: var(--error-red);
 }
 
+/* Simple centered 404 layout */
+.error-404-simple {
+  --error-red: #6366f1;
+  --error-red-bright: #818cf8;
+}
+
+.error-404-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.error-404-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 520px;
+  padding: 40px 32px;
+  background: rgba(10, 8, 20, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 24px;
+  backdrop-filter: blur(24px);
+  animation: error-fade-in 0.8s ease-out;
+}
+
+.error-404-card .error-code-3d {
+  justify-content: center;
+}
+
+.error-404-card .error-badge {
+  margin: 0;
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: rgba(180, 180, 255, 0.9);
+}
+
+.error-404-card .error-badge-dot {
+  background: #818cf8;
+}
+
+.error-404-subtitle {
+  text-align: center;
+  max-width: 420px;
+}
+
+.error-404-simple .error-primary-3d.ant-btn {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+
+.error-404-simple .error-primary-3d.ant-btn:hover,
+.error-404-simple .error-primary-3d.ant-btn:focus-visible {
+  box-shadow:
+    0 12px 32px rgba(99, 102, 241, 0.45),
+    0 0 40px rgba(129, 140, 248, 0.3);
+}
+
+.error-404-simple .error-secondary-3d.ant-btn {
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.error-404-simple .error-secondary-3d.ant-btn:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+:root[data-theme="light"] .error-404-card {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+
+@media (max-width: 640px) {
+  .error-404-card {
+    padding: 28px 20px;
+    margin: 0 8px;
+  }
+}
+
 /* ========================================
    MENU CARD GRID - PRODUCTION READY
    Clean, Balanced & Consistent Layout
@@ -14217,5 +14296,369 @@ button {
 @media (max-width: 768px) {
   .menu-shell .menu-specials {
     padding: 24px 16px !important;
+  }
+}
+
+/* ========================================
+   Trading Login Page
+   ======================================== */
+
+.chat-login-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #060d1a;
+}
+
+/* 3D background behind everything */
+.chat-login-shell .auth-3d-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.45;
+}
+
+/* ---- Header ---- */
+.chat-login-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #0a1628, #0d1f3c);
+  border-bottom: 1px solid rgba(240, 185, 11, 0.15);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chat-login-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-login-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-login-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(240, 185, 11, 0.12);
+  border: 1px solid rgba(240, 185, 11, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0b90b;
+  flex-shrink: 0;
+}
+
+.chat-login-avatar svg {
+  width: 26px;
+  height: 26px;
+}
+
+.chat-login-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.chat-login-info-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.chat-login-info-status {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+/* Header controls */
+.chat-login-theme,
+.chat-login-locale {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chat-login-theme-btn,
+.chat-login-locale-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.8rem !important;
+}
+
+.chat-login-theme-btn:hover,
+.chat-login-locale-btn:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.chat-login-theme-btn.is-active,
+.chat-login-locale-btn.is-active {
+  color: #f0b90b !important;
+  font-weight: 700 !important;
+}
+
+/* ---- Messages area ---- */
+.chat-login-messages {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 24px;
+  gap: 12px;
+  overflow-y: auto;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---- Chat bubbles ---- */
+.chat-login-bubble {
+  max-width: 85%;
+  padding: 10px 16px;
+  border-radius: 8px 8px 8px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  animation: chatBubbleFadeIn 0.35s ease-out both;
+}
+
+.chat-login-bubble:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+@keyframes chatBubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bot bubble - dark theme (default) */
+.chat-login-bubble--bot {
+  background: rgba(240, 185, 11, 0.08);
+  border: 1px solid rgba(240, 185, 11, 0.12);
+  color: #e0e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* System / alert bubbles */
+.chat-login-bubble--system {
+  align-self: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(233, 237, 239, 0.8);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 6px 16px;
+  box-shadow: none;
+}
+
+.chat-login-bubble--success {
+  background: rgba(0, 200, 83, 0.12);
+  color: #00c853;
+}
+
+.chat-login-bubble--error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+/* ---- Form card (inline in chat) ---- */
+.chat-login-card {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(10, 22, 40, 0.85);
+  border: 1px solid rgba(240, 185, 11, 0.15);
+  border-radius: 0 16px 16px 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    inset 0 0 20px rgba(240, 185, 11, 0.03);
+  animation: chatBubbleFadeIn 0.35s ease-out 0.3s both;
+}
+
+.chat-login-card-form {
+  width: 100%;
+}
+
+.chat-login-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-login-card-item {
+  margin-bottom: 12px !important;
+}
+
+.chat-login-card-item .ant-input,
+.chat-login-card-item .ant-input-password,
+.chat-login-card-item .ant-input-affix-wrapper {
+  background: rgba(15, 25, 45, 0.8) !important;
+  border: 1px solid rgba(240, 185, 11, 0.1) !important;
+  border-radius: 10px !important;
+  color: #e0e8f0 !important;
+  height: 46px !important;
+}
+
+.chat-login-card-item .ant-input-affix-wrapper {
+  padding: 0 14px !important;
+}
+
+.chat-login-card-item .ant-input::placeholder,
+.chat-login-card-item .ant-input-password input::placeholder {
+  color: #8696a0 !important;
+}
+
+.chat-login-card-item .ant-input-prefix {
+  color: #8696a0 !important;
+  margin-inline-end: 10px !important;
+}
+
+.chat-login-card-item .ant-input-suffix {
+  color: #8696a0 !important;
+}
+
+.chat-login-card-item .ant-input-affix-wrapper:focus,
+.chat-login-card-item .ant-input-affix-wrapper-focused,
+.chat-login-card-item .ant-input:focus {
+  border-color: #f0b90b !important;
+  box-shadow: 0 0 0 2px rgba(240, 185, 11, 0.2) !important;
+}
+
+/* Submit button */
+.chat-login-card-btn {
+  height: 46px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #f0b90b, #d4a00a) !important;
+  border: none !important;
+  color: #0a1628 !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(240, 185, 11, 0.3) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.chat-login-card-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(240, 185, 11, 0.45) !important;
+  background: linear-gradient(135deg, #fcc50b, #f0b90b) !important;
+}
+
+.chat-login-card-btn .anticon {
+  margin-inline-end: 6px;
+}
+
+/* Hint under button */
+.chat-login-card-hint {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(233, 237, 239, 0.4);
+  line-height: 1.4;
+}
+
+/* ========================================
+   Trading Login - Light Theme
+   ======================================== */
+:root[data-theme="light"] .chat-login-shell {
+  background: #f0f2f5;
+}
+
+:root[data-theme="light"] .chat-login-shell .auth-3d-bg {
+  opacity: 0.12;
+}
+
+:root[data-theme="light"] .chat-login-header {
+  background: linear-gradient(135deg, #1a2a4a, #0d1f3c);
+}
+
+:root[data-theme="light"] .chat-login-bubble--bot {
+  background: rgba(240, 185, 11, 0.08);
+  border: 1px solid rgba(240, 185, 11, 0.15);
+  color: #1a2a4a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .chat-login-bubble--system {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="light"] .chat-login-bubble--success {
+  background: rgba(0, 200, 83, 0.1);
+  color: #00873a;
+}
+
+:root[data-theme="light"] .chat-login-bubble--error {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+:root[data-theme="light"] .chat-login-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(240, 185, 11, 0.15);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02) inset;
+}
+
+:root[data-theme="light"] .chat-login-card-item .ant-input,
+:root[data-theme="light"] .chat-login-card-item .ant-input-password,
+:root[data-theme="light"] .chat-login-card-item .ant-input-affix-wrapper {
+  background: #f5f6f8 !important;
+  border: 1px solid #e0e0e0 !important;
+  color: #1a1a1a !important;
+}
+
+:root[data-theme="light"] .chat-login-card-item .ant-input::placeholder,
+:root[data-theme="light"] .chat-login-card-item .ant-input-password input::placeholder {
+  color: #999 !important;
+}
+
+:root[data-theme="light"] .chat-login-card-item .ant-input-prefix,
+:root[data-theme="light"] .chat-login-card-item .ant-input-suffix {
+  color: #999 !important;
+}
+
+:root[data-theme="light"] .chat-login-card-item .ant-input-affix-wrapper:focus,
+:root[data-theme="light"] .chat-login-card-item .ant-input-affix-wrapper-focused {
+  border-color: #f0b90b !important;
+  box-shadow: 0 0 0 2px rgba(240, 185, 11, 0.15) !important;
+}
+
+:root[data-theme="light"] .chat-login-card-hint {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* ========================================
+   Chat Login - Responsive
+   ======================================== */
+@media (max-width: 640px) {
+  .chat-login-messages {
+    padding: 24px 16px;
+  }
+
+  .chat-login-card {
+    max-width: 100%;
   }
 }

@@ -29,25 +29,25 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "QR Lynx | Restaurant & Hotel Management with AI + QR Security",
-    template: "%s | QR Lynx",
+    default: "Tranding Seno | Smart Trading Platform with AI Analytics",
+    template: "%s | Tranding Seno",
   },
-  description: "Professional restaurant and hotel management platform with AI-powered security, QR menu system, real-time analytics, and 3D holographic dashboards. Built for hospitality excellence.",
-  keywords: ["restaurant management", "hotel management", "QR menu", "AI security", "QR security", "hospitality", "digital menu", "admin dashboard", "3D visualization", "smart dining"],
-  authors: [{ name: "QR Lynx Team" }],
-  creator: "QR Lynx",
+  description: "Smart trading platform with AI-powered analytics, real-time market data, portfolio management, and interactive dashboards. Built for modern traders.",
+  keywords: ["trading platform", "AI analytics", "market data", "portfolio management", "smart trading", "real-time analytics", "admin dashboard", "3D visualization", "trading tools"],
+  authors: [{ name: "Tranding Seno Team" }],
+  creator: "Tranding Seno",
   metadataBase: new URL("https://qrlynx.app"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "QR Lynx",
-    title: "QR Lynx | Restaurant & Hotel Management with AI + QR Security",
-    description: "Professional restaurant and hotel management platform with AI-powered security, QR menu system, and real-time analytics for hospitality excellence.",
+    siteName: "Tranding Seno",
+    title: "Tranding Seno | Smart Trading Platform with AI Analytics",
+    description: "Smart trading platform with AI-powered analytics, real-time market data, and portfolio management for modern traders.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "QR Lynx | Restaurant & Hotel Management Platform",
-    description: "AI + QR Security for modern restaurant and hotel operations with holographic dashboards.",
+    title: "Tranding Seno | Smart Trading Platform",
+    description: "AI-powered analytics and tools for modern traders.",
   },
   robots: {
     index: true,
@@ -78,7 +78,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const stored = localStorage.getItem('next-ai-theme');
+                  const stored = localStorage.getItem('next-market-ai-theme');
                   const theme = (stored === 'dark' || stored === 'light')
                     ? stored
                     : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

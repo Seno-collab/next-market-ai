@@ -6,7 +6,7 @@ import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
-  description: "QR Lynx Admin - Manage your restaurant, menus, and analytics with powerful 3D visualizations",
+  description: "Tranding Seno Admin - Manage your trading portfolio, analytics, and market data with powerful 3D visualizations",
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

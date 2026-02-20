@@ -323,7 +323,7 @@ export default function MenuManagementPage() {
               {t("menu.subtitle") || "Manage Your Menu"}
             </h1>
             <p className="menu-hero-description">
-              Create, edit, and organize your restaurant menu with powerful tools and real-time updates
+              Create, edit, and organize your catalog with powerful tools and real-time updates
             </p>
             <div className="menu-hero-actions">
               <HolographicButton variant="primary" icon={<PlusOutlined />} onClick={openCreate}>

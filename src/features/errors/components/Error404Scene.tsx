@@ -10,7 +10,6 @@ export default function Error404Scene() {
     const mountEl = mountRef.current;
     if (!mountEl) return undefined;
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -24,304 +23,249 @@ export default function Error404Scene() {
     renderer.toneMappingExposure = 1.2;
     mountEl.appendChild(renderer.domElement);
 
-    // Scene
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0a0810, 0.06);
+    scene.fog = new THREE.FogExp2(0x080810, 0.03);
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(
-      60,
+      55,
       mountEl.clientWidth / mountEl.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(0, 0, 12);
+    camera.position.set(0, 0, 14);
 
     const geometries: THREE.BufferGeometry[] = [];
     const materials: THREE.Material[] = [];
 
-    // Main group
-    const voidGroup = new THREE.Group();
-    scene.add(voidGroup);
+    // === Cute lost robot ===
+    const robotGroup = new THREE.Group();
+    scene.add(robotGroup);
 
-    // Broken portal ring (fragmented torus)
-    const fragmentCount = 24;
-    const fragments: THREE.Mesh[] = [];
-    for (let i = 0; i < fragmentCount; i++) {
-      const angle = (i / fragmentCount) * Math.PI * 2;
-      const arcLength = (Math.PI * 2) / fragmentCount * 0.7;
+    // Body (rounded cube-ish sphere)
+    const bodyGeometry = new THREE.SphereGeometry(1.3, 32, 32);
+    const bodyMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x3b3f5c,
+      metalness: 0.6,
+      roughness: 0.3,
+      emissive: new THREE.Color(0x1a1d3a),
+      emissiveIntensity: 0.2,
+    });
+    geometries.push(bodyGeometry);
+    materials.push(bodyMaterial);
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    robotGroup.add(body);
 
-      const fragmentGeometry = new THREE.TorusGeometry(4, 0.12, 8, 12, arcLength);
-      const fragmentMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xdd0031,
-        emissive: new THREE.Color(0xdd0031),
-        emissiveIntensity: 0.5,
-        metalness: 0.8,
-        roughness: 0.2,
-        transparent: true,
-        opacity: 0.9,
-      });
-      geometries.push(fragmentGeometry);
-      materials.push(fragmentMaterial);
-
-      const fragment = new THREE.Mesh(fragmentGeometry, fragmentMaterial);
-      fragment.rotation.z = angle;
-      fragment.userData = {
-        baseAngle: angle,
-        offsetX: (Math.random() - 0.5) * 0.8,
-        offsetY: (Math.random() - 0.5) * 0.8,
-        offsetZ: (Math.random() - 0.5) * 1.5,
-        rotationSpeed: (Math.random() - 0.5) * 0.5,
-        floatPhase: Math.random() * Math.PI * 2,
-      };
-      fragments.push(fragment);
-      voidGroup.add(fragment);
-    }
-
-    // Glitch cubes floating in void
-    const cubeCount = 40;
-    const cubes: THREE.Mesh[] = [];
-    for (let i = 0; i < cubeCount; i++) {
-      const size = 0.1 + Math.random() * 0.4;
-      const cubeGeometry = new THREE.BoxGeometry(size, size, size);
-      const cubeMaterial = new THREE.MeshBasicMaterial({
-        color: i % 3 === 0 ? 0xff5a5f : i % 3 === 1 ? 0xdd0031 : 0x6366f1,
-        transparent: true,
-        opacity: 0.6 + Math.random() * 0.3,
-        wireframe: Math.random() > 0.5,
-      });
-      geometries.push(cubeGeometry);
-      materials.push(cubeMaterial);
-
-      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-      const radius = 3 + Math.random() * 6;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI;
-
-      cube.position.set(
-        radius * Math.sin(phi) * Math.cos(theta),
-        radius * Math.sin(phi) * Math.sin(theta),
-        radius * Math.cos(phi) - 2
-      );
-      cube.userData = {
-        originalPos: cube.position.clone(),
-        rotationSpeed: new THREE.Vector3(
-          (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 2
-        ),
-        glitchPhase: Math.random() * Math.PI * 2,
-        floatSpeed: 0.5 + Math.random() * 1,
-      };
-      cubes.push(cube);
-      scene.add(cube);
-    }
-
-    // Central void shader
-    const voidGeometry = new THREE.PlaneGeometry(8, 8, 64, 64);
-    const voidMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        color1: { value: new THREE.Color(0x050508) },
-        color2: { value: new THREE.Color(0xdd0031) },
-        color3: { value: new THREE.Color(0x6366f1) },
-      },
+    // Face screen (flat circle on front)
+    const screenGeometry = new THREE.CircleGeometry(0.85, 32);
+    const screenMaterial = new THREE.ShaderMaterial({
+      uniforms: { time: { value: 0 } },
       vertexShader: `
         varying vec2 vUv;
-        varying vec3 vPosition;
-        uniform float time;
-
         void main() {
           vUv = uv;
-          vPosition = position;
-
-          // Glitch displacement
-          vec3 pos = position;
-          float glitch = sin(pos.x * 10.0 + time * 5.0) * cos(pos.y * 8.0 + time * 3.0);
-          pos.z += glitch * 0.15 * sin(time * 2.0);
-
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
         uniform float time;
-        uniform vec3 color1;
-        uniform vec3 color2;
-        uniform vec3 color3;
         varying vec2 vUv;
-        varying vec3 vPosition;
-
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-        }
 
         void main() {
-          vec2 center = vUv - 0.5;
+          vec2 uv = vUv;
+          vec2 center = uv - 0.5;
           float dist = length(center);
-          float angle = atan(center.y, center.x);
 
-          // Void spiral
-          float spiral = sin(angle * 6.0 - dist * 15.0 + time * 2.0) * 0.5 + 0.5;
+          // Screen background
+          vec3 bg = vec3(0.05, 0.08, 0.18);
 
-          // Glitch lines
-          float glitchLine = step(0.98, sin(vUv.y * 100.0 + time * 20.0));
-          float glitchBlock = step(0.95, random(floor(vUv * 20.0) + floor(time * 10.0)));
+          // Draw confused eyes: two "X" marks
+          // Left eye
+          vec2 leftEye = uv - vec2(0.32, 0.55);
+          float le = min(
+            abs(leftEye.x + leftEye.y),
+            abs(leftEye.x - leftEye.y)
+          );
+          float leftMask = smoothstep(0.03, 0.01, le) * step(length(leftEye), 0.1);
 
-          // Digital noise
-          float noise = random(vUv + time * 0.1) * 0.15;
+          // Right eye
+          vec2 rightEye = uv - vec2(0.68, 0.55);
+          float re = min(
+            abs(rightEye.x + rightEye.y),
+            abs(rightEye.x - rightEye.y)
+          );
+          float rightMask = smoothstep(0.03, 0.01, re) * step(length(rightEye), 0.1);
 
-          // Color mixing
-          vec3 color = mix(color1, color2, spiral * (1.0 - dist * 1.5));
-          color = mix(color, color3, glitchLine * 0.8);
-          color += vec3(glitchBlock * 0.3, 0.0, glitchBlock * 0.2);
-          color += noise * vec3(0.5, 0.1, 0.2);
+          // Wobbly confused mouth (wavy line)
+          float mouthY = 0.3 + sin(uv.x * 15.0 + time * 3.0) * 0.03;
+          float mouth = smoothstep(0.02, 0.005, abs(uv.y - mouthY))
+            * step(0.3, uv.x) * step(uv.x, 0.7);
 
-          // Void center
-          float voidCenter = smoothstep(0.4, 0.0, dist);
-          color = mix(color, color1, voidCenter * 0.8);
+          // Combine
+          vec3 faceColor = vec3(0.4, 0.85, 1.0);
+          vec3 color = bg;
+          color = mix(color, faceColor, leftMask);
+          color = mix(color, faceColor, rightMask);
+          color = mix(color, faceColor * 0.7, mouth);
 
-          // Edge glow
-          float edgeGlow = smoothstep(0.5, 0.35, dist) * (1.0 - smoothstep(0.35, 0.2, dist));
-          color += vec3(0.8, 0.1, 0.15) * edgeGlow * 0.6;
+          // Scanline effect
+          float scan = sin(uv.y * 80.0 + time * 2.0) * 0.5 + 0.5;
+          color *= 0.92 + scan * 0.08;
 
-          float alpha = smoothstep(0.5, 0.3, dist);
-          alpha *= 0.85;
+          // Screen edge glow
+          float edge = smoothstep(0.5, 0.35, dist);
+          float alpha = edge;
 
           gl_FragColor = vec4(color, alpha);
         }
       `,
       transparent: true,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
     });
-    geometries.push(voidGeometry);
-    materials.push(voidMaterial);
-    const voidPlane = new THREE.Mesh(voidGeometry, voidMaterial);
-    voidPlane.position.z = -1;
-    voidGroup.add(voidPlane);
+    geometries.push(screenGeometry);
+    materials.push(screenMaterial);
+    const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+    screen.position.z = 1.15;
+    robotGroup.add(screen);
 
-    // Glitch scanlines
-    const scanlineCount = 8;
-    for (let i = 0; i < scanlineCount; i++) {
-      const lineGeometry = new THREE.PlaneGeometry(12, 0.03);
-      const lineMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff5a5f,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
+    // Antenna
+    const antennaGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8);
+    const antennaMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x8888aa,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    geometries.push(antennaGeometry);
+    materials.push(antennaMaterial);
+    const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+    antenna.position.set(0, 1.55, 0);
+    robotGroup.add(antenna);
+
+    // Antenna tip (blinking light)
+    const tipGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+    const tipMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff4466,
+      transparent: true,
+      opacity: 1,
+    });
+    geometries.push(tipGeometry);
+    materials.push(tipMaterial);
+    const tip = new THREE.Mesh(tipGeometry, tipMaterial);
+    tip.position.set(0, 1.9, 0);
+    robotGroup.add(tip);
+
+    // Small arms
+    for (const side of [-1, 1]) {
+      const armGeometry = new THREE.CapsuleGeometry(0.08, 0.5, 4, 8);
+      const armMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x4a4f6c,
+        metalness: 0.6,
+        roughness: 0.3,
       });
-      geometries.push(lineGeometry);
-      materials.push(lineMaterial);
-      const line = new THREE.Mesh(lineGeometry, lineMaterial);
-      line.position.set(0, (Math.random() - 0.5) * 8, 0.5);
-      line.userData = { nextGlitch: Math.random() * 2, speed: 10 + Math.random() * 20 };
-      voidGroup.add(line);
+      geometries.push(armGeometry);
+      materials.push(armMaterial);
+      const arm = new THREE.Mesh(armGeometry, armMaterial);
+      arm.position.set(side * 1.4, -0.2, 0);
+      arm.rotation.z = side * 0.4;
+      arm.userData = { side };
+      robotGroup.add(arm);
     }
 
-    // Broken data particles
-    const dataCount = 600;
-    const dataPositions = new Float32Array(dataCount * 3);
-    const dataColors = new Float32Array(dataCount * 3);
-    const dataSizes = new Float32Array(dataCount);
-    const dataVelocities: THREE.Vector3[] = [];
+    // Floating question marks (simple torus + sphere combos)
+    const qmGroup = new THREE.Group();
+    const qmCount = 6;
+    for (let i = 0; i < qmCount; i++) {
+      const qm = new THREE.Group();
 
-    for (let i = 0; i < dataCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 2 + Math.random() * 6;
-      const z = (Math.random() - 0.5) * 8;
+      // "?" curve part (half torus)
+      const curveGeometry = new THREE.TorusGeometry(0.25, 0.06, 8, 16, Math.PI * 1.2);
+      const curveColor = new THREE.Color().setHSL(
+        0.55 + i * 0.04,
+        0.6,
+        0.65
+      );
+      const curveMaterial = new THREE.MeshBasicMaterial({
+        color: curveColor,
+        transparent: true,
+        opacity: 0.7,
+      });
+      geometries.push(curveGeometry);
+      materials.push(curveMaterial);
+      const curve = new THREE.Mesh(curveGeometry, curveMaterial);
+      curve.rotation.x = Math.PI / 2;
+      curve.rotation.z = -Math.PI / 4;
+      qm.add(curve);
 
-      dataPositions[i * 3] = Math.cos(angle) * radius;
-      dataPositions[i * 3 + 1] = Math.sin(angle) * radius;
-      dataPositions[i * 3 + 2] = z;
+      // "?" dot
+      const dotGeometry = new THREE.SphereGeometry(0.07, 8, 8);
+      const dotMaterial = new THREE.MeshBasicMaterial({
+        color: curveColor,
+        transparent: true,
+        opacity: 0.7,
+      });
+      geometries.push(dotGeometry);
+      materials.push(dotMaterial);
+      const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+      dot.position.set(0.15, -0.35, 0);
+      qm.add(dot);
 
-      const colorChoice = Math.random();
-      if (colorChoice > 0.6) {
-        dataColors[i * 3] = 0.87;
-        dataColors[i * 3 + 1] = 0.0;
-        dataColors[i * 3 + 2] = 0.19;
-      } else if (colorChoice > 0.3) {
-        dataColors[i * 3] = 1.0;
-        dataColors[i * 3 + 1] = 0.35;
-        dataColors[i * 3 + 2] = 0.37;
-      } else {
-        dataColors[i * 3] = 0.39;
-        dataColors[i * 3 + 1] = 0.4;
-        dataColors[i * 3 + 2] = 0.95;
-      }
-
-      dataSizes[i] = 0.02 + Math.random() * 0.06;
-      dataVelocities.push(new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02
-      ));
+      const angle = (i / qmCount) * Math.PI * 2;
+      const radius = 3 + Math.random() * 2.5;
+      qm.position.set(
+        Math.cos(angle) * radius,
+        (Math.random() - 0.5) * 4,
+        Math.sin(angle) * radius - 1
+      );
+      qm.scale.setScalar(0.8 + Math.random() * 0.8);
+      qm.userData = {
+        orbitAngle: angle,
+        orbitRadius: radius,
+        floatPhase: Math.random() * Math.PI * 2,
+        bobSpeed: 1 + Math.random() * 1.5,
+        rotSpeed: (Math.random() - 0.5) * 2,
+      };
+      qmGroup.add(qm);
     }
+    scene.add(qmGroup);
 
-    const dataGeometry = new THREE.BufferGeometry();
-    dataGeometry.setAttribute("position", new THREE.Float32BufferAttribute(dataPositions, 3));
-    dataGeometry.setAttribute("color", new THREE.Float32BufferAttribute(dataColors, 3));
-    dataGeometry.setAttribute("size", new THREE.Float32BufferAttribute(dataSizes, 1));
-    geometries.push(dataGeometry);
+    // Stars background
+    const starCount = 300;
+    const starPositions = new Float32Array(starCount * 3);
+    const starColors = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPositions[i * 3] = (Math.random() - 0.5) * 40;
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+      starPositions[i * 3 + 2] = -5 - Math.random() * 20;
 
-    const dataMaterial = new THREE.PointsMaterial({
-      size: 0.08,
+      const brightness = 0.5 + Math.random() * 0.5;
+      starColors[i * 3] = brightness;
+      starColors[i * 3 + 1] = brightness;
+      starColors[i * 3 + 2] = brightness + Math.random() * 0.2;
+    }
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
+    starGeometry.setAttribute("color", new THREE.Float32BufferAttribute(starColors, 3));
+    geometries.push(starGeometry);
+
+    const starMaterial = new THREE.PointsMaterial({
+      size: 0.05,
       vertexColors: true,
       transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
+      opacity: 0.8,
     });
-    materials.push(dataMaterial);
-    const dataParticles = new THREE.Points(dataGeometry, dataMaterial);
-    scene.add(dataParticles);
-
-    // Error text floating "404" as wireframe boxes
-    const textGroup = new THREE.Group();
-    const digitPositions = [
-      // 4
-      [[-1.8, 0.4], [-1.8, 0], [-1.8, -0.4], [-1.4, -0.4], [-1.4, 0], [-1.4, 0.4], [-1.4, -0.8]],
-      // 0
-      [[-0.6, 0.4], [-0.6, 0], [-0.6, -0.4], [-0.2, 0.4], [-0.2, -0.4], [0.2, 0.4], [0.2, 0], [0.2, -0.4]],
-      // 4
-      [[0.8, 0.4], [0.8, 0], [0.8, -0.4], [1.2, -0.4], [1.2, 0], [1.2, 0.4], [1.2, -0.8]],
-    ];
-
-    digitPositions.forEach((digit) => {
-      digit.forEach(([x, y]) => {
-        const blockGeometry = new THREE.BoxGeometry(0.25, 0.3, 0.15);
-        const blockMaterial = new THREE.MeshBasicMaterial({
-          color: 0xdd0031,
-          transparent: true,
-          opacity: 0.8,
-          wireframe: true,
-        });
-        geometries.push(blockGeometry);
-        materials.push(blockMaterial);
-        const block = new THREE.Mesh(blockGeometry, blockMaterial);
-        block.position.set(x, y + 2, 2);
-        block.userData = {
-          baseY: y + 2,
-          phase: Math.random() * Math.PI * 2,
-          glitchOffset: Math.random() * 0.3,
-        };
-        textGroup.add(block);
-      });
-    });
-    scene.add(textGroup);
+    materials.push(starMaterial);
+    scene.add(new THREE.Points(starGeometry, starMaterial));
 
     // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.15);
-    const pointLight1 = new THREE.PointLight(0xdd0031, 2, 20);
-    pointLight1.position.set(0, 0, 5);
-    const pointLight2 = new THREE.PointLight(0x6366f1, 1.5, 15);
-    pointLight2.position.set(-4, 2, 3);
-    scene.add(ambient, pointLight1, pointLight2);
+    scene.add(new THREE.AmbientLight(0x667799, 0.4));
+    const frontLight = new THREE.PointLight(0x88aaff, 2, 20);
+    frontLight.position.set(2, 3, 8);
+    scene.add(frontLight);
+    const backLight = new THREE.PointLight(0xdd0031, 1, 15);
+    backLight.position.set(-3, -2, -5);
+    scene.add(backLight);
 
-    // Mouse interaction
+    // Mouse parallax
     let mouseX = 0;
     let mouseY = 0;
-
     const handleMouseMove = (event: MouseEvent) => {
       const rect = mountEl.getBoundingClientRect();
       mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -329,7 +273,6 @@ export default function Error404Scene() {
     };
     mountEl.addEventListener("mousemove", handleMouseMove);
 
-    // Resize
     const handleResize = () => {
       const { clientWidth, clientHeight } = mountEl;
       renderer.setSize(clientWidth, clientHeight);
@@ -338,110 +281,60 @@ export default function Error404Scene() {
     };
     globalThis.window.addEventListener("resize", handleResize);
 
-    // Animation
     const clock = new THREE.Clock();
     let frameId = 0;
 
     const animate = () => {
       const t = clock.getElapsedTime();
 
-      // Update void shader
-      voidMaterial.uniforms.time.value = t;
+      // Update face shader
+      screenMaterial.uniforms.time.value = t;
 
-      // Animate broken ring fragments
-      fragments.forEach((fragment) => {
-        const d = fragment.userData;
-        const glitchX = Math.sin(t * 2 + d.floatPhase) * d.offsetX;
-        const glitchY = Math.cos(t * 1.5 + d.floatPhase) * d.offsetY;
-        const glitchZ = Math.sin(t * 0.8 + d.floatPhase) * d.offsetZ;
+      // Robot bobbing & gentle tilt (looks confused)
+      robotGroup.position.y = Math.sin(t * 1.2) * 0.3;
+      robotGroup.rotation.z = Math.sin(t * 0.8) * 0.08;
+      robotGroup.rotation.x = Math.sin(t * 0.6) * 0.05;
 
-        fragment.position.set(glitchX, glitchY, glitchZ);
-        fragment.rotation.z = d.baseAngle + t * d.rotationSpeed;
-        fragment.rotation.x = Math.sin(t + d.floatPhase) * 0.1;
-      });
+      // Robot slowly looks around
+      robotGroup.rotation.y = Math.sin(t * 0.4) * 0.4;
 
-      // Animate floating cubes with glitch effect
-      cubes.forEach((cube) => {
-        const d = cube.userData;
-        cube.rotation.x += d.rotationSpeed.x * 0.01;
-        cube.rotation.y += d.rotationSpeed.y * 0.01;
-        cube.rotation.z += d.rotationSpeed.z * 0.01;
+      // Antenna tip blink
+      tipMaterial.opacity = Math.sin(t * 4) > 0 ? 1 : 0.2;
 
-        // Glitch teleport occasionally
-        if (Math.random() > 0.995) {
-          cube.position.x = d.originalPos.x + (Math.random() - 0.5) * 2;
-          cube.position.y = d.originalPos.y + (Math.random() - 0.5) * 2;
-        } else {
-          cube.position.y = d.originalPos.y + Math.sin(t * d.floatSpeed + d.glitchPhase) * 0.3;
+      // Arms wave slightly
+      robotGroup.children.forEach((child) => {
+        if (child.userData.side) {
+          child.rotation.z = child.userData.side * (0.4 + Math.sin(t * 2 + child.userData.side) * 0.15);
         }
       });
 
-      // Animate glitch scanlines
-      voidGroup.children.forEach((child) => {
-        if (child.userData.nextGlitch !== undefined) {
-          const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-          if (t > child.userData.nextGlitch) {
-            mat.opacity = 0.6 + Math.random() * 0.4;
-            child.position.y = (Math.random() - 0.5) * 6;
-            child.userData.nextGlitch = t + 0.05 + Math.random() * 0.3;
-          } else {
-            mat.opacity *= 0.85;
-          }
-        }
+      // Animate question marks
+      qmGroup.children.forEach((qm) => {
+        const d = qm.userData;
+        d.orbitAngle += 0.003;
+        qm.position.x = Math.cos(d.orbitAngle) * d.orbitRadius;
+        qm.position.z = Math.sin(d.orbitAngle) * d.orbitRadius - 1;
+        qm.position.y += Math.sin(t * d.bobSpeed + d.floatPhase) * 0.005;
+        qm.rotation.y = t * 0.5;
+        qm.rotation.z = Math.sin(t * d.rotSpeed + d.floatPhase) * 0.2;
       });
 
-      // Data particles chaotic movement
-      const positions = dataGeometry.attributes.position.array as Float32Array;
-      for (let i = 0; i < dataCount; i++) {
-        positions[i * 3] += dataVelocities[i].x;
-        positions[i * 3 + 1] += dataVelocities[i].y;
-        positions[i * 3 + 2] += dataVelocities[i].z;
-
-        // Random velocity changes (glitch effect)
+      // Star twinkle
+      const starOpacities = starGeometry.attributes.color.array as Float32Array;
+      for (let i = 0; i < starCount; i++) {
         if (Math.random() > 0.99) {
-          dataVelocities[i].set(
-            (Math.random() - 0.5) * 0.04,
-            (Math.random() - 0.5) * 0.04,
-            (Math.random() - 0.5) * 0.04
-          );
-        }
-
-        // Reset if too far
-        const dist = Math.sqrt(
-          positions[i * 3] ** 2 +
-          positions[i * 3 + 1] ** 2 +
-          positions[i * 3 + 2] ** 2
-        );
-        if (dist > 10) {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = 2 + Math.random() * 3;
-          positions[i * 3] = Math.cos(angle) * radius;
-          positions[i * 3 + 1] = Math.sin(angle) * radius;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 4;
+          const brightness = 0.3 + Math.random() * 0.7;
+          starOpacities[i * 3] = brightness;
+          starOpacities[i * 3 + 1] = brightness;
+          starOpacities[i * 3 + 2] = brightness + Math.random() * 0.2;
         }
       }
-      dataGeometry.attributes.position.needsUpdate = true;
+      starGeometry.attributes.color.needsUpdate = true;
 
-      // Animate 404 text blocks
-      textGroup.children.forEach((block) => {
-        const d = block.userData;
-        block.position.y = d.baseY + Math.sin(t * 2 + d.phase) * 0.1;
-
-        // Occasional glitch offset
-        if (Math.random() > 0.98) {
-          block.position.x += (Math.random() - 0.5) * d.glitchOffset;
-        }
-      });
-      textGroup.rotation.y = Math.sin(t * 0.5) * 0.1;
-
-      // Camera movement
-      camera.position.x += (mouseX * 2 - camera.position.x) * 0.03;
-      camera.position.y += (mouseY * 1.5 - camera.position.y) * 0.03;
+      // Smooth camera parallax
+      camera.position.x += (mouseX * 1.5 - camera.position.x) * 0.03;
+      camera.position.y += (mouseY * 1.0 - camera.position.y) * 0.03;
       camera.lookAt(0, 0, 0);
-
-      // Group rotation
-      voidGroup.rotation.y = mouseX * 0.15 + t * 0.05;
-      voidGroup.rotation.x = mouseY * 0.1;
 
       renderer.render(scene, camera);
       frameId = globalThis.requestAnimationFrame(animate);
