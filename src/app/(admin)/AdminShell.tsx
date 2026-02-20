@@ -97,7 +97,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         trigger={null}
       >
         <div className="admin-logo">
-          <Text className="admin-logo-mark">QR MENU</Text>
+          <Text className="admin-logo-mark">CHAT MENU</Text>
           <Title level={4} className="admin-logo-title">
             {t("nav.admin")}
           </Title>

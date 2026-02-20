@@ -3,7 +3,7 @@
 import { defaultLocale, messages, type Locale } from "@/i18n/messages";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "next-ai-locale";
+const STORAGE_KEY = "next-market-ai-locale";
 
 type LocaleContextValue = {
   locale: Locale;

@@ -249,7 +249,7 @@ Khi push code lên `main`:
 
 Nếu gặp vấn đề, check:
 1. GitHub Actions logs (tab Actions)
-2. Server logs: `docker logs next-ai`
+2. Server logs: `docker logs next-market-ai`
 3. Build logs trong GitHub Actions
 
 Hoặc tạo issue trong repository.

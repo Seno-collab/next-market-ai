@@ -96,7 +96,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: next-ai:test
+          tags: next-market-ai:test
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8080' }}
           cache-from: type=gha
@@ -104,15 +104,15 @@ jobs:
 
       - name: Test Docker image
         run: |
-          docker run -d --name next-ai-test -p 3000:3000 next-ai:test
+          docker run -d --name next-market-ai-test -p 3000:3000 next-market-ai:test
           sleep 10
 
           # Check if container is running
-          if docker ps | grep -q next-ai-test; then
+          if docker ps | grep -q next-market-ai-test; then
             echo "✅ Container is running"
           else
             echo "❌ Container failed to start"
-            docker logs next-ai-test
+            docker logs next-market-ai-test
             exit 1
           fi
 
@@ -121,12 +121,12 @@ jobs:
             echo "✅ Application is responding"
           else
             echo "❌ Application is not responding"
-            docker logs next-ai-test
+            docker logs next-market-ai-test
             exit 1
           fi
 
-          docker stop next-ai-test
-          docker rm next-ai-test
+          docker stop next-market-ai-test
+          docker rm next-market-ai-test
 
   lint:
     runs-on: ubuntu-latest

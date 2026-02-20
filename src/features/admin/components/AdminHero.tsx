@@ -37,7 +37,7 @@ export function AdminHero() {
           <div className="holo-card">
             <div className="holo-card-header">
               <span className="holo-pill">{t("adminHero.securityLabel")}</span>
-              <span className="holo-card-id">AI-RX • QR SECURE</span>
+              <span className="holo-card-id">AI-RX • CHAT SECURE</span>
             </div>
             <div className="holo-stage-wrap">
               <AdminHologramScene />

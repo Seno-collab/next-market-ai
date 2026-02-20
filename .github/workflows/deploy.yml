@@ -7,7 +7,7 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
-  CONTAINER_NAME: next-ai
+  CONTAINER_NAME: next-market-ai
   APP_PORT: 3000
   NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
   DEPLOYMENT_URL: ${{ secrets.DEPLOYMENT_URL }}

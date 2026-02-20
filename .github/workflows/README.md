@@ -80,10 +80,10 @@ After successful build:
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # Pull the image
-docker pull ghcr.io/YOUR_USERNAME/next-ai:latest
+docker pull ghcr.io/YOUR_USERNAME/next-market-ai:latest
 
 # Run on your server
-docker run -d -p 3000:3000 ghcr.io/YOUR_USERNAME/next-ai:latest
+docker run -d -p 3000:3000 ghcr.io/YOUR_USERNAME/next-market-ai:latest
 ```
 
 ## Environment Variable Flow
@@ -157,11 +157,11 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin
 2. **GitHub Actions runs:**
    - CI workflow tests the build
    - Deploy workflow builds Docker image
-   - Image pushed to `ghcr.io/username/next-ai:latest`
+   - Image pushed to `ghcr.io/username/next-market-ai:latest`
 
 3. **Server pulls and runs:**
    ```bash
-   docker pull ghcr.io/username/next-ai:latest
+   docker pull ghcr.io/username/next-market-ai:latest
    docker-compose down
    docker-compose up -d
    ```

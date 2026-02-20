@@ -2,7 +2,7 @@
 
 import type { ThemeMode } from "./types";
 
-const STORAGE_KEY = "next-ai-theme";
+const STORAGE_KEY = "next-market-ai-theme";
 
 let currentMode: ThemeMode = "dark";
 let initialized = false;

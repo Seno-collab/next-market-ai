@@ -54,14 +54,14 @@ Build the image with the API URL as a build argument:
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=https://api.yourproductiondomain.com \
-  -t next-ai \
+  -t next-market-ai \
   .
 ```
 
 Run the container:
 
 ```bash
-docker run -p 3000:3000 next-ai
+docker run -p 3000:3000 next-market-ai
 ```
 
 ## Production Deployment
@@ -72,19 +72,19 @@ docker run -p 3000:3000 next-ai
    ```bash
    docker build \
      --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
-     -t your-registry/next-ai:latest \
+     -t your-registry/next-market-ai:latest \
      .
    ```
 
 2. **Push to registry**:
    ```bash
-   docker push your-registry/next-ai:latest
+   docker push your-registry/next-market-ai:latest
    ```
 
 3. **Deploy** on your server:
    ```bash
-   docker pull your-registry/next-ai:latest
-   docker run -d -p 3000:3000 --name next-ai your-registry/next-ai:latest
+   docker pull your-registry/next-market-ai:latest
+   docker run -d -p 3000:3000 --name next-market-ai your-registry/next-market-ai:latest
    ```
 
 ### Using docker-compose in Production
@@ -177,7 +177,7 @@ To add health checks to your deployment, update `docker-compose.yml`:
 
 ```yaml
 services:
-  next-ai:
+  next-market-ai:
     # ... existing config
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
@@ -215,10 +215,10 @@ jobs:
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.API_URL }} \
-            -t your-registry/next-ai:${{ github.sha }} \
+            -t your-registry/next-market-ai:${{ github.sha }} \
             .
       - name: Push to registry
-        run: docker push your-registry/next-ai:${{ github.sha }}
+        run: docker push your-registry/next-market-ai:${{ github.sha }}
 ```
 
 ## Support

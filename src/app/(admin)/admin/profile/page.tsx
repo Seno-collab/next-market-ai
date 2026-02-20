@@ -165,7 +165,7 @@ export default function ProfilePage() {
     event.target.value = "";
   };
 
-  const profileInitial = (profileUser?.name?.trim() || profileUser?.email?.trim() || "QR").charAt(0).toUpperCase();
+  const profileInitial = (profileUser?.name?.trim() || profileUser?.email?.trim() || "C").charAt(0).toUpperCase();
   const profileAvatarSrc =
     pendingPreviewUrl ??
     (typeof profileUser?.image_url === "string" && profileUser.image_url.trim() ? profileUser.image_url.trim() : undefined);
