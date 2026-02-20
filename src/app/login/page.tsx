@@ -62,7 +62,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <div className="chat-login-info">
-            <span className="chat-login-info-name">{t("site.name") || "Tranding Seno"}</span>
+            <span className="chat-login-info-name">{t("site.name") || "Trading Seno"}</span>
             <span className="chat-login-info-status">{t("login.chatStatus")}</span>
           </div>
         </div>

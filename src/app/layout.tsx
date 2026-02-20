@@ -29,24 +29,24 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Tranding Seno | Smart Trading Platform with AI Analytics",
-    template: "%s | Tranding Seno",
+    default: "Trading Seno | Smart Trading Platform with AI Analytics",
+    template: "%s | Trading Seno",
   },
   description: "Smart trading platform with AI-powered analytics, real-time market data, portfolio management, and interactive dashboards. Built for modern traders.",
   keywords: ["trading platform", "AI analytics", "market data", "portfolio management", "smart trading", "real-time analytics", "admin dashboard", "3D visualization", "trading tools"],
-  authors: [{ name: "Tranding Seno Team" }],
-  creator: "Tranding Seno",
+  authors: [{ name: "Trading Seno Team" }],
+  creator: "Trading Seno",
   metadataBase: new URL("https://qrlynx.app"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Tranding Seno",
-    title: "Tranding Seno | Smart Trading Platform with AI Analytics",
+    siteName: "Trading Seno",
+    title: "Trading Seno | Smart Trading Platform with AI Analytics",
     description: "Smart trading platform with AI-powered analytics, real-time market data, and portfolio management for modern traders.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tranding Seno | Smart Trading Platform",
+    title: "Trading Seno | Smart Trading Platform",
     description: "AI-powered analytics and tools for modern traders.",
   },
   robots: {

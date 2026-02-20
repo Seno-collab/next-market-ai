@@ -5,7 +5,7 @@ export const defaultLocale: Locale = "vi";
 export const messages = {
   vi: {
     site: {
-      name: "Tranding Seno",
+      name: "Trading Seno",
       tagline: "Nền tảng giao dịch thông minh với AI Analytics",
     },
     actions: {
@@ -64,7 +64,7 @@ export const messages = {
       footprintSubtitle: "Tài sản đang online",
       loginTitle: "Login quản trị",
       loginSubtitle: "Đăng nhập quản trị với AI Analytics.",
-      loginEmail: "admin@trandingseno.com",
+      loginEmail: "admin@tradingseno.com",
       loginPassword: "••••••••",
       loginButton: "Đăng nhập",
     },
@@ -424,13 +424,13 @@ export const messages = {
     login: {
       tagline: "AI Analytics + Trading",
       eyebrow: "Admin Trading",
-      title: "Đăng nhập quản trị Tranding Seno",
+      title: "Đăng nhập quản trị Trading Seno",
       subtitle: "Hệ thống xác thực AI cho nền tảng giao dịch. Chỉ dành cho con người, không phải robot.",
       cta: "Đăng nhập quản trị",
       secondaryHint: "AI bảo mật xác thực mỗi phiên đăng nhập của bạn.",
       qrPanelTitle: "Đăng nhập nhanh",
       qrPanelSubtitle: "Liên kết thiết bị để vào an toàn.",
-      emailPlaceholder: "admin@trandingseno.com",
+      emailPlaceholder: "admin@tradingseno.com",
       portalStats: {
         aiValue: "AI",
         aiLabel: "Bảo mật",
@@ -564,7 +564,7 @@ export const messages = {
   },
   en: {
     site: {
-      name: "Tranding Seno",
+      name: "Trading Seno",
       tagline: "Smart Trading Platform with AI Analytics",
     },
     actions: {
@@ -622,7 +622,7 @@ export const messages = {
       footprintSubtitle: "Live assets",
       loginTitle: "Admin login",
       loginSubtitle: "Admin access with AI analytics.",
-      loginEmail: "admin@trandingseno.com",
+      loginEmail: "admin@tradingseno.com",
       loginPassword: "••••••••",
       loginButton: "Sign in",
     },
@@ -981,13 +981,13 @@ export const messages = {
     login: {
       tagline: "AI-powered trading",
       eyebrow: "Trading Admin",
-      title: "Admin login to Tranding Seno",
+      title: "Admin login to Trading Seno",
       subtitle: "AI-powered authentication for your trading platform. For humans only, not robots.",
       cta: "Admin sign in",
       secondaryHint: "AI security verifies every login session.",
       qrPanelTitle: "Quick sign in",
       qrPanelSubtitle: "Link your device for secure entry.",
-      emailPlaceholder: "admin@trandingseno.com",
+      emailPlaceholder: "admin@tradingseno.com",
       portalStats: {
         aiValue: "AI",
         aiLabel: "Security",
