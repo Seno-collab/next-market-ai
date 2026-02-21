@@ -1,3 +1,21 @@
+export type MenuItemOption = {
+  id: number;
+  name: string;
+  priceDelta: number | string | null;
+  sortOrder?: number | null;
+  quantityMax?: number | null;
+};
+
+export type MenuItemOptionGroup = {
+  id: number;
+  name: string;
+  isRequired: boolean;
+  minSelect: number;
+  maxSelect: number;
+  sortOrder?: number | null;
+  options: MenuItemOption[];
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -12,6 +30,7 @@ export type MenuItem = {
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
+  optionGroups?: MenuItemOptionGroup[];
 };
 
 export type MenuItemInput = {
@@ -106,3 +125,12 @@ export type OptionItemInput = {
 };
 
 export type OptionItemUpdate = Partial<OptionItemInput>;
+
+export type CartItem = {
+  id: string;
+  menuItem: MenuItem;
+  quantity: number;
+  totalPrice: number;
+  selectedOptions: Record<number, number[]>;
+  optionQuantities: Record<number, number>;
+};
