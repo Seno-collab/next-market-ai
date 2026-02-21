@@ -1,6 +1,18 @@
 version: "3.8"
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - next-market-ai
+    networks:
+      - market-network
+    restart: unless-stopped
+
   next-market-ai:
     env_file:
       - .env
@@ -8,16 +20,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # NEXT_PUBLIC_API_URL is embedded into the client bundle at build time.
-        # Must be a public URL reachable by the browser (e.g. https://api.yourdomain.com).
+        # Embedded into client bundle at build time — must be public URL reachable by browser.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
-      # Internal URL for server-side (SSR) API calls via docker network.
-      # Use the backend nginx service name here.
-      - API_URL=${API_URL:-http://nginx:80}
     networks:
       - market-network
     restart: unless-stopped
@@ -25,3 +31,4 @@ services:
 networks:
   market-network:
     external: true
+    name: backend_app-network
