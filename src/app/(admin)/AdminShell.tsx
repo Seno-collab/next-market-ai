@@ -5,7 +5,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import {
-  AppstoreOutlined,
   BarChartOutlined,
   BulbOutlined,
   HomeOutlined,
@@ -13,9 +12,7 @@ import {
   MenuUnfoldOutlined,
   MoonOutlined,
   LogoutOutlined,
-  QrcodeOutlined,
   SettingOutlined,
-  TagsOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Segmented, Space, Switch, Typography } from "antd";
@@ -39,16 +36,6 @@ const navItems = [
     labelKey: "nav.dashboard",
   },
   {
-    key: "/admin/menu",
-    icon: <AppstoreOutlined />,
-    labelKey: "nav.menu",
-  },
-  {
-    key: "/admin/topics",
-    icon: <TagsOutlined />,
-    labelKey: "nav.topics",
-  },
-  {
     key: "/admin/profile",
     icon: <UserOutlined />,
     labelKey: "nav.profile",
@@ -57,11 +44,6 @@ const navItems = [
     key: "/admin/analytics",
     icon: <BarChartOutlined />,
     labelKey: "nav.analytics",
-  },
-  {
-    key: "/menu",
-    icon: <QrcodeOutlined />,
-    labelKey: "nav.qrMenu",
   },
   {
     key: "/logout",
@@ -97,7 +79,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         trigger={null}
       >
         <div className="admin-logo">
-          <Text className="admin-logo-mark">CHAT MENU</Text>
+          <Text className="admin-logo-mark">TRADING SENO</Text>
           <Title level={4} className="admin-logo-title">
             {t("nav.admin")}
           </Title>

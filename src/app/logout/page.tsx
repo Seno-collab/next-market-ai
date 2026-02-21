@@ -2,19 +2,45 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Alert, Button, Card, Space, Spin, Typography } from "antd";
-import { LogoutOutlined, HomeOutlined, LoginOutlined } from "@ant-design/icons";
+import { Button, Spin } from "antd";
+import {
+  LogoutOutlined,
+  LoginOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  LockOutlined,
+  SafetyOutlined,
+  CheckCircleOutlined,
+  ThunderboltOutlined,
+  ClockCircleOutlined,
+  RiseOutlined,
+  TrophyOutlined,
+  AreaChartOutlined,
+} from "@ant-design/icons";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useLocale } from "@/hooks/useLocale";
+import Sparkline from "@/components/ui/Sparkline";
 
-const { Title, Paragraph, Text } = Typography;
-
-// Dynamic import for Three.js component (no SSR)
 const LogoutVortexScene = dynamic(
   () => import("@/features/auth/components/LogoutVortexScene"),
   { ssr: false, loading: () => <div className="vortex-loading"><Spin size="large" /></div> }
 );
+
+const SESSION_KPIS = [
+  { label: "Session P&L",  value: "+$3,120", icon: <RiseOutlined />,        color: "#34d399", history: [2100,2300,2500,2200,2800,3000,2900,3100,3050,3120] },
+  { label: "Win Rate",     value: "72.4%",   icon: <TrophyOutlined />,       color: "#22d3ee", history: [65,68,70,69,71,72,70,72,71,72] },
+  { label: "Trades",       value: "12",      icon: <AreaChartOutlined />,    color: "#60a5fa", history: [1,2,3,4,5,6,7,8,9,12] },
+  { label: "Session Time", value: "4h 22m",  icon: <ClockCircleOutlined />,  color: "#fbbf24", history: [30,60,90,120,150,180,210,240,252,262] },
+] as const;
+
+const ACTIVITY_FEED = [
+  { icon: <ArrowUpOutlined />,     color: "#34d399", text: "BTC/USDT LONG closed",      detail: "+$1,110 · +2.33%",    time: "14:38" },
+  { icon: <ArrowUpOutlined />,     color: "#34d399", text: "ETH/USDT LONG closed",      detail: "+$700 · +3.62%",      time: "12:05" },
+  { icon: <ArrowDownOutlined />,   color: "#34d399", text: "SOL/USDT SHORT closed",     detail: "+$140 · +2.89%",      time: "10:48" },
+  { icon: <CheckCircleOutlined />, color: "#22d3ee", text: "Portfolio snapshot saved",  detail: "All positions stored", time: "18:59" },
+  { icon: <LockOutlined />,        color: "#fbbf24", text: "Session locked",            detail: "Auth token cleared",  time: "18:59" },
+] as const;
 
 export default function LogoutPage() {
   const { t } = useLocale();
@@ -23,15 +49,11 @@ export default function LogoutPage() {
   const didLogout = useRef(false);
 
   useEffect(() => {
-    if (didLogout.current) {
-      return;
-    }
+    if (didLogout.current) return;
     didLogout.current = true;
     logout()
       .then(() => setSuccess(t("logout.success")))
-      .catch(() => {
-        // Error state is handled in the auth hook.
-      });
+      .catch(() => {});
   }, [logout, t]);
 
   const handleLogout = async () => {
@@ -39,9 +61,7 @@ export default function LogoutPage() {
     try {
       await logout();
       setSuccess(t("logout.success"));
-    } catch {
-      // Error state is handled in the auth hook.
-    }
+    } catch {}
   };
 
   return (
@@ -50,128 +70,161 @@ export default function LogoutPage() {
       <div className="auth-3d-bg">
         <LogoutVortexScene />
       </div>
-
-      {/* Overlay gradient */}
       <div className="auth-overlay logout-overlay" />
 
       {/* Content */}
-      <div className="auth-3d-content">
-        <div className="logout-3d-grid">
-          {/* Logout Card */}
-          <div className="logout-card-panel">
-            <Card variant="borderless" className="glass-card logout-card-3d">
-              <Space orientation="vertical" size="large" style={{ width: "100%" }} align="center">
-                {/* Animated icon */}
-                <div className="logout-icon-wrapper">
-                  <div className="logout-icon-ring" />
-                  <div className="logout-icon-ring delay-1" />
-                  <div className="logout-icon-ring delay-2" />
-                  <LogoutOutlined className="logout-main-icon" />
-                </div>
+      <div className="auth-3d-content tl2-content">
+        <div className="tl2-grid">
 
-                <div className="logout-content">
-                  <div className="logout-badge">{t("logout.eyebrow")}</div>
-                  <Title level={2} className="logout-title">
-                    {t("logout.title")}
-                  </Title>
-                  <Paragraph className="logout-subtitle">
-                    {t("logout.subtitle")}
-                  </Paragraph>
-                </div>
+          {/* ── Left: logout card ── */}
+          <div className="tl2-left">
 
-                {session?.authenticated ? (
-                  <div className="logout-session-info">
-                    {session.user && (
-                      <div className="logout-user-badge">
-                        <span className="logout-user-icon">@</span>
-                        <span>{session.user.email}</span>
-                      </div>
-                    )}
-                    <Button
-                      type="primary"
-                      danger
-                      size="large"
-                      onClick={handleLogout}
-                      loading={loadingAction === "logout"}
-                      icon={<LogoutOutlined />}
-                      className="logout-btn"
-                      block
-                    >
-                      {loadingAction === "logout" ? t("logout.cta") : t("logout.cta")}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="logout-actions">
-                    <Text type="secondary" className="logout-no-session">
-                      {t("logout.noSession")}
-                    </Text>
-                    <div className="logout-links">
-                      <Link href="/login">
-                        <Button
-                          type="primary"
-                          size="large"
-                          icon={<LoginOutlined />}
-                          className="logout-login-btn"
-                        >
-                          {t("logout.backToLogin")}
-                        </Button>
-                      </Link>
-                      <Link href="/">
-                        <Button
-                          size="large"
-                          icon={<HomeOutlined />}
-                          className="logout-home-btn"
-                        >
-                          {t("nav.home") || "Home"}
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                )}
+            {/* Brand */}
+            <div className="tl2-brand">
+              <span className="tl2-brand-dot" />
+              TRADING SENO
+              <span className="tl2-brand-ver">v2.4</span>
+            </div>
 
-                {success && <Alert title={success} type="success" showIcon className="logout-alert" />}
-                {error && <Alert title={error} type="error" showIcon className="logout-alert" />}
-              </Space>
-            </Card>
-          </div>
-
-          {/* Visual Info */}
-          <div className="logout-visual-panel">
-            <div className="logout-visual-content">
-              <div className="vortex-info">
-                <div className="vortex-badge">{t("logout.vortexBadge")}</div>
-                <h3 className="vortex-title">{t("logout.tagline")}</h3>
-                <p className="vortex-description">
-                  {t("logout.visualCaption")}
-                </p>
-              </div>
-              <div className="vortex-features">
-                <div className="vortex-feature">
-                  <div className="vortex-feature-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                    </svg>
-                  </div>
-                  <span>{t("logout.features.sessionSecured")}</span>
-                </div>
-                <div className="vortex-feature">
-                  <div className="vortex-feature-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                  </div>
-                  <span>{t("logout.features.dataSaved")}</span>
-                </div>
-                <div className="vortex-feature">
-                  <div className="vortex-feature-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-                    </svg>
-                  </div>
-                  <span>{t("logout.features.tokenCleared")}</span>
-                </div>
+            {/* Animated icon */}
+            <div className="tl2-icon-stage">
+              <div className="tl2-ring tl2-r1" />
+              <div className="tl2-ring tl2-r2" />
+              <div className="tl2-ring tl2-r3" />
+              <div className="tl2-icon-bg">
+                <LogoutOutlined className="tl2-icon" />
               </div>
             </div>
+
+            {/* Heading */}
+            <div className="tl2-badge"><LockOutlined /> Đóng phiên giao dịch</div>
+            <h2 className="tl2-title">
+              Đăng xuất<br />
+              <span className="tl2-title-accent">Trading Seno</span>
+            </h2>
+            <p className="tl2-desc">
+              Phiên giao dịch sẽ được khoá an toàn.<br />
+              Dữ liệu portfolio được lưu trữ đầy đủ.
+            </p>
+
+            <div className="tl2-divider" />
+
+            {/* User + action */}
+            {session?.authenticated ? (
+              <>
+                {session.user && (
+                  <div className="tl2-user">
+                    <div className="tl2-user-avatar">
+                      {(session.user.name?.trim() || session.user.email?.trim() || "T").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="tl2-user-info">
+                      <div className="tl2-user-name">{session.user.name || "Trader"}</div>
+                      <div className="tl2-user-email">{session.user.email}</div>
+                    </div>
+                    <span className="tl2-online-dot" />
+                  </div>
+                )}
+                <Button
+                  type="primary"
+                  danger
+                  size="large"
+                  onClick={handleLogout}
+                  loading={loadingAction === "logout"}
+                  icon={<LogoutOutlined />}
+                  className="tl2-logout-btn"
+                  block
+                >
+                  {t("logout.cta")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="tl2-no-session">{t("logout.noSession")}</p>
+                <Link href="/login" style={{ width: "100%" }}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<LoginOutlined />}
+                    className="tl2-login-btn"
+                    block
+                  >
+                    {t("logout.backToLogin")}
+                  </Button>
+                </Link>
+              </>
+            )}
+
+            {success && (
+              <div className="tl2-feedback tl2-ok">
+                <CheckCircleOutlined /> {success}
+              </div>
+            )}
+            {error && (
+              <div className="tl2-feedback tl2-err">{error}</div>
+            )}
+
+            {/* Security chips */}
+            <div className="tl2-chip-row">
+              <span className="tl2-chip"><LockOutlined /> Encrypted</span>
+              <span className="tl2-chip"><SafetyOutlined /> 2FA</span>
+              <span className="tl2-chip"><CheckCircleOutlined /> Verified</span>
+            </div>
+          </div>
+
+          {/* ── Right: session summary ── */}
+          <div className="tl2-right">
+
+            {/* Header */}
+            <div className="tl2-right-hd">
+              <div className="tl2-right-eyebrow"><ThunderboltOutlined /> SESSION SUMMARY</div>
+              <h3 className="tl2-right-title">
+                Phiên giao dịch<br />
+                <span>đã được bảo vệ</span>
+              </h3>
+              <p className="tl2-right-desc">
+                Tất cả vị thế và dữ liệu giao dịch đã được lưu lại trước khi đăng xuất.
+              </p>
+            </div>
+
+            {/* KPI cards with sparklines */}
+            <div className="tl2-kpi-grid">
+              {SESSION_KPIS.map((k) => (
+                <div
+                  key={k.label}
+                  className="tl2-kpi-card"
+                  style={{ "--kpi-color": k.color } as React.CSSProperties}
+                >
+                  <div className="tl2-kpi-top">
+                    <span className="tl2-kpi-icon" style={{ color: k.color }}>{k.icon}</span>
+                    <span className="tl2-kpi-label">{k.label}</span>
+                  </div>
+                  <div className="tl2-kpi-val" style={{ color: k.color }}>{k.value}</div>
+                  <Sparkline data={[...k.history]} width={110} height={32} color={k.color} />
+                </div>
+              ))}
+            </div>
+
+            {/* Activity feed */}
+            <div className="tl2-activity">
+              <div className="tl2-activity-hd">
+                <ClockCircleOutlined /> Activity Log
+              </div>
+              {ACTIVITY_FEED.map((a, i) => (
+                <div key={i} className="tl2-activity-row">
+                  <div
+                    className="tl2-activity-dot"
+                    style={{ background: a.color, boxShadow: `0 0 6px ${a.color}90` }}
+                  />
+                  <div className="tl2-activity-icon" style={{ color: a.color }}>{a.icon}</div>
+                  <div className="tl2-activity-body">
+                    <span className="tl2-activity-text">{a.text}</span>
+                    <span className="tl2-activity-detail">{a.detail}</span>
+                  </div>
+                  <span className="tl2-activity-time">{a.time}</span>
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
       </div>

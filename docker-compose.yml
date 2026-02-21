@@ -8,24 +8,20 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Pass API URL at build time for client-side code
-        # This gets baked into the bundle
+        # NEXT_PUBLIC_API_URL is embedded into the client bundle at build time.
+        # Must be a public URL reachable by the browser (e.g. https://api.yourdomain.com).
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     ports:
       - "3000:3000"
     environment:
-      # Runtime environment variables (server-side only)
       - NODE_ENV=production
+      # Internal URL for server-side (SSR) API calls via docker network.
+      # Use the backend nginx service name here.
+      - API_URL=${API_URL:-http://nginx:80}
+    networks:
+      - market-network
     restart: unless-stopped
 
-  # Reverse proxy with proper DNS resolution for Docker
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - next-market-ai
-    restart: unless-stopped
+networks:
+  market-network:
+    external: true
