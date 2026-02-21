@@ -39,12 +39,6 @@ type MenuAction =
   | "delete"
   | "toggle";
 
-type MenuItemsRefreshPayload =
-  | MenuItemsResponse
-  | MenuItem[]
-  | { data?: unknown }
-  | Record<string, unknown>;
-
 type MenuSearchParams = {
   category?: string;
   type?: string;
@@ -234,9 +228,6 @@ function mapMenuItemRecord(record: MenuItemRecord): MenuItem | null {
       record.originalPrice
   );
   const sku = readString(record.sku ?? record.sku_code ?? record.code) ?? "";
-  const topicId = readNumber(
-    record.topic_id ?? record.topicId ?? record.menu_topic_id
-  );
   const available =
     readBoolean(
       record.available ??
@@ -266,7 +257,6 @@ function mapMenuItemRecord(record: MenuItemRecord): MenuItem | null {
     price,
     basePrice: basePrice ?? undefined,
     sku: sku || undefined,
-    topicId: topicId ?? undefined,
     available,
     is_active: available,
     imageUrl: imageUrl ? sanitizeImageUrl(imageUrl) : undefined,
@@ -532,26 +522,9 @@ export function useMenuItems(options: UseMenuItemsOptions = {}) {
         });
         handleMenuActionResponse(response);
         const newItem = resolveMenuItemFromResponse(response);
-        let refreshed = false;
-        try {
-          const refreshedPayload = await fetchApiJson<MenuItemsRefreshPayload>(
-            "/menu/restaurant/items",
-            { cache: "no-store" }
-          );
-          const refreshedItems = extractMenuItems(refreshedPayload);
-          if (refreshedItems !== null) {
-            setItems(refreshedItems);
-            refreshed = true;
-          }
-        } catch (refreshError) {
-          if (process.env.NODE_ENV === "development") {
-            console.warn("[useMenuItems] Failed to refresh items after create:", refreshError);
-          }
-        }
-        if (!refreshed && newItem) {
+        if (newItem) {
           setItems((prev) => [newItem, ...prev.filter(Boolean)]);
-        }
-        if (!newItem && !refreshed) {
+        } else {
           await fetchItems();
         }
         await rerunLastQuery();

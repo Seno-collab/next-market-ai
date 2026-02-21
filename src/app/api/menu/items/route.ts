@@ -14,7 +14,6 @@ type MenuItemFallback = {
   category?: string;
   price?: number;
   sku?: string;
-  topicId?: number | null;
   available?: boolean;
   imageUrl?: string;
 };
@@ -186,8 +185,6 @@ function mapMenuItemPayload(payload: TokenRecord, fallback: MenuItemFallback = {
   const price =
     readNumber(record.price ?? record.price_value ?? record.price_vnd ?? record.priceValue) ?? fallback.price ?? 0;
   const sku = readString(record.sku ?? record.sku_code ?? record.code) ?? fallback.sku ?? "";
-  const topicId =
-    readNumber(record.topic_id ?? record.topicId ?? record.menu_topic_id) ?? (fallback.topicId ?? null);
   const available =
     readBoolean(record.available ?? record.is_available ?? record.is_active ?? record.active ?? record.status) ??
     fallback.available ??
@@ -204,7 +201,6 @@ function mapMenuItemPayload(payload: TokenRecord, fallback: MenuItemFallback = {
     category,
     price,
     sku: sku || undefined,
-    topicId: topicId ?? undefined,
     available,
     is_active: available,
     imageUrl: imageUrl || undefined,
@@ -236,7 +232,6 @@ export const POST = withApiLogging(async (request: NextRequest) => {
     const imageUrl = typeof payload.imageUrl === "string" ? payload.imageUrl.trim() : "";
     const available = typeof payload.available === "boolean" ? payload.available : true;
     const sku = typeof payload.sku === "string" ? payload.sku.trim() : "";
-    const topicId = readNumber(payload.topicId ?? payload.topic_id);
 
     const origin = new URL(request.url).origin;
     const shouldProxy = API_BASE_URL && API_BASE_URL !== origin;
@@ -252,9 +247,6 @@ export const POST = withApiLogging(async (request: NextRequest) => {
 
       if (sku) {
         createPayload.sku = sku;
-      }
-      if (topicId !== null) {
-        createPayload.topic_id = topicId;
       }
 
       const authHeader = resolveAuthHeader(request);
@@ -320,7 +312,6 @@ export const POST = withApiLogging(async (request: NextRequest) => {
         category,
         price,
         sku: sku || undefined,
-        topicId,
         available,
         imageUrl,
       });
@@ -339,7 +330,6 @@ export const POST = withApiLogging(async (request: NextRequest) => {
       category,
       price,
       sku: sku || undefined,
-      topicId,
       available,
       imageUrl,
     });

@@ -13,15 +13,12 @@ function normalizeInput(input: MenuItemInput): MenuItemInput {
   const available = input.available ?? input.is_active ?? true;
   const imageUrl = typeof input.imageUrl === "string" ? input.imageUrl.trim() : "";
   const sku = typeof input.sku === "string" ? input.sku.trim() : "";
-  const topicId =
-    typeof input.topicId === "number" && Number.isFinite(input.topicId) ? input.topicId : undefined;
   return {
     name: input.name.trim(),
     description: input.description?.trim() ?? "",
     category: input.category || "extra",
     price: Number(input.price),
     sku: sku || undefined,
-    topicId,
     available,
     is_active: available,
     imageUrl,
@@ -67,12 +64,6 @@ export function updateMenuItem(id: string, updates: MenuItemUpdate) {
       : current.imageUrl ?? "";
   const nextSku =
     updates.sku !== undefined ? (typeof updates.sku === "string" ? updates.sku.trim() : "") : current.sku ?? "";
-  const nextTopicId =
-    updates.topicId !== undefined
-      ? typeof updates.topicId === "number" && Number.isFinite(updates.topicId)
-        ? updates.topicId
-        : null
-      : current.topicId ?? undefined;
   const next: MenuItem = {
     ...current,
     ...updates,
@@ -81,7 +72,6 @@ export function updateMenuItem(id: string, updates: MenuItemUpdate) {
     category: updates.category ?? current.category,
     price: updates.price ?? current.price,
     sku: nextSku || undefined,
-    topicId: nextTopicId,
     available: nextAvailable,
     is_active: nextAvailable,
     imageUrl: nextImageUrl,

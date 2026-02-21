@@ -1,21 +1,3 @@
-export type MenuItemOption = {
-  id: number;
-  name: string;
-  priceDelta: number | string | null;
-  sortOrder?: number | null;
-  quantityMax?: number | null;
-};
-
-export type MenuItemOptionGroup = {
-  id: number;
-  name: string;
-  isRequired: boolean;
-  minSelect: number;
-  maxSelect: number;
-  sortOrder?: number | null;
-  options: MenuItemOption[];
-};
-
 export type MenuItem = {
   id: string;
   name: string;
@@ -24,13 +6,11 @@ export type MenuItem = {
   price: number;
   basePrice?: number;
   sku?: string;
-  topicId?: number | null;
   available: boolean;
   is_active?: boolean;
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
-  optionGroups?: MenuItemOptionGroup[];
 };
 
 export type MenuItemInput = {
@@ -40,7 +20,6 @@ export type MenuItemInput = {
   price: number;
   basePrice?: number;
   sku?: string;
-  topicId?: number | null;
   available?: boolean;
   is_active?: boolean;
   imageUrl?: string;
@@ -60,77 +39,4 @@ export type MenuAnalytics = {
   categories: MenuCategorySummary[];
   topItems: Array<Pick<MenuItem, "id" | "name" | "price" | "category">>;
   updatedAt: string;
-};
-
-export type Topic = {
-  id: number;
-  name: string;
-  slug?: string;
-  parent_id?: number | null;
-  sort_order?: number | null;
-  restaurant_id?: number | null;
-};
-
-export type TopicInput = {
-  name: string;
-  slug?: string;
-  parent_id?: number | null;
-  sort_order?: number | null;
-};
-
-export type TopicUpdate = Partial<TopicInput>;
-
-export type OptionGroup = {
-  id: number;
-  name: string;
-  min_select?: number | null;
-  max_select?: number | null;
-  is_required?: boolean;
-  sort_order?: number | null;
-  menu_item_id?: number | null;
-};
-
-export type OptionGroupInput = {
-  name: string;
-  menu_item_id: number;
-  min_select?: number | null;
-  max_select?: number | null;
-  is_required?: boolean;
-  sort_order?: number | null;
-};
-
-export type OptionGroupUpdate = Partial<OptionGroupInput>;
-
-export type OptionItem = {
-  id: number;
-  name: string;
-  option_group_id?: number | null;
-  price_delta?: number | null;
-  quantity_min?: number | null;
-  quantity_max?: number | null;
-  sort_order?: number | null;
-  linked_menu_item?: number | null;
-  is_active?: boolean;
-};
-
-export type OptionItemInput = {
-  name: string;
-  option_group_id: number;
-  price_delta?: number | null;
-  quantity_min?: number | null;
-  quantity_max?: number | null;
-  sort_order?: number | null;
-  linked_menu_item?: number | null;
-  is_active?: boolean;
-};
-
-export type OptionItemUpdate = Partial<OptionItemInput>;
-
-export type CartItem = {
-  id: string;
-  menuItem: MenuItem;
-  quantity: number;
-  totalPrice: number;
-  selectedOptions: Record<number, number[]>;
-  optionQuantities: Record<number, number>;
 };

@@ -31,36 +31,6 @@ function resolveRestaurantHeader(request: NextRequest) {
 }
 
 
-function parseTopics(value: string | string[] | null) {
-  const rawParts = Array.isArray(value)
-    ? value
-    : value
-      ? [value]
-      : [];
-
-  if (rawParts.length === 0) {
-    return { ids: [] as number[], keywords: [] as string[] };
-  }
-
-  const ids = new Set<number>();
-  const keywords: string[] = [];
-
-  rawParts
-    .flatMap((part) => part.split(/[,|]/))
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .forEach((part) => {
-      const numeric = Number(part);
-      if (Number.isFinite(numeric)) {
-        ids.add(numeric);
-        return;
-      }
-      keywords.push(part.toLowerCase());
-    });
-
-  return { ids: Array.from(ids), keywords };
-}
-
 function parseCursor(value: string | null) {
   if (!value) {
     return null;
@@ -118,12 +88,6 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   const url = new URL(request.url);
   const typeParam = url.searchParams.get("type");
   const categoryParam = url.searchParams.get("category");
-  const topicsParam = [
-    ...url.searchParams.getAll("topics"),
-    ...url.searchParams.getAll("topic"),
-    ...url.searchParams.getAll("topics[]"),
-    ...url.searchParams.getAll("topic[]"),
-  ];
   const filterParam = url.searchParams.get("filter") ?? url.searchParams.get("q");
   const limitParam = url.searchParams.get("limit");
   const pageParam = url.searchParams.get("page");
@@ -174,9 +138,6 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   }
 
   const normalizedCategory = normalizeCategory(categoryParam ?? typeParam);
-  const topics = parseTopics(topicsParam.length > 0 ? topicsParam : null);
-  const keywords = topics.keywords;
-  const topicIds = topics.ids;
   const filter = typeof filterParam === "string" ? filterParam.trim().toLowerCase() : "";
   const limit = readNumber(limitParam);
   const page = readNumber(pageParam);
@@ -185,17 +146,6 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   let items = listMenuItems();
   if (normalizedCategory) {
     items = items.filter((item) => normalizeCategory(item.category) === normalizedCategory);
-  }
-  if (topicIds.length > 0) {
-    items = items.filter((item) => typeof item.topicId === "number" && topicIds.includes(item.topicId));
-  }
-  if (keywords.length > 0) {
-    items = items.filter((item) => {
-      const name = t(item.name).toLowerCase();
-      const description = item.description ? t(item.description).toLowerCase() : "";
-      const sku = item.sku ? item.sku.toLowerCase() : "";
-      return keywords.some((keyword) => name.includes(keyword) || description.includes(keyword) || sku.includes(keyword));
-    });
   }
   if (filter) {
     items = items.filter((item) => {

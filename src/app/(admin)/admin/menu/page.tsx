@@ -39,7 +39,6 @@ import { Table3DEffect } from "@/features/menu/components/Table3DEffect";
 import { MetricCard3D } from "@/features/menu/components/MetricCard3D";
 import { menuCategories } from "@/features/menu/constants";
 import { useMenuItems } from "@/features/menu/hooks/useMenuItems";
-import { useTopicCombobox } from "@/features/menu/hooks/useTopicCombobox";
 import type { MenuItem } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
@@ -66,7 +65,6 @@ export default function MenuManagementPage() {
     searchItems,
     searchMeta,
   } = useMenuItems({ autoFetch: false });
-  const { topics, loading: topicsLoading } = useTopicCombobox();
   const { t, locale } = useLocale();
   const [form] = Form.useForm<MenuItemFormValues>();
   const hydrated = useHasHydrated();
@@ -147,7 +145,6 @@ export default function MenuManagementPage() {
       description: "",
       category: menuCategories[0]?.value ?? "other",
       price: 0,
-      topicId: null,
       available: true,
       imageUrl: "",
     });
@@ -162,7 +159,6 @@ export default function MenuManagementPage() {
       description: item.description ? t(item.description) : "",
       category: item.category,
       price: item.price,
-      topicId: item.topicId ?? null,
       available: item.available,
       imageUrl: item.imageUrl ?? "",
     });
@@ -171,12 +167,9 @@ export default function MenuManagementPage() {
 
   const handleSubmit = async (values: MenuItemFormValues) => {
     const sku = typeof values.sku === "string" ? values.sku.trim() : "";
-    const topicId =
-      typeof values.topicId === "number" && Number.isFinite(values.topicId) ? values.topicId : null;
     const normalizedValues = {
       ...values,
       sku,
-      topicId,
     };
     if (editingItem) {
       const nextValues = { ...normalizedValues };
@@ -495,8 +488,6 @@ export default function MenuManagementPage() {
             onSubmitAction={handleSubmit}
             submitLabel={editingItem ? t("menu.actions.save") : t("menu.actions.create")}
             loading={action === "create" || action === "update"}
-            topics={topics}
-            topicsLoading={topicsLoading}
           />
         </Modal>
       ) : null}

@@ -6,7 +6,6 @@ import { Button, Form, Input, InputNumber, Select, Space, Switch, Typography } f
 import type { FormInstance } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { menuCategories } from "@/features/menu/constants";
-import type { Topic } from "@/features/menu/types";
 import { useLocale } from "@/hooks/useLocale";
 import { fetchJson, notifyError } from "@/lib/api/client";
 
@@ -26,7 +25,6 @@ export type MenuItemFormValues = {
   description?: string;
   category: string;
   price: number;
-  topicId?: number | null;
   available: boolean;
   imageUrl?: string;
 };
@@ -37,8 +35,6 @@ type MenuItemFormProps = {
   onCancelAction: () => void;
   submitLabel: string;
   loading?: boolean;
-  topics?: Topic[];
-  topicsLoading?: boolean;
 };
 
 export function MenuItemForm({
@@ -47,8 +43,6 @@ export function MenuItemForm({
   onCancelAction,
   submitLabel,
   loading = false,
-  topics = [],
-  topicsLoading = false,
 }: MenuItemFormProps) {
   const { t } = useLocale();
   const { Text } = Typography;
@@ -66,10 +60,6 @@ export function MenuItemForm({
     ? sanitizeImageUrl(trimmedImageUrl)
     : "";
   const isSubmitting = loading || uploading;
-  const topicOptions = topics.map((topic) => ({
-    value: topic.id,
-    label: topic.name,
-  }));
 
   useEffect(() => {
     if (!pendingFile) {
@@ -167,17 +157,6 @@ export function MenuItemForm({
             value: category.value,
             label: t(category.labelKey),
           }))}
-        />
-      </Form.Item>
-      <Form.Item label={t("menu.form.topic")} name="topicId">
-        <Select
-          allowClear
-          showSearch
-          placeholder={t("menu.form.topicPlaceholder")}
-          options={topicOptions}
-          loading={topicsLoading}
-          optionFilterProp="label"
-          notFoundContent={topicsLoading ? t("menu.form.topicLoading") : t("menu.form.topicEmpty")}
         />
       </Form.Item>
       <Form.Item
