@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   DeleteOutlined,
+  DollarOutlined,
+  FundOutlined,
   PlusOutlined,
   ReloadOutlined,
   SwapOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -35,8 +38,6 @@ const SYMBOL_OPTIONS = [
   "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT",
 ].map((s) => ({ label: s.replace("USDT", "/USDT"), value: s }));
 
-/* ─── helpers ─────────────────────────────────────────────────────────────── */
-
 function fmtNum(s: string, decimals = 4) {
   const n = Number(s);
   return Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: decimals }) : s;
@@ -49,24 +50,19 @@ function fmtDate(iso: string) {
       hour: "2-digit", minute: "2-digit",
       hour12: false,
     }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
+  } catch { return iso; }
 }
 
-/* ─── page ─────────────────────────────────────────────────────────────────── */
-
 export default function TransactionsPage() {
-  const [rows, setRows]         = useState<Transaction[]>([]);
-  const [total, setTotal]       = useState(0);
-  const [page, setPage]         = useState(1);
-  const [symbol, setSymbol]     = useState<string | undefined>(undefined);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [rows, setRows]           = useState<Transaction[]>([]);
+  const [total, setTotal]         = useState(0);
+  const [page, setPage]           = useState(1);
+  const [symbol, setSymbol]       = useState<string | undefined>(undefined);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [creating, setCreating]   = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm<CreateTransactionRequest>();
-
   const abortRef = useRef<AbortController | null>(null);
 
   /* ── fetch ── */
@@ -80,12 +76,8 @@ export default function TransactionsPage() {
       setRows(Array.isArray(res.transactions) ? res.transactions : []);
       setTotal(Number.isFinite(res.total) ? res.total : 0);
     } catch (e) {
-      if ((e as Error).name !== "AbortError") {
-        setError((e as Error).message);
-      }
-    } finally {
-      setLoading(false);
-    }
+      if ((e as Error).name !== "AbortError") setError((e as Error).message);
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -98,16 +90,14 @@ export default function TransactionsPage() {
     setCreating(true);
     try {
       await transactionApi.create(values);
-      notifySuccess("Transaction created");
+      notifySuccess("Transaction recorded");
       setModalOpen(false);
       form.resetFields();
       void load(1, symbol);
       setPage(1);
     } catch (e) {
-      notifyError((e as Error).message || "Failed to create transaction");
-    } finally {
-      setCreating(false);
-    }
+      notifyError((e as Error).message || "Failed to record transaction");
+    } finally { setCreating(false); }
   }
 
   /* ── delete ── */
@@ -115,14 +105,13 @@ export default function TransactionsPage() {
     try {
       await transactionApi.remove(id);
       notifySuccess("Transaction deleted");
-      // refresh current page (go back one if page is now empty)
       const newTotal = total - 1;
       const maxPage  = Math.max(1, Math.ceil(newTotal / PER_PAGE));
       const nextPage = Math.min(page, maxPage);
       setPage(nextPage);
       void load(nextPage, symbol);
     } catch (e) {
-      notifyError((e as Error).message || "Failed to delete transaction");
+      notifyError((e as Error).message || "Failed to delete");
     }
   }
 
@@ -134,6 +123,19 @@ export default function TransactionsPage() {
 
   const safeRows = Array.isArray(rows) ? rows : [];
 
+  /* ── KPI aggregates (current page) ── */
+  const kpi = useMemo(() => {
+    const buy  = safeRows.filter((r) => r.side === "BUY");
+    const sell = safeRows.filter((r) => r.side === "SELL");
+    return {
+      buyVol:  buy.reduce((s, r) => s + Number(r.total), 0),
+      sellVol: sell.reduce((s, r) => s + Number(r.total), 0),
+      fees:    safeRows.reduce((s, r) => s + Number(r.fee), 0),
+      buys:    buy.length,
+      sells:   sell.length,
+    };
+  }, [safeRows]);
+
   return (
     <div className="tx-shell">
 
@@ -142,33 +144,52 @@ export default function TransactionsPage() {
         <div>
           <div className="tx-eyebrow"><SwapOutlined /> TRANSACTION HISTORY</div>
           <h1 className="tx-title">My Transactions</h1>
-          <p className="tx-subtitle">Track every trade you've recorded — BUY & SELL.</p>
+          <p className="tx-subtitle">Track every trade you&apos;ve recorded — BUY &amp; SELL.</p>
         </div>
-        <div className="tx-header-actions">
-          <Select
-            allowClear
-            placeholder="Filter by symbol"
-            options={SYMBOL_OPTIONS}
-            value={symbol ?? null}
-            onChange={handleSymbolChange}
-            className="tx-symbol-select"
-            style={{ width: 160 }}
-          />
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => void load(page, symbol)}
-            loading={loading}
-          >
-            Refresh
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalOpen(true)}
-            className="tx-add-btn"
-          >
-            New Trade
-          </Button>
+      </div>
+
+      {/* ── KPI row ── */}
+      <div className="tx-kpi-row">
+        <div className="tx-kpi-card tx-kpi-blue">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">Total Trades</span>
+            <FundOutlined className="tx-kpi-icon" />
+          </div>
+          <div className="tx-kpi-val">{total}</div>
+          <div className="tx-kpi-sub">{kpi.buys} buys · {kpi.sells} sells on page</div>
+        </div>
+
+        <div className="tx-kpi-card tx-kpi-green">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">BUY Volume</span>
+            <ArrowUpOutlined className="tx-kpi-icon" />
+          </div>
+          <div className="tx-kpi-val">
+            ${kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </div>
+          <div className="tx-kpi-sub">Current page</div>
+        </div>
+
+        <div className="tx-kpi-card tx-kpi-red">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">SELL Volume</span>
+            <ArrowDownOutlined className="tx-kpi-icon" />
+          </div>
+          <div className="tx-kpi-val">
+            ${kpi.sellVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </div>
+          <div className="tx-kpi-sub">Current page</div>
+        </div>
+
+        <div className="tx-kpi-card tx-kpi-amber">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">Fees Paid</span>
+            <WalletOutlined className="tx-kpi-icon" />
+          </div>
+          <div className="tx-kpi-val">
+            ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
+          </div>
+          <div className="tx-kpi-sub">Current page</div>
         </div>
       </div>
 
@@ -179,15 +200,51 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── Table ── */}
+      {/* ── Main panel ── */}
       <div className="tx-panel">
+
+        {/* Toolbar */}
+        <div className="tx-toolbar">
+          <div className="tx-toolbar-left">
+            <Select
+              allowClear
+              placeholder="All symbols"
+              options={SYMBOL_OPTIONS}
+              value={symbol ?? null}
+              onChange={handleSymbolChange}
+              className="tx-symbol-select"
+              style={{ width: 160 }}
+            />
+            {loading && <Spin size="small" />}
+          </div>
+          <div className="tx-toolbar-right">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => void load(page, symbol)}
+              loading={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalOpen(true)}
+              className="tx-add-btn"
+            >
+              New Trade
+            </Button>
+          </div>
+        </div>
+
+        {/* Table */}
         <div className="tx-table-wrap">
           {loading && safeRows.length === 0 ? (
             <div className="tx-loading"><Spin size="large" /></div>
           ) : safeRows.length === 0 ? (
             <div className="tx-empty">
-              <SwapOutlined className="tx-empty-icon" />
-              <p>No transactions yet. Record your first trade!</p>
+              <div className="tx-empty-icon-wrap"><SwapOutlined /></div>
+              <p className="tx-empty-title">No transactions yet</p>
+              <p className="tx-empty-hint">Hit <strong>New Trade</strong> to record your first entry.</p>
             </div>
           ) : (
             <table className="tx-table">
@@ -205,52 +262,59 @@ export default function TransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {safeRows.map((tx) => (
-                  <tr key={tx.id}>
-                    <td className="tx-soft tx-nowrap">{fmtDate(tx.created_at)}</td>
-                    <td><span className="tx-sym">{tx.symbol.replace("USDT", "/USDT")}</span></td>
-                    <td>
-                      <span className={`tx-side ${tx.side === "BUY" ? "buy" : "sell"}`}>
-                        {tx.side === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                        {" "}{tx.side}
-                      </span>
-                    </td>
-                    <td className="tx-num">{fmtNum(tx.quantity, 6)}</td>
-                    <td className="tx-num">${fmtNum(tx.price, 2)}</td>
-                    <td className="tx-num tx-total">${fmtNum(tx.total, 2)}</td>
-                    <td className="tx-soft">{fmtNum(tx.fee, 4)}</td>
-                    <td className="tx-soft tx-note">{tx.note || "—"}</td>
-                    <td>
-                      <Popconfirm
-                        title="Delete this transaction?"
-                        onConfirm={() => void handleDelete(tx.id)}
-                        okText="Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                      >
-                        <button className="tx-del-btn" aria-label="Delete">
-                          <DeleteOutlined />
-                        </button>
-                      </Popconfirm>
-                    </td>
-                  </tr>
-                ))}
+                {safeRows.map((tx) => {
+                  const isBuy = tx.side === "BUY";
+                  return (
+                    <tr key={tx.id} className="tx-row">
+                      <td className="tx-soft tx-nowrap">{fmtDate(tx.created_at)}</td>
+                      <td><span className="tx-sym">{tx.symbol.replace("USDT", "/USDT")}</span></td>
+                      <td>
+                        <span className={`tx-side ${isBuy ? "buy" : "sell"}`}>
+                          {isBuy ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                          {" "}{tx.side}
+                        </span>
+                      </td>
+                      <td className="tx-num">{fmtNum(tx.quantity, 6)}</td>
+                      <td className="tx-num">${fmtNum(tx.price, 2)}</td>
+                      <td className={`tx-num tx-total ${isBuy ? "buy-col" : "sell-col"}`}>
+                        ${fmtNum(tx.total, 2)}
+                      </td>
+                      <td className="tx-soft">{fmtNum(tx.fee, 4)}</td>
+                      <td className="tx-soft tx-note">{tx.note || "—"}</td>
+                      <td>
+                        <Popconfirm
+                          title="Delete this transaction?"
+                          onConfirm={() => void handleDelete(tx.id)}
+                          okText="Delete"
+                          cancelText="Cancel"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <button className="tx-del-btn" aria-label="Delete">
+                            <DeleteOutlined />
+                          </button>
+                        </Popconfirm>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* ── Pagination ── */}
-        {total > PER_PAGE && (
-          <div className="tx-pagination">
-            <Pagination
-              current={page}
-              total={total}
-              pageSize={PER_PAGE}
-              showSizeChanger={false}
-              showTotal={(t) => `${t} transactions`}
-              onChange={(p) => setPage(p)}
-            />
+        {/* Footer */}
+        {total > 0 && (
+          <div className="tx-footer">
+            <span className="tx-footer-count">{total} total transactions</span>
+            {total > PER_PAGE && (
+              <Pagination
+                current={page}
+                total={total}
+                pageSize={PER_PAGE}
+                showSizeChanger={false}
+                onChange={(p) => setPage(p)}
+              />
+            )}
           </div>
         )}
       </div>
@@ -259,10 +323,19 @@ export default function TransactionsPage() {
       <Modal
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
-        title={<span className="tx-modal-title"><PlusOutlined /> Record New Trade</span>}
+        title={
+          <div className="tx-modal-hd">
+            <div className="tx-modal-icon"><DollarOutlined /></div>
+            <div>
+              <div className="tx-modal-title">Record New Trade</div>
+              <div className="tx-modal-sub">Fill in the trade details below</div>
+            </div>
+          </div>
+        }
         footer={null}
-        width={480}
+        width={500}
         destroyOnHidden
+        className="tx-modal"
       >
         <Form
           form={form}
@@ -271,10 +344,10 @@ export default function TransactionsPage() {
           initialValues={{ side: "BUY", fee: 0 }}
           className="tx-form"
         >
-          <Form.Item name="symbol" label="Symbol" rules={[{ required: true }]}>
+          <Form.Item name="symbol" label="Symbol" rules={[{ required: true, message: "Select a symbol" }]}>
             <Select
               showSearch
-              placeholder="e.g. BTCUSDT"
+              placeholder="e.g. BTC/USDT"
               options={SYMBOL_OPTIONS}
               filterOption={(input, opt) =>
                 (opt?.value as string).toLowerCase().includes(input.toLowerCase())
@@ -282,10 +355,14 @@ export default function TransactionsPage() {
             />
           </Form.Item>
 
-          <Form.Item name="side" label="Side" rules={[{ required: true }]}>
+          <Form.Item name="side" label="Direction" rules={[{ required: true }]}>
             <Radio.Group className="tx-side-radio">
-              <Radio.Button value="BUY" className="tx-radio-buy">▲ BUY</Radio.Button>
-              <Radio.Button value="SELL" className="tx-radio-sell">▼ SELL</Radio.Button>
+              <Radio.Button value="BUY" className="tx-radio-buy">
+                <ArrowUpOutlined /> BUY
+              </Radio.Button>
+              <Radio.Button value="SELL" className="tx-radio-sell">
+                <ArrowDownOutlined /> SELL
+              </Radio.Button>
             </Radio.Group>
           </Form.Item>
 
@@ -294,16 +371,13 @@ export default function TransactionsPage() {
               name="quantity"
               label="Quantity"
               rules={[
-                { required: true },
+                { required: true, message: "Required" },
                 { type: "number", min: 0.000001, message: "Must be > 0" },
               ]}
             >
               <InputNumber
-                min={0}
-                step={0.0001}
-                precision={6}
-                style={{ width: "100%" }}
-                placeholder="0.00"
+                min={0} step={0.0001} precision={6}
+                style={{ width: "100%" }} placeholder="0.000000"
               />
             </Form.Item>
 
@@ -311,17 +385,13 @@ export default function TransactionsPage() {
               name="price"
               label="Price (USD)"
               rules={[
-                { required: true },
+                { required: true, message: "Required" },
                 { type: "number", min: 0.000001, message: "Must be > 0" },
               ]}
             >
               <InputNumber
-                min={0}
-                step={0.01}
-                precision={2}
-                style={{ width: "100%" }}
-                placeholder="0.00"
-                prefix="$"
+                min={0} step={0.01} precision={2}
+                style={{ width: "100%" }} placeholder="0.00" prefix="$"
               />
             </Form.Item>
           </div>
@@ -329,11 +399,8 @@ export default function TransactionsPage() {
           <div className="tx-form-row">
             <Form.Item name="fee" label="Fee (USD)">
               <InputNumber
-                min={0}
-                step={0.01}
-                precision={4}
-                style={{ width: "100%" }}
-                placeholder="0.00"
+                min={0} step={0.01} precision={4}
+                style={{ width: "100%" }} placeholder="0.0000"
               />
             </Form.Item>
 
@@ -343,15 +410,8 @@ export default function TransactionsPage() {
           </div>
 
           <div className="tx-form-actions">
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={creating}
-              className="tx-submit-btn"
-            >
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={creating} className="tx-submit-btn">
               Record Trade
             </Button>
           </div>
