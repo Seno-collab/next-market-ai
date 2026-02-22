@@ -5,7 +5,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import {
-  BarChartOutlined,
   BulbOutlined,
   HomeOutlined,
   LineChartOutlined,
@@ -13,8 +12,10 @@ import {
   MenuUnfoldOutlined,
   MoonOutlined,
   LogoutOutlined,
+  RobotOutlined,
   SettingOutlined,
   SwapOutlined,
+  ThunderboltOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Segmented, Space, Switch, Typography } from "antd";
@@ -43,11 +44,6 @@ const navItems = [
     labelKey: "nav.profile",
   },
   {
-    key: "/admin/analytics",
-    icon: <BarChartOutlined />,
-    labelKey: "nav.analytics",
-  },
-  {
     key: "/admin/trading",
     icon: <LineChartOutlined />,
     labelKey: "nav.trading",
@@ -56,6 +52,16 @@ const navItems = [
     key: "/admin/transactions",
     icon: <SwapOutlined />,
     labelKey: "nav.transactions",
+  },
+  {
+    key: "/admin/analysis",
+    icon: <ThunderboltOutlined />,
+    labelKey: "nav.analysis",
+  },
+  {
+    key: "/admin/coinai",
+    icon: <RobotOutlined />,
+    labelKey: "nav.coinai",
   },
   {
     key: "/logout",

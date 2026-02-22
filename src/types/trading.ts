@@ -78,3 +78,106 @@ export type ListTransactionsResponse = {
   page: number;
   per_page: number;
 };
+
+// ── Analysis types ──────────────────────────────────────────────────────────
+
+export type Signal   = "BUY" | "SELL" | "HOLD";
+export type Strength = "STRONG" | "MODERATE" | "WEAK";
+
+export type RSIResult = {
+  value: number;
+  signal: "OVERSOLD" | "NEUTRAL" | "OVERBOUGHT";
+};
+
+export type MACDResult = {
+  macd: number;
+  signal: number;
+  histogram: number;
+  trend: "BULLISH" | "BEARISH";
+};
+
+export type EMAResult = {
+  ema_20: number;
+  ema_50: number;
+  trend: "BULLISH" | "BEARISH";
+};
+
+export type BollingerResult = {
+  upper: number;
+  middle: number;
+  lower: number;
+  signal: "OVERBOUGHT" | "NEUTRAL" | "OVERSOLD";
+};
+
+export type VolumeResult = {
+  current: number;
+  average: number;
+  trend: "HIGH" | "NORMAL" | "LOW";
+};
+
+export type IndicatorsResult = {
+  rsi: RSIResult;
+  macd: MACDResult;
+  ema: EMAResult;
+  bollinger: BollingerResult;
+  volume: VolumeResult;
+};
+
+export type AnalysisResult = {
+  symbol: string;
+  interval: string;
+  signal: Signal;
+  strength: Strength;
+  score: number;           // -100 to 100
+  indicators: IndicatorsResult;
+  best_hours: number[];    // top UTC hours by volume, e.g. [14, 10, 2]
+  support: number[];
+  resistance: number[];
+  summary: string;
+};
+
+export type DailyReport = {
+  symbol: string;
+  date: string;            // YYYY-MM-DD
+  interval: string;
+  ticker: Ticker;
+  analysis: AnalysisResult;
+  candles: Candle[];
+  generated_at: string;    // RFC3339 UTC
+};
+
+// ── CoinAI types ────────────────────────────────────────────────────────────
+
+export type CoinAISignal = "BUY" | "SELL" | "HOLD";
+
+export type BacktestResult = {
+  total_trades: number;
+  win_rate: number;       // 0-100 percentage
+  profit_factor: number;
+  max_drawdown: number;   // percentage
+  total_return: number;   // percentage
+};
+
+export type TrainReport = {
+  symbol: string;
+  interval: string;
+  signal: CoinAISignal;
+  predicted_return: number; // percentage
+  confidence: number;       // 0-100
+  model_name: string;
+  trained_at: string;       // RFC3339 UTC
+  backtest: BacktestResult;
+};
+
+export type WatchlistItem = {
+  symbol: string;
+  interval: string;
+  added_at: string;         // RFC3339 UTC
+  last_signal?: CoinAISignal;
+  last_trained_at?: string; // RFC3339 UTC
+};
+
+export type AddWatchlistRequest = {
+  symbol: string;
+  interval?: string;        // default "1h"
+};
