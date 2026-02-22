@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import AdminShell from "@/app/(admin)/AdminShell";
+import TradingShell from "@/app/(admin)/TradingShell";
 import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
@@ -16,5 +16,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
-  return <AdminShell>{children}</AdminShell>;
+  return <TradingShell>{children}</TradingShell>;
 }

@@ -14,6 +14,7 @@ import {
   MoonOutlined,
   LogoutOutlined,
   SettingOutlined,
+  SwapOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Segmented, Space, Switch, Typography } from "antd";
@@ -52,6 +53,11 @@ const navItems = [
     labelKey: "nav.trading",
   },
   {
+    key: "/admin/transactions",
+    icon: <SwapOutlined />,
+    labelKey: "nav.transactions",
+  },
+  {
     key: "/logout",
     icon: <LogoutOutlined />,
     labelKey: "nav.logout",
@@ -63,7 +69,7 @@ const navItems = [
   },
 ];
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function TradingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t, locale, setLocale } = useLocale();
   const { isDark, setMode } = useTheme();
@@ -74,6 +80,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   return (
     <Layout className="admin-layout">
+      {/* Mobile overlay — tap to close sidebar */}
+      {!collapsed && (
+        <div
+          className="admin-mobile-overlay"
+          onClick={() => setCollapsed(true)}
+          aria-hidden="true"
+        />
+      )}
       <Sider
         width={240}
         className={`admin-sider${collapsed ? " is-collapsed" : ""}`}

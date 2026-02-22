@@ -55,6 +55,17 @@ export default function TradingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const [chartHeight, setChartHeight] = useState(420);
+
+  useEffect(() => {
+    function updateHeight() {
+      const w = window.innerWidth;
+      setChartHeight(w < 480 ? 220 : w < 768 ? 280 : 420);
+    }
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   const fetchAll = useCallback(
     async (sig: AbortSignal) => {
@@ -143,20 +154,18 @@ export default function TradingPage() {
   ];
 
   return (
-    <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="trading-page-shell">
       {/* Header row */}
-      <Row gutter={16} align="middle" wrap>
-        <Col>
+      <div className="trading-header-row">
+        <div className="trading-header-left">
           <SymbolSearch value={symbol} onChange={setSymbol} />
-        </Col>
-        <Col>
-          <Segmented
-            options={INTERVALS.map((i) => ({ label: i.toUpperCase(), value: i }))}
-            value={interval}
-            onChange={(v) => setSelectedInterval(v as Interval)}
-          />
-        </Col>
-        <Col>
+          <div className="trading-interval-scroll">
+            <Segmented
+              options={INTERVALS.map((i) => ({ label: i.toUpperCase(), value: i }))}
+              value={interval}
+              onChange={(v) => setSelectedInterval(v as Interval)}
+            />
+          </div>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => {
@@ -167,34 +176,26 @@ export default function TradingPage() {
           >
             Refresh
           </Button>
-        </Col>
+        </div>
         {ticker && (
-          <Col flex="auto">
-            <Row gutter={24} justify="end" wrap>
-              <Col>
-                <Title level={3} style={{ margin: 0 }}>
-                  {parseFloat(ticker.last_price).toLocaleString()}
-                </Title>
-              </Col>
-              <Col>
-                <Text style={{ color: isUp ? "#26a69a" : "#ef5350", fontSize: 16 }}>
-                  {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
-                  {priceChange > 0 ? "+" : ""}
-                  {priceChange.toFixed(2)}%
-                </Text>
-              </Col>
-              <Col>
-                <Text type="secondary">Vol {parseFloat(ticker.volume).toLocaleString()}</Text>
-              </Col>
-              <Col>
-                <Text type="secondary">
-                  H {parseFloat(ticker.high_price).toFixed(2)} / L {parseFloat(ticker.low_price).toFixed(2)}
-                </Text>
-              </Col>
-            </Row>
-          </Col>
+          <div className="trading-ticker-stats">
+            <Title level={3} style={{ margin: 0, whiteSpace: "nowrap" }}>
+              {parseFloat(ticker.last_price).toLocaleString()}
+            </Title>
+            <Text style={{ color: isUp ? "#26a69a" : "#ef5350", fontSize: 15, whiteSpace: "nowrap" }}>
+              {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+              {priceChange > 0 ? "+" : ""}
+              {priceChange.toFixed(2)}%
+            </Text>
+            <Text type="secondary" className="trading-stat-hide-xs">
+              Vol {parseFloat(ticker.volume).toLocaleString()}
+            </Text>
+            <Text type="secondary" className="trading-stat-hide-sm">
+              H {parseFloat(ticker.high_price).toFixed(2)} / L {parseFloat(ticker.low_price).toFixed(2)}
+            </Text>
+          </div>
         )}
-      </Row>
+      </div>
 
       {/* Error */}
       {error && (
@@ -206,11 +207,11 @@ export default function TradingPage() {
       {/* Chart */}
       <Card styles={{ body: { padding: 0 } }}>
         {loading && candles.length === 0 ? (
-          <div style={{ height: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ height: chartHeight, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Spin size="large" />
           </div>
         ) : (
-          <TradingChart candles={candles} isDark={isDark} height={420} />
+          <TradingChart candles={candles} isDark={isDark} height={chartHeight} />
         )}
       </Card>
 

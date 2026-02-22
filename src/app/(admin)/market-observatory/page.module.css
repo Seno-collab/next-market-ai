@@ -468,6 +468,84 @@
 
   .heroMeta {
     flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Table: allow horizontal scroll & reduce font */
+  .table {
+    min-width: 520px;
+    font-size: 0.82rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 6px;
+  }
+
+  /* Alert head: wrap timestamp below title */
+  .alertHead {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 12px;
+  }
+
+  .hero {
+    margin-bottom: 18px;
+  }
+
+  .title {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  .subtitle {
+    font-size: 0.88rem;
+  }
+
+  .kpiGrid {
+    gap: 10px;
+  }
+
+  .kpiCard {
+    padding: 12px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  /* Table: further reduce on tiny screens */
+  .table {
+    min-width: 420px;
+    font-size: 0.76rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 6px 5px;
+  }
+
+  /* Sector cards tighter */
+  .sectorCard {
+    padding: 8px;
+  }
+
+  /* Alert rows compact */
+  .alertRow {
+    padding: 8px;
+  }
+
+  .alertBody p {
+    font-size: 0.78rem;
+  }
+
+  /* Note list */
+  .noteList div {
+    padding: 8px;
   }
 }
 

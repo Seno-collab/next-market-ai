@@ -17395,3 +17395,559 @@ button {
   .tl2-right-title { font-size: 1.6rem; }
   .tl2-kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* =====================================================
+   MOBILE RESPONSIVE — Global fixes
+   ===================================================== */
+
+/* ── Admin sidebar overlay (tap outside to close) ── */
+.admin-mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .admin-mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 19;
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ── Very small screens: tighter admin padding ── */
+@media (max-width: 480px) {
+  .admin-content {
+    padding: 10px 8px;
+  }
+
+  /* Hide subtitle text in admin header to save vertical space */
+  .admin-header .ant-typography-secondary {
+    display: none;
+  }
+
+  /* Collapse locale toggle to icon-only on very small phones */
+  .admin-locale-toggle.ant-segmented {
+    font-size: 0.6rem;
+  }
+}
+
+/* ── Trading page shell ── */
+.trading-page-shell {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .trading-page-shell {
+    padding: 12px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trading-page-shell {
+    padding: 8px;
+    gap: 10px;
+  }
+}
+
+/* ── Trading header row ── */
+.trading-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trading-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Scrollable interval segmented on small screens */
+.trading-interval-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.trading-interval-scroll::-webkit-scrollbar { display: none; }
+.trading-interval-scroll .ant-segmented { white-space: nowrap; }
+
+/* Ticker stats strip */
+.trading-ticker-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .trading-ticker-stats {
+    margin-left: 0;
+    gap: 10px;
+  }
+  .trading-stat-hide-sm { display: none; }
+}
+
+@media (max-width: 480px) {
+  .trading-ticker-stats {
+    width: 100%;
+    gap: 8px;
+  }
+  .trading-stat-hide-xs { display: none; }
+}
+
+/* ── Dashboard: positions table horizontal scroll ── */
+@media (max-width: 768px) {
+  .db-ticker { padding: 7px 12px; gap: 8px; }
+  .db-ticker-live { font-size: 0.65rem; padding-right: 8px; }
+
+  .db-pos-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .db-trade-row { padding: 6px 8px; gap: 7px; font-size: 0.78rem; }
+  .db-trade-time { display: none; }
+
+  .db-hero-title { font-size: 1.9rem; }
+  .db-portfolio-stats { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .db-body { padding: 10px 10px 28px; }
+  .db-ticker { display: none; }  /* hide scrolling ticker on very small — too cramped */
+
+  .db-panel-hd { flex-wrap: wrap; gap: 4px; }
+  .db-panel-title { font-size: 0.82rem; }
+}
+
+/* ── Analytics: tighter table on mobile ── */
+@media (max-width: 640px) {
+  .an-table th, .an-table td { padding: 8px 6px; font-size: 0.78rem; }
+}
+
+/* =====================================================
+   COMPREHENSIVE MOBILE FIXES — All Pages
+   ===================================================== */
+
+/* ─────────────── LOGIN PAGE (tlogin-*) ─────────────── */
+
+/* Fix: At 860px single-col, form should be on top — remove market panel reorder */
+@media (max-width: 860px) {
+  .tlogin-market-panel {
+    order: unset; /* form first, market panel below */
+    display: none; /* hide market panel on mobile — form is all that matters */
+  }
+
+  .tlogin-grid {
+    grid-template-columns: 1fr;
+    padding: 40px 16px 32px; /* was 80px top — way too much */
+    gap: 0;
+    max-width: 440px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tlogin-grid {
+    padding: 32px 14px 24px;
+    max-width: 100%;
+  }
+
+  .tlogin-title { font-size: 1.6rem; }
+  .tlogin-controls { top: 10px; right: 12px; }
+  .tlogin-ctrl-group { padding: 3px 6px; font-size: 0.7rem; }
+  .tlogin-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* ─────────────── LOGOUT PAGE (tl2-*) ─────────────── */
+
+@media (max-width: 640px) {
+  .tl2-content { padding: 16px 12px; }
+  .tl2-left    { padding: 24px 18px; }
+  .tl2-right-title { font-size: 1.5rem; }
+
+  /* KPI cards: still 2-col at 640px is ok, handled below */
+}
+
+@media (max-width: 480px) {
+  .tl2-grid       { gap: 20px; }
+  .tl2-kpi-grid   { grid-template-columns: 1fr; } /* single col on tiny screens */
+  .tl2-content    { padding: 12px 10px; }
+  .tl2-left       { padding: 20px 14px; }
+  .tl2-title      { font-size: 1.5rem; }
+  .tl2-icon-stage { width: 80px; height: 80px; }
+  .tl2-icon-bg    { width: 58px; height: 58px; }
+  .tl2-icon       { font-size: 22px; }
+  .tl2-activity-time { display: none; } /* save space */
+}
+
+/* ─────────────── PROFILE PAGE (tp-*) ─────────────── */
+
+@media (max-width: 480px) {
+  .tp-3d-header { height: 220px; }
+  .tp-body      { padding: 0 10px 24px; margin-top: -24px; }
+  .tp-stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tp-stat-card { padding: 14px 10px; }
+  .tp-stat-val  { font-size: 1.15rem; }
+  .tp-form-grid { gap: 12px; }
+  .tp-panel     { padding: 16px; }
+  .tp-actions   { flex-direction: column; }
+  .tp-actions .ant-btn { width: 100%; }
+  /* Avatar row on mobile stays horizontal (set at 768px), just tighten */
+  .tp-avatar-panel { padding: 18px 14px; gap: 12px; }
+}
+
+/* ─────────────── ANALYTICS PAGE (an-*) ─────────────── */
+
+@media (max-width: 600px) {
+  .an-shell   { padding: 12px; }
+  .an-panel   { padding: 14px; }
+  .an-panel-hd { gap: 6px; flex-wrap: wrap; }
+
+  /* Asset allocation rows: stack label/bar/value vertically */
+  .an-alloc-row { flex-direction: column; gap: 6px; }
+  .an-alloc-bar-bg { width: 100%; }
+  .an-alloc-right { justify-content: flex-start; gap: 12px; }
+
+  /* Insights: icon above text */
+  .an-insight-card { flex-direction: column; gap: 10px; }
+  .an-insight-icon { width: 32px; height: 32px; font-size: 0.95rem; }
+
+  /* Bar chart: tighter bars */
+  .an-bar-chart { gap: 6px; }
+  .an-bar-col   { min-width: 28px; }
+  .an-bar-month { font-size: 0.65rem; }
+  .an-bar-label-top { font-size: 0.65rem; }
+}
+
+/* ─────────────── DASHBOARD (db-*) ─────────────── */
+
+@media (max-width: 480px) {
+  /* Portfolio ring stats: 2 per row already, 1 per row on tiny */
+  .db-portfolio-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .db-pstat-val { font-size: 1rem; }
+
+  /* Watch list: tighter */
+  .db-watch-row { padding: 6px 8px; }
+  .db-watch-price { font-size: 0.82rem; }
+
+  /* Alert feed: wrap head */
+  .db-alert-head { flex-wrap: wrap; gap: 4px; }
+  .db-alert-time { font-size: 0.68rem; }
+  .db-alert-detail { font-size: 0.78rem; }
+
+  /* Panels */
+  .db-panel { padding: 12px; }
+}
+
+/* ─────────────── MENU PAGE ─────────────── */
+
+@media (max-width: 768px) {
+  .menu-hero-section {
+    height: 260px;
+    margin: -16px -12px 20px -12px;
+  }
+  .menu-hero-overlay { padding: 18px; }
+  .menu-hero-actions { flex-wrap: wrap; gap: 8px; }
+  .menu-hero-actions .ant-btn { flex: 1 1 auto; }
+
+  /* Metrics: already responsive via Ant Design Col, just reduce card height */
+  .metric-card-3d { height: 90px; }
+  .metric-card-3d__content { padding: 12px 14px; gap: 10px; }
+  .metric-card-3d__icon { width: 36px; height: 36px; font-size: 1rem; }
+  .metric-card-3d__value { font-size: 1.3rem; }
+  .metric-card-3d__label { font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .menu-hero-section {
+    height: 220px;
+    margin: -10px -8px 16px -8px;
+  }
+  .menu-hero-title { font-size: 1.2rem; }
+  .menu-hero-description { font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Filter: stack controls vertically (already done by ant Row, just ensure field labels work) */
+  .menu-admin-toolbar .ant-segmented { width: 100%; }
+
+  /* Table action buttons full width */
+  .menu-admin-actions { flex-direction: column; }
+  .menu-admin-actions .ant-btn { width: 100%; }
+
+  /* Table: allow horizontal scroll */
+  .menu-table-section .ant-table-content { overflow-x: auto !important; }
+}
+
+/* ─────────────── ADMIN HEADER — additional fixes ─────────────── */
+
+@media (max-width: 991px) {
+  /* When sidebar is open (not collapsed) on mobile, lock body from scrolling */
+  .admin-layout:has(.admin-mobile-overlay) {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Reduce admin header height and font on tablets */
+  .admin-header {
+    min-height: 56px;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header {
+    min-height: 52px;
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  /* Locale toggle: smaller on tiny screens */
+  .admin-locale-toggle .ant-segmented-item {
+    padding: 0 6px;
+    font-size: 0.6rem;
+  }
+}
+
+/* =====================================================
+   TRANSACTIONS PAGE  (tx-*)
+   ===================================================== */
+
+.tx-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  min-height: 100vh;
+  background: #040c18;
+}
+
+/* ── Header ── */
+.tx-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tx-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 13px;
+  background: rgba(34,211,238,0.08);
+  border: 1px solid rgba(34,211,238,0.22);
+  border-radius: 999px;
+  color: #22d3ee;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.tx-title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 900;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #f1f5f9 40%, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tx-subtitle { color: #475569; font-size: 0.9rem; margin: 0; }
+
+.tx-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tx-add-btn.ant-btn-primary {
+  background: linear-gradient(135deg, #22d3ee, #0ea5e9) !important;
+  border: none !important;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(34,211,238,0.28);
+}
+
+/* ── Error banner ── */
+.tx-error {
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+/* ── Panel ── */
+.tx-panel {
+  background: rgba(6,14,26,0.72);
+  border: 1px solid rgba(34,211,238,0.1);
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+/* ── Table ── */
+.tx-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.tx-table th, .tx-table td {
+  text-align: left;
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(148,163,184,0.08);
+  font-size: 0.85rem;
+}
+
+.tx-table th {
+  font-size: 0.68rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  background: rgba(6,12,22,0.6);
+  position: sticky;
+  top: 0;
+}
+
+.tx-table tr:last-child td { border-bottom: 0; }
+.tx-table tbody tr:hover td { background: rgba(34,211,238,0.03); }
+
+/* Cell variants */
+.tx-soft   { color: #475569; }
+.tx-num    { font-variant-numeric: tabular-nums; font-weight: 600; color: #e2e8f0; }
+.tx-total  { color: #f1f5f9; font-weight: 700; }
+.tx-nowrap { white-space: nowrap; }
+.tx-note   { max-width: 160px; overflow: hidden; text-overflow: ellipsis; color: #64748b; }
+
+.tx-sym {
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.02em;
+}
+
+/* Side badge */
+.tx-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.tx-side.buy  { background: rgba(52,211,153,0.12);  color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+.tx-side.sell { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+
+/* Delete button */
+.tx-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #475569;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.tx-del-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* Loading / empty states */
+.tx-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+}
+.tx-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+.tx-empty-icon { font-size: 2.5rem; color: rgba(34,211,238,0.25); }
+
+/* Pagination */
+.tx-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(148,163,184,0.08);
+}
+
+/* ── Create Modal ── */
+.tx-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.tx-form { margin-top: 16px; }
+
+.tx-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tx-side-radio { width: 100%; display: flex; }
+.tx-side-radio .ant-radio-button-wrapper { flex: 1; text-align: center; font-weight: 700; }
+.tx-radio-buy.ant-radio-button-wrapper-checked  { color: #34d399 !important; border-color: #34d399 !important; }
+.tx-radio-sell.ant-radio-button-wrapper-checked { color: #f87171 !important; border-color: #f87171 !important; }
+
+.tx-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(148,163,184,0.1);
+}
+
+.tx-submit-btn.ant-btn-primary {
+  background: linear-gradient(135deg, #22d3ee, #0ea5e9) !important;
+  border: none !important;
+  font-weight: 700;
+}
+
+/* ── Symbol select (filter) ── */
+.tx-symbol-select.ant-select .ant-select-selector {
+  background: rgba(6,14,26,0.7) !important;
+  border-color: rgba(34,211,238,0.2) !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .tx-shell  { padding: 14px; gap: 14px; }
+  .tx-header { flex-direction: column; align-items: flex-start; }
+  .tx-header-actions { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .tx-shell { padding: 10px; gap: 10px; }
+  .tx-form-row { grid-template-columns: 1fr; }
+  .tx-header-actions { flex-wrap: wrap; gap: 8px; }
+}

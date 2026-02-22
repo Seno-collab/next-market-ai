@@ -447,6 +447,7 @@ export default function MenuManagementPage() {
               size="middle"
               className="menu-data-table"
               rowClassName="menu-table-row"
+              scroll={{ x: "max-content" }}
             />
           </Table3DEffect>
           <div className="menu-pagination-wrapper">
