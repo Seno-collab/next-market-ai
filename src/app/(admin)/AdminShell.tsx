@@ -18,6 +18,7 @@ import {
 import { Button, Layout, Menu, Segmented, Space, Switch, Typography } from "antd";
 import { useLocale } from "@/hooks/useLocale";
 import { useTheme } from "@/hooks/useTheme";
+import { useHeartbeat } from "@/features/auth/hooks/useHeartbeat";
 import { RestaurantSelectHeader } from "@/features/admin/components/RestaurantSelectHeader";
 
 const { Sider, Header, Content } = Layout;
@@ -62,6 +63,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const { t, locale, setLocale } = useLocale();
   const { isDark, setMode } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
+  useHeartbeat(true);
 
   const selectedKey = navItems.find((item) => pathname.startsWith(item.key))?.key ?? "/admin/dashboard";
 
