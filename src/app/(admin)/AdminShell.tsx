@@ -8,6 +8,7 @@ import {
   BarChartOutlined,
   BulbOutlined,
   HomeOutlined,
+  LineChartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
@@ -44,6 +45,11 @@ const navItems = [
     key: "/admin/analytics",
     icon: <BarChartOutlined />,
     labelKey: "nav.analytics",
+  },
+  {
+    key: "/admin/trading",
+    icon: <LineChartOutlined />,
+    labelKey: "nav.trading",
   },
   {
     key: "/logout",
