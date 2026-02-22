@@ -60,7 +60,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy to server
-        uses: appleboy/ssh-action@v1.2.4
+        uses: appleboy/ssh-action@v1.2.5
         env:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
