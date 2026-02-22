@@ -281,7 +281,11 @@ function withLocaleHeader(init?: RequestInit) {
       headers.set(RESTAURANT_HEADER_NAME, restaurantId);
     }
   }
-  return { ...init, headers, credentials: "same-origin" as RequestCredentials };
+  return {
+    ...init,
+    headers,
+    credentials: init?.credentials ?? ("include" as RequestCredentials),
+  };
 }
 
 function resolveRequestUrl(input: RequestInfo | URL): string {

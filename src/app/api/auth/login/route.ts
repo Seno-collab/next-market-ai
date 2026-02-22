@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loginUser } from "@/features/auth/server/authService";
 import { createTranslator, getRequestLocale } from "@/i18n/translator";
 import { withApiLogging } from "@/lib/api/withApiLogging";
-import { AUTH_BASE_URL, AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS } from "@/lib/auth/server";
+import { AUTH_BASE_URL, AUTH_COOKIE_NAME, getAuthCookieOptions } from "@/lib/auth/server";
 
 type TokenRecord = Record<string, unknown>;
 
@@ -42,6 +42,7 @@ function extractTokens(payload: TokenRecord) {
 export const POST = withApiLogging(async (request: Request) => {
   const locale = getRequestLocale(request);
   const t = createTranslator(locale);
+  const cookieOptions = getAuthCookieOptions(request);
   try {
     const payload = await request.json();
     const origin = new URL(request.url).origin;
@@ -49,7 +50,7 @@ export const POST = withApiLogging(async (request: Request) => {
     if (!AUTH_BASE_URL || AUTH_BASE_URL === origin) {
       const result = loginUser(payload);
       const response = NextResponse.json(result);
-      response.cookies.set(AUTH_COOKIE_NAME, result.tokens.accessToken, AUTH_COOKIE_OPTIONS);
+      response.cookies.set(AUTH_COOKIE_NAME, result.tokens.accessToken, cookieOptions);
       return response;
     }
 
@@ -85,7 +86,7 @@ export const POST = withApiLogging(async (request: Request) => {
       null;
 
     const response = NextResponse.json({ user, tokens });
-    response.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, AUTH_COOKIE_OPTIONS);
+    response.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, cookieOptions);
     return response;
   } catch (error) {
     return NextResponse.json(

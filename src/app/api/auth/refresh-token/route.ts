@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { refreshTokens } from "@/features/auth/server/authService";
 import { createTranslator, getRequestLocale } from "@/i18n/translator";
 import { withApiLogging } from "@/lib/api/withApiLogging";
-import { AUTH_BASE_URL, AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS } from "@/lib/auth/server";
+import { AUTH_BASE_URL, AUTH_COOKIE_NAME, getAuthCookieOptions } from "@/lib/auth/server";
 
 type TokenRecord = Record<string, unknown>;
 
@@ -42,6 +42,7 @@ function extractTokens(payload: TokenRecord) {
 export const POST = withApiLogging(async (request: Request) => {
   const locale = getRequestLocale(request);
   const t = createTranslator(locale);
+  const cookieOptions = getAuthCookieOptions(request);
   try {
     const payload = await request.json();
     const refreshToken = payload?.refreshToken ?? payload?.refresh_token;
@@ -52,7 +53,7 @@ export const POST = withApiLogging(async (request: Request) => {
     if (!AUTH_BASE_URL || AUTH_BASE_URL === origin) {
       const tokens = refreshTokens(refreshToken);
       const response = NextResponse.json({ tokens });
-      response.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, AUTH_COOKIE_OPTIONS);
+      response.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, cookieOptions);
       return response;
     }
 
@@ -78,7 +79,7 @@ export const POST = withApiLogging(async (request: Request) => {
       return NextResponse.json({ message: t("auth.errors.refreshFailed") }, { status: 502 });
     }
     const nextResponse = NextResponse.json({ tokens });
-    nextResponse.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, AUTH_COOKIE_OPTIONS);
+    nextResponse.cookies.set(AUTH_COOKIE_NAME, tokens.accessToken, cookieOptions);
     return nextResponse;
   } catch (error) {
     return NextResponse.json(

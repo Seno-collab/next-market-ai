@@ -9,17 +9,50 @@ export const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24;
  *
  * Set AUTH_COOKIE_SECURE=false in .env.local when running a prod build over HTTP.
  */
-const AUTH_COOKIE_SECURE =
-  process.env.AUTH_COOKIE_SECURE === "true"
-    ? true
-    : process.env.AUTH_COOKIE_SECURE === "false"
-      ? false
-      : process.env.NODE_ENV === "production";
+function parseCookieSecureOverride() {
+  if (process.env.AUTH_COOKIE_SECURE === "true") {
+    return true;
+  }
+  if (process.env.AUTH_COOKIE_SECURE === "false") {
+    return false;
+  }
+  return null;
+}
 
-export const AUTH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: AUTH_COOKIE_SECURE,
-  path: "/",
-  maxAge: AUTH_COOKIE_MAX_AGE,
-};
+function isHttpsRequest(request?: Request) {
+  if (!request) {
+    return process.env.NODE_ENV === "production";
+  }
+
+  const forwardedProto = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim()
+    ?.toLowerCase();
+
+  if (forwardedProto === "https") {
+    return true;
+  }
+  if (forwardedProto === "http") {
+    return false;
+  }
+
+  try {
+    return new URL(request.url).protocol === "https:";
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+}
+
+export function getAuthCookieOptions(request?: Request) {
+  const secureOverride = parseCookieSecureOverride();
+  const secure = secureOverride ?? isHttpsRequest(request);
+
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure,
+    path: "/",
+    maxAge: AUTH_COOKIE_MAX_AGE,
+  };
+}

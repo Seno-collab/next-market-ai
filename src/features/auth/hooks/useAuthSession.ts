@@ -21,6 +21,10 @@ type AuthResponsePayload = {
   tokens?: Record<string, unknown>;
 };
 
+type AuthSessionPayload = {
+  authenticated?: boolean;
+};
+
 type TokenRecord = Record<string, unknown>;
 
 function extractTokens(payload: unknown): StoredAuthTokens | null {
@@ -87,6 +91,17 @@ export function useAuthSession() {
         throw new Error(message);
       }
       setStoredAuthTokens(tokens);
+      const sessionState = await fetchJson<AuthSessionPayload>("/api/auth/session", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!sessionState.authenticated) {
+        setStoredAuthTokens(null);
+        const message = "Login succeeded but auth cookie was not set.";
+        setError(message);
+        throw new Error(message);
+      }
       const user =
         response.user ??
         (response.data && typeof response.data === "object"
