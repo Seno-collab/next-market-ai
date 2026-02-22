@@ -204,7 +204,7 @@ export default function TradingPage() {
       )}
 
       {/* Chart */}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card styles={{ body: { padding: 0 } }}>
         {loading && candles.length === 0 ? (
           <div style={{ height: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Spin size="large" />
