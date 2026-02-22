@@ -65,8 +65,12 @@ export const POST = withApiLogging(async (request: Request) => {
 
     if (!authResponse.ok || responseCodeError) {
       const status = authResponse.ok ? responseCode ?? 400 : authResponse.status;
-      const message =
-        typeof data.message === "string" ? t(data.message) : authResponse.statusText || t("auth.errors.loginFailed");
+      const isInvalidCredentials = status === 401 || status === 403;
+      const message = isInvalidCredentials
+        ? t("auth.errors.invalidCredentials")
+        : typeof data.message === "string"
+          ? t(data.message)
+          : authResponse.statusText || t("auth.errors.loginFailed");
       return NextResponse.json({ message }, { status });
     }
 
