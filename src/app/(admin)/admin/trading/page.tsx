@@ -436,12 +436,13 @@ export default function TradingPage() {
             <div className="tp-trades-list">
               {trades.slice(0, 20).map((t) => {
                 const isBuy  = t.is_buyer;
+                const tradeKey = `${t.id}-${t.time}-${isBuy ? "b" : "s"}-${t.price}-${t.qty}`;
                 const volPct = maxTradeQty > 0
                   ? (parseFloat(t.qty) / maxTradeQty) * 100
                   : 0;
                 return (
                   <div
-                    key={t.id}
+                    key={tradeKey}
                     className={`tp-trade-row${isBuy ? " tp-trade-buy" : " tp-trade-sell"}`}
                   >
                     <div

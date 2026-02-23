@@ -13,6 +13,10 @@ import type {
 const RECONNECT_DELAY_MS = 3_000;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
+function tradeFingerprint(trade: TradeUpdate): string {
+  return `${trade.id}:${trade.time}:${trade.is_buyer ? 1 : 0}:${trade.price}:${trade.qty}`;
+}
+
 /**
  * Resolve the WebSocket base URL.
  * Priority:
@@ -121,10 +125,21 @@ export function useTradingStream(symbol: string): TradingStreamReturn {
           break;
 
         case "trade_update":
-          setState((s) => ({
-            ...s,
-            trades: [msg.data as TradeUpdate, ...s.trades].slice(0, 100),
-          }));
+          setState((s) => {
+            const incoming = msg.data as TradeUpdate;
+            const seen = new Set<string>();
+            const deduped: TradeUpdate[] = [];
+
+            for (const trade of [incoming, ...s.trades]) {
+              const key = tradeFingerprint(trade);
+              if (seen.has(key)) continue;
+              seen.add(key);
+              deduped.push(trade);
+              if (deduped.length >= 100) break;
+            }
+
+            return { ...s, trades: deduped };
+          });
           break;
 
         case "book_delta": {
