@@ -9,13 +9,10 @@ import {
   RobotOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
-import { Button, Form, Input, Modal, Segmented, Spin, Tag, Typography, message } from "antd";
+import { Button, Form, Modal, Spin, Tag, Typography, message } from "antd";
 import { coinAiApi } from "@/lib/api/coinai";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 import type { CoinAISignal, TrainReport, WatchlistItem } from "@/types/trading";
-
-const INTERVALS = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"] as const;
-type Interval = (typeof INTERVALS)[number];
 
 const SIG_CLR: Record<CoinAISignal, string> = {
   BUY: "#34d399", SELL: "#f87171", HOLD: "#94a3b8",
@@ -53,7 +50,6 @@ export default function CoinAIPage() {
 
   const [addOpen, setAddOpen]           = useState(false);
   const [addSymbol, setAddSymbol]       = useState("BTCUSDT");
-  const [addInterval, setAddInterval]   = useState<Interval>("1h");
   const [addLoading, setAddLoading]     = useState(false);
 
   const [messageApi, contextHolder]     = message.useMessage();
@@ -96,10 +92,10 @@ export default function CoinAIPage() {
   async function handleAdd() {
     setAddLoading(true);
     try {
-      await coinAiApi.addToWatchlist({ symbol: addSymbol, interval: addInterval });
-      void messageApi.success(`${addSymbol} added to watchlist`);
+      await coinAiApi.addToWatchlist({ symbol: addSymbol });
       setAddOpen(false);
-      void loadWatchlist();
+      await loadWatchlist();
+      void messageApi.success(`${addSymbol} added to watchlist`);
     } catch (e) {
       void messageApi.error((e as Error).message);
     } finally {
@@ -186,7 +182,6 @@ export default function CoinAIPage() {
               >
                 <div className="ci-wl-info">
                   <span className="ci-wl-symbol">{item.symbol}</span>
-                  <span className="ci-wl-iv">{item.interval}</span>
                   {item.last_signal && <SignalBadge s={item.last_signal} />}
                 </div>
                 <div className="ci-wl-actions">
@@ -196,7 +191,7 @@ export default function CoinAIPage() {
                     ghost
                     icon={<RobotOutlined />}
                     loading={loadingTrain && activeSymbol === item.symbol}
-                    onClick={() => void runTrain(item.symbol, item.interval)}
+                    onClick={() => void runTrain(item.symbol, "1h")}
                   >
                     Analyze
                   </Button>
@@ -327,13 +322,6 @@ export default function CoinAIPage() {
         <Form layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label="Symbol">
             <SymbolSearch value={addSymbol} onChange={setAddSymbol} />
-          </Form.Item>
-          <Form.Item label="Interval">
-            <Segmented
-              options={INTERVALS.map((i) => ({ label: i.toUpperCase(), value: i }))}
-              value={addInterval}
-              onChange={(v) => setAddInterval(v as Interval)}
-            />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

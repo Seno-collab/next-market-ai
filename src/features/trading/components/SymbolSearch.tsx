@@ -1,47 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useDeferredValue, useRef, useState } from "react";
 import { CaretDownOutlined, SearchOutlined } from "@ant-design/icons";
-import { Input, Modal, Tabs, Typography } from "antd";
+import { Input, Modal, Spin, Tabs, Typography } from "antd";
 import type { InputRef } from "antd";
 
 const { Text } = Typography;
 
-type SymbolEntry = { symbol: string; base: string; quote: string };
-
-function makeEntries(symbols: string[], quote: string): SymbolEntry[] {
-  return symbols.map((s) => ({
-    symbol: s,
-    base: s.slice(0, s.length - quote.length),
-    quote,
-  }));
-}
-
-const USDT_LIST = makeEntries(
-  [
-    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT",
-    "DOGEUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "UNIUSDT", "ATOMUSDT",
-    "LTCUSDT", "NEARUSDT", "MATICUSDT", "ARBUSDT", "OPUSDT", "INJUSDT",
-    "SUIUSDT", "APTUSDT", "FILUSDT", "SANDUSDT", "MANAUSDT", "SHIBUSDT",
-    "PEPEUSDT", "WIFUSDT", "TONUSDT", "TRXUSDT", "HBARUSDT", "FETUSDT",
-  ],
-  "USDT",
-);
-
-const BTC_LIST = makeEntries(
-  ["ETHBTC", "BNBBTC", "XRPBTC", "LTCBTC", "SOLBTC", "LINKBTC", "ADABTC"],
-  "BTC",
-);
-
-const ETH_LIST = makeEntries(
-  ["BNBETH", "LINKETH", "UNIETH", "DOTETH", "SOLETH"],
-  "ETH",
-);
-
-const ALL_BY_TAB: Record<string, SymbolEntry[]> = {
-  USDT: USDT_LIST,
-  BTC: BTC_LIST,
-  ETH: ETH_LIST,
+type SymbolItem = {
+  symbol: string;
+  base_asset: string;
+  quote_asset: string;
 };
 
 type Props = {
@@ -49,20 +18,75 @@ type Props = {
   onChange: (symbol: string) => void;
 };
 
+const DEFAULT_QUOTES = ["USDT", "BTC", "ETH", "BNB"];
+
+async function fetchQuoteTabs(): Promise<string[]> {
+  try {
+    const res = await fetch("/api/trading/quotes", { cache: "no-store" });
+    if (!res.ok) return DEFAULT_QUOTES;
+    const body = (await res.json()) as { data?: { quotes?: { quote_asset: string }[] } };
+    const tabs = (body.data?.quotes ?? []).map((q) => q.quote_asset).slice(0, 6);
+    return tabs.length > 0 ? tabs : DEFAULT_QUOTES;
+  } catch {
+    return DEFAULT_QUOTES;
+  }
+}
+
+async function fetchSymbols(quote: string): Promise<SymbolItem[]> {
+  try {
+    const res = await fetch(`/api/trading/symbols?quote=${quote}`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { data?: { symbols?: SymbolItem[] } };
+    return body.data?.symbols ?? [];
+  } catch {
+    return [];
+  }
+}
+
 function formatDisplay(symbol: string): { base: string; quote: string } {
-  for (const q of ["USDT", "BTC", "ETH", "BNB"]) {
+  for (const q of ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"]) {
     if (symbol.endsWith(q)) return { base: symbol.slice(0, -q.length), quote: q };
   }
   return { base: symbol, quote: "" };
 }
 
 export default function SymbolSearch({ value, onChange }: Props) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("USDT");
-  const inputRef = useRef<InputRef>(null);
+  const [open, setOpen]         = useState(false);
+  const [query, setQuery]       = useState("");
+  const [tab, setTab]           = useState("USDT");
+  const [quotes, setQuotes]     = useState<string[]>(DEFAULT_QUOTES);
+  const [symbols, setSymbols]   = useState<SymbolItem[]>([]);
+  const [loading, setLoading]   = useState(false);
+
+  const cacheRef      = useRef<Record<string, SymbolItem[]>>({});
+  const quotesLoaded  = useRef(false);
+  const inputRef      = useRef<InputRef>(null);
+  const deferred      = useDeferredValue(query);
 
   const { base, quote } = formatDisplay(value);
+
+  // Load quote tabs once on first open
+  useEffect(() => {
+    if (!open || quotesLoaded.current) return;
+    quotesLoaded.current = true;
+    void fetchQuoteTabs().then(setQuotes);
+  }, [open]);
+
+  // Load symbols for current tab (cache per quote)
+  useEffect(() => {
+    if (!open) return;
+    const cached = cacheRef.current[tab];
+    if (cached) {
+      setSymbols(cached);
+      return;
+    }
+    setLoading(true);
+    void fetchSymbols(tab).then((items) => {
+      cacheRef.current[tab] = items;
+      setSymbols(items);
+      setLoading(false);
+    });
+  }, [open, tab]);
 
   useEffect(() => {
     if (open) {
@@ -71,11 +95,15 @@ export default function SymbolSearch({ value, onChange }: Props) {
     }
   }, [open]);
 
-  const pool = query.trim()
-    ? Object.values(ALL_BY_TAB)
-        .flat()
-        .filter((e) => e.symbol.includes(query.toUpperCase()))
-    : (ALL_BY_TAB[tab] ?? []);
+  const pool = deferred.trim()
+    ? symbols
+        .filter(
+          (s) =>
+            s.symbol.includes(deferred.toUpperCase()) ||
+            s.base_asset.includes(deferred.toUpperCase()),
+        )
+        .slice(0, 20)
+    : symbols.slice(0, 50);
 
   function select(symbol: string) {
     onChange(symbol);
@@ -118,7 +146,7 @@ export default function SymbolSearch({ value, onChange }: Props) {
           <Input
             ref={inputRef}
             prefix={<SearchOutlined />}
-            placeholder="Search symbol (e.g. BTC, ETH...)"
+            placeholder="Search symbol (e.g. BTC, SOL, ETH...)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             allowClear
@@ -127,31 +155,39 @@ export default function SymbolSearch({ value, onChange }: Props) {
           />
         </div>
 
-        {/* Category tabs (hidden when searching) */}
+        {/* Quote tabs — hidden when searching */}
         {!query.trim() && (
           <div style={{ padding: "0 16px" }}>
             <Tabs
               activeKey={tab}
-              onChange={setTab}
+              onChange={(k) => setTab(k)}
               size="small"
-              items={Object.keys(ALL_BY_TAB).map((k) => ({ key: k, label: k }))}
+              items={quotes.map((k) => ({ key: k, label: k }))}
             />
           </div>
         )}
 
         {/* Symbol list */}
         <div style={{ maxHeight: 400, overflowY: "auto", padding: "0 8px 12px" }}>
-          {pool.length === 0 ? (
+          {loading ? (
             <div style={{ padding: "32px 0", textAlign: "center" }}>
-              <Text type="secondary">No results for "{query}"</Text>
+              <Spin />
+            </div>
+          ) : pool.length === 0 ? (
+            <div style={{ padding: "32px 0", textAlign: "center" }}>
+              <Text type="secondary">
+                {deferred.trim() ? `No results for "${deferred}"` : "No symbols available"}
+              </Text>
             </div>
           ) : (
-            pool.map((entry) => (
+            pool.map((item) => (
               <SymbolRow
-                key={entry.symbol}
-                entry={entry}
-                selected={entry.symbol === value}
-                onClick={() => select(entry.symbol)}
+                key={item.symbol}
+                base={item.base_asset}
+                quote={item.quote_asset}
+                symbol={item.symbol}
+                selected={item.symbol === value}
+                onClick={() => select(item.symbol)}
               />
             ))
           )}
@@ -162,11 +198,15 @@ export default function SymbolSearch({ value, onChange }: Props) {
 }
 
 function SymbolRow({
-  entry,
+  base,
+  quote,
+  symbol,
   selected,
   onClick,
 }: {
-  entry: SymbolEntry;
+  base: string;
+  quote: string;
+  symbol: string;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -186,7 +226,6 @@ function SymbolRow({
         textAlign: "left",
       }}
     >
-      {/* Coin initials badge */}
       <span
         style={{
           width: 36,
@@ -202,13 +241,15 @@ function SymbolRow({
           color: selected ? "#26a69a" : undefined,
         }}
       >
-        {entry.base.slice(0, 3)}
+        {base.slice(0, 3)}
       </span>
 
       <span style={{ flex: 1 }}>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.base}</span>
-        <span style={{ fontSize: 12, opacity: 0.5 }}>/{entry.quote}</span>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>{base}</span>
+        <span style={{ fontSize: 12, opacity: 0.5 }}>/{quote}</span>
       </span>
+
+      <span style={{ fontSize: 12, color: "#475569" }}>{symbol}</span>
 
       {selected && (
         <span style={{ fontSize: 12, color: "#26a69a", fontWeight: 600 }}>✓</span>

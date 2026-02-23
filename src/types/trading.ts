@@ -146,6 +146,29 @@ export type DailyReport = {
   generated_at: string;    // RFC3339 UTC
 };
 
+// ── Symbol browser types ─────────────────────────────────────────────────────
+
+export type SymbolItem = {
+  symbol: string;      // e.g. "BTCUSDT"
+  base_asset: string;  // e.g. "BTC"
+  quote_asset: string; // e.g. "USDT"
+};
+
+export type SymbolsResponse = {
+  symbols: SymbolItem[];
+  count: number;
+};
+
+export type QuoteItem = {
+  quote_asset: string;   // e.g. "USDT"
+  symbol_count: number;  // number of pairs in this quote line
+};
+
+export type QuotesResponse = {
+  quotes: QuoteItem[];
+  count: number;
+};
+
 // ── CoinAI types ────────────────────────────────────────────────────────────
 
 export type CoinAISignal = "BUY" | "SELL" | "HOLD";
@@ -171,7 +194,6 @@ export type TrainReport = {
 
 export type WatchlistItem = {
   symbol: string;
-  interval: string;
   added_at: string;         // RFC3339 UTC
   last_signal?: CoinAISignal;
   last_trained_at?: string; // RFC3339 UTC
@@ -179,5 +201,32 @@ export type WatchlistItem = {
 
 export type AddWatchlistRequest = {
   symbol: string;
-  interval?: string;        // default "1h"
+};
+
+// ── Portfolio types ─────────────────────────────────────────────────────────
+
+export type PositionRow = {
+  symbol: string;
+  total_buy_qty: number;
+  total_sell_qty: number;
+  net_qty: number;
+  avg_buy_price: number;
+  total_fees: number;
+  total_invested: number;
+  realized_pnl: number;
+  current_price: number;
+  price_change_24h_pct: number;
+  current_value: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+};
+
+export type PortfolioData = {
+  positions: PositionRow[];
+  total_invested: number;
+  total_current_value: number;
+  total_unrealized_pnl: number;
+  total_realized_pnl: number;
+  total_fees: number;
+  generated_at: string;
 };

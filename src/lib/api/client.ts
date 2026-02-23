@@ -498,6 +498,12 @@ async function refreshAuthTokens(): Promise<StoredAuthTokens | null> {
   return refreshPromise;
 }
 
+/** Clear localStorage tokens + auth cookie, then redirect to /login. */
+export async function signOut() {
+  await expireSession();
+  redirectToLogin();
+}
+
 export function notifySuccess(message: string) {
   notify("success", message);
 }
@@ -564,25 +570,20 @@ export async function fetchJson<T>(
       throw new Error(message);
     }
 
-    const canRefresh =
+    // 401 → clear session and redirect to login immediately
+    if (
       isBrowser &&
-      (response.status === 401 || response.status === 403) &&
+      response.status === 401 &&
       !isRefreshRequest(input) &&
-      Boolean(getStoredAuthTokens()?.refreshToken) &&
-      !skipAuth;
-    if (canRefresh) {
-      const refreshed = await refreshAuthTokens();
-      if (refreshed?.accessToken) {
-        const retryInit = withLocaleHeader(withAuthHeader(init, refreshed.accessToken));
-        const retryResponse = await fetch(input, retryInit);
-        if (retryResponse.ok) {
-          return (await retryResponse.json()) as T;
-        }
-        const retryMessage = await getErrorMessage(retryResponse);
-        notifyError(retryMessage);
-        throw new Error(retryMessage);
-      }
+      !isLogoutRequest(input) &&
+      !skipAuth
+    ) {
+      const message = await getErrorMessage(response);
+      await expireSession();
+      redirectToLogin();
+      throw new Error(message);
     }
+
     const message = await getErrorMessage(response);
     notifyError(message);
     throw new Error(message);

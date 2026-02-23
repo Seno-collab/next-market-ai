@@ -4,8 +4,6 @@ import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-type RouteContext = { params: Promise<{ symbol: string }> };
-
 function resolveAuthHeader(request: NextRequest): string | null {
   const header = request.headers.get("authorization");
   if (header) return header;
@@ -14,26 +12,26 @@ function resolveAuthHeader(request: NextRequest): string | null {
   return null;
 }
 
-/** DELETE /api/coinai/watchlist/:symbol */
-export const DELETE = withApiLogging(async (request: NextRequest, ctx: RouteContext) => {
-  const origin = new URL(request.url).origin;
-  if (!API_BASE_URL || API_BASE_URL === origin) {
-    return NextResponse.json({ message: "CoinAI service not configured" }, { status: 503 });
+/** GET /api/trading/portfolio — fetch aggregated P&L positions */
+export const GET = withApiLogging(async (request: NextRequest) => {
+  const auth = resolveAuthHeader(request);
+  if (!auth) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { symbol } = await ctx.params;
-  const auth = resolveAuthHeader(request);
-  const headers: Record<string, string> = {};
-  if (auth) headers.Authorization = auth;
+  const origin = new URL(request.url).origin;
+  if (!API_BASE_URL || API_BASE_URL === origin) {
+    return NextResponse.json({ message: "Trading API not configured" }, { status: 503 });
+  }
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/coinai/watchlist/${symbol.toUpperCase()}`,
-      { method: "DELETE", headers, cache: "no-store" },
-    );
+    const response = await fetch(`${API_BASE_URL}/api/trading/portfolio`, {
+      headers: { Authorization: auth },
+      cache: "no-store",
+    });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch {
-    return NextResponse.json({ message: "CoinAI service unavailable" }, { status: 502 });
+    return NextResponse.json({ message: "Trading service unavailable" }, { status: 502 });
   }
 });

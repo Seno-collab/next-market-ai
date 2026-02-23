@@ -5,8 +5,8 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import {
+  AppstoreOutlined,
   BulbOutlined,
-  HomeOutlined,
   LineChartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -17,6 +17,7 @@ import {
   SwapOutlined,
   ThunderboltOutlined,
   UserOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Segmented, Space, Switch, Typography } from "antd";
 import { useLocale } from "@/hooks/useLocale";
@@ -49,6 +50,16 @@ const navItems = [
     labelKey: "nav.trading",
   },
   {
+    key: "/admin/symbols",
+    icon: <AppstoreOutlined />,
+    labelKey: "nav.symbols",
+  },
+  {
+    key: "/admin/portfolio",
+    icon: <WalletOutlined />,
+    labelKey: "nav.portfolio",
+  },
+  {
     key: "/admin/transactions",
     icon: <SwapOutlined />,
     labelKey: "nav.transactions",
@@ -67,11 +78,6 @@ const navItems = [
     key: "/logout",
     icon: <LogoutOutlined />,
     labelKey: "nav.logout",
-  },
-  {
-    key: "/",
-    icon: <HomeOutlined />,
-    labelKey: "nav.home",
   },
 ];
 

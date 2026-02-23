@@ -1,14 +1,27 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getStoredAuthTokens, signOut } from "@/lib/api/client";
 
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
 async function sendHeartbeat() {
   try {
-    await fetch("/api/auth/heartbeat", { method: "POST" });
+    const tokens = getStoredAuthTokens();
+    const headers: Record<string, string> = {};
+    if (tokens?.accessToken) {
+      headers.authorization = `Bearer ${tokens.accessToken}`;
+    }
+    const res = await fetch("/api/auth/heartbeat", {
+      method: "POST",
+      headers,
+      credentials: "include",
+    });
+    if (res.status === 401) {
+      await signOut();
+    }
   } catch {
-    // Silently ignore — heartbeat is best-effort
+    // Silently ignore network errors — heartbeat is best-effort
   }
 }
 

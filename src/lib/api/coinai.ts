@@ -60,19 +60,28 @@ export const coinAiApi = {
   },
 
   /** POST /api/coinai/watchlist */
-  addToWatchlist(req: AddWatchlistRequest): Promise<WatchlistItem> {
-    return fetchCoinAI<WatchlistItem>("/api/coinai/watchlist", {
+  async addToWatchlist(req: AddWatchlistRequest): Promise<WatchlistItem> {
+    const symbol = req.symbol.toUpperCase();
+    const res = await fetch("/api/coinai/watchlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...req, symbol: req.symbol.toUpperCase() }),
+      body: JSON.stringify({ symbol }),
+      cache: "no-store",
     });
+    const body = (await res.json()) as ApiResponse<WatchlistItem>;
+    if (!res.ok) throw new Error(body.message || `HTTP ${res.status}`);
+    // Some backends return 200/201 with no data body — synthesise a fallback item
+    return body.data ?? { symbol, added_at: new Date().toISOString() };
   },
 
   /** DELETE /api/coinai/watchlist/:symbol */
-  removeFromWatchlist(symbol: string): Promise<{ message: string }> {
-    return fetchCoinAI<{ message: string }>(
-      `/api/coinai/watchlist/${symbol.toUpperCase()}`,
-      { method: "DELETE" },
-    );
+  async removeFromWatchlist(symbol: string): Promise<{ message: string }> {
+    const res = await fetch(`/api/coinai/watchlist/${symbol.toUpperCase()}`, {
+      method: "DELETE",
+      cache: "no-store",
+    });
+    const body = (await res.json()) as ApiResponse<{ message: string }>;
+    if (!res.ok) throw new Error(body.message || `HTTP ${res.status}`);
+    return body.data ?? { message: body.message ?? "OK" };
   },
 };
