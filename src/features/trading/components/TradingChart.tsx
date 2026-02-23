@@ -28,10 +28,10 @@ export default function TradingChart({ candles, isDark, height = 420 }: Props) {
     const container = containerRef.current;
     if (!container) return;
 
-    const bg = isDark ? "#141414" : "#ffffff";
-    const text = isDark ? "#d9d9d9" : "#262626";
-    const grid = isDark ? "#1f1f1f" : "#f0f0f0";
-    const border = isDark ? "#303030" : "#d9d9d9";
+    const bg = isDark ? "#0d1117" : "#ffffff";
+    const text = isDark ? "#94a3b8" : "#262626";
+    const grid = isDark ? "#161b27" : "#f0f0f0";
+    const border = isDark ? "#1e2a3a" : "#d9d9d9";
 
     const chart = createChart(container, {
       width: container.clientWidth,

@@ -9,8 +9,9 @@ import {
 } from "@ant-design/icons";
 import { Spin } from "antd";
 import { useTheme } from "@/hooks/useTheme";
-import { tradingApi, candleToChart, tradeSide } from "@/lib/api/trading";
-import type { Ticker, Trade, PriceLevel } from "@/types/trading";
+import { tradingApi, candleToChart } from "@/lib/api/trading";
+import { useTradingStream } from "@/hooks/useTradingStream";
+import type { KlineUpdate, PriceLevel } from "@/types/trading";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 
 const TradingChart = dynamic(
@@ -18,7 +19,7 @@ const TradingChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="tp-chart-spin">
+      <div className="tp-chart-spin" style={{ height: 460 }}>
         <Spin size="large" />
       </div>
     ),
@@ -36,16 +37,16 @@ type CandleBar = {
   close: number;
 };
 
-const PERIOD_CONFIG: Record<Period, { interval: string; limit: number; pollMs: number }> = {
-  "1m":  { interval: "1m",  limit: 60,  pollMs: 10_000 },
-  "5m":  { interval: "5m",  limit: 60,  pollMs: 20_000 },
-  "15m": { interval: "15m", limit: 60,  pollMs: 30_000 },
-  "1h":  { interval: "1h",  limit: 100, pollMs: 60_000 },
-  "4h":  { interval: "4h",  limit: 90,  pollMs: 120_000 },
-  "1d":  { interval: "1d",  limit: 90,  pollMs: 300_000 },
-  "1M":  { interval: "1d",  limit: 30,  pollMs: 600_000 },
-  "6M":  { interval: "1d",  limit: 180, pollMs: 600_000 },
-  "1Y":  { interval: "1d",  limit: 365, pollMs: 600_000 },
+const PERIOD_CONFIG: Record<Period, { interval: string; limit: number }> = {
+  "1m":  { interval: "1m",  limit: 60  },
+  "5m":  { interval: "5m",  limit: 60  },
+  "15m": { interval: "15m", limit: 60  },
+  "1h":  { interval: "1h",  limit: 100 },
+  "4h":  { interval: "4h",  limit: 90  },
+  "1d":  { interval: "1d",  limit: 90  },
+  "1M":  { interval: "1d",  limit: 30  },
+  "6M":  { interval: "1d",  limit: 180 },
+  "1Y":  { interval: "1d",  limit: 365 },
 };
 
 /* ── helpers ── */
@@ -62,7 +63,12 @@ function fmtQty(v: string | number) {
   return n.toFixed(4);
 }
 function fmtTime(ms: number) {
-  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return new Date(ms).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 /* ── cumulative depth ── */
@@ -73,6 +79,17 @@ function buildCumulative(levels: PriceLevel[]): number[] {
   return out;
 }
 
+/* ── kline → CandleBar ── */
+function klineToBar(k: KlineUpdate): CandleBar {
+  return {
+    time: Math.floor(k.open_time / 1000),
+    open: Number(k.open),
+    high: Number(k.high),
+    low: Number(k.low),
+    close: Number(k.close),
+  };
+}
+
 export default function TradingPage() {
   const { isDark } = useTheme();
   const [symbol, setSymbol] = useState(() => {
@@ -81,15 +98,15 @@ export default function TradingPage() {
   });
   const [period, setPeriod] = useState<Period>("1h");
   const [candles, setCandles] = useState<CandleBar[]>([]);
-  const [ticker, setTicker] = useState<Ticker | null>(null);
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [bids, setBids] = useState<PriceLevel[]>([]);
-  const [asks, setAsks] = useState<PriceLevel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [candleLoading, setCandleLoading] = useState(true);
+  const [candleError, setCandleError] = useState<string | null>(null);
   const [chartHeight, setChartHeight] = useState(460);
   const abortRef = useRef<AbortController | null>(null);
 
+  /* ── Real-time stream ── */
+  const { ticker, trades, orderBook, liveCandle, connected, reconnecting, reconnect } = useTradingStream(symbol);
+
+  /* ── Resize handler ── */
   useEffect(() => {
     function onResize() {
       const w = window.innerWidth;
@@ -100,50 +117,74 @@ export default function TradingPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const fetchAll = useCallback(
-    async (sig: AbortSignal) => {
-      const { interval, limit } = PERIOD_CONFIG[period];
-      try {
-        const [rawCandles, tickerData, tradesData, orderBook] = await Promise.all([
-          tradingApi.getOHLCV(symbol, interval, limit, sig),
-          tradingApi.getTicker(symbol, sig),
-          tradingApi.getTrades(symbol, 20, sig),
-          tradingApi.getOrderBook(symbol, 10, sig),
-        ]);
-        setCandles(rawCandles.map(candleToChart));
-        setTicker(tickerData);
-        setTrades(tradesData);
-        setBids(orderBook.bids.slice(0, 10));
-        setAsks(orderBook.asks.slice(0, 10));
-        setError(null);
-      } catch (e) {
-        if ((e as Error).name !== "AbortError") setError((e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [symbol, period],
-  );
+  /* ── Fetch OHLCV via REST on symbol / period change ── */
+  const fetchCandles = useCallback(async (sig: AbortSignal) => {
+    const { interval, limit } = PERIOD_CONFIG[period];
+    setCandleLoading(true);
+    setCandleError(null);
+    try {
+      const raw = await tradingApi.getOHLCV(symbol, interval, limit, sig);
+      setCandles(raw.map(candleToChart));
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") setCandleError((e as Error).message);
+    } finally {
+      setCandleLoading(false);
+    }
+  }, [symbol, period]);
 
   useEffect(() => {
-    setLoading(true);
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    void fetchAll(ctrl.signal);
-    const id = setInterval(() => void fetchAll(ctrl.signal), PERIOD_CONFIG[period].pollMs);
-    return () => { ctrl.abort(); clearInterval(id); };
-  }, [fetchAll, period]);
+    void fetchCandles(ctrl.signal);
+    return () => ctrl.abort();
+  }, [fetchCandles]);
+
+  /* ── Apply kline_update to live chart (only for 1m period) ── */
+  useEffect(() => {
+    if (!liveCandle || period !== "1m") return;
+    const bar = klineToBar(liveCandle);
+    if (liveCandle.is_closed) {
+      setCandles((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.time === bar.time) return prev;
+        return [...prev, bar];
+      });
+    } else {
+      setCandles((prev) => {
+        if (prev.length === 0) return [bar];
+        const last = prev[prev.length - 1];
+        return last.time === bar.time
+          ? [...prev.slice(0, -1), bar]
+          : [...prev, bar];
+      });
+    }
+  }, [liveCandle, period]);
+
+  /* ── Convert WS orderBook Maps → sorted PriceLevel[] (top 10) ── */
+  const bids: PriceLevel[] = orderBook
+    ? [...orderBook.bids.entries()]
+        .sort(([a], [b]) => Number(b) - Number(a))
+        .slice(0, 10)
+        .map(([price, quantity]) => ({ price, quantity }))
+    : [];
+  const asks: PriceLevel[] = orderBook
+    ? [...orderBook.asks.entries()]
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .slice(0, 10)
+        .map(([price, quantity]) => ({ price, quantity }))
+    : [];
+
+  // True when we have data but the stream has dropped — show stale treatment.
+  const isStale = !connected && (ticker !== null || orderBook !== null || trades.length > 0);
 
   const priceChange = ticker ? parseFloat(ticker.price_change_percent) : 0;
   const isUp        = priceChange >= 0;
 
-  /* cumulative depth (index 0 = best price, grows away from spread) */
-  const asksCum   = buildCumulative(asks);   // asks[0] = best ask
-  const bidsCum   = buildCumulative(bids);   // bids[0] = best bid
+  const asksCum   = buildCumulative(asks);
+  const bidsCum   = buildCumulative(bids);
   const maxAskCum = asksCum.at(-1) ?? 0;
   const maxBidCum = bidsCum.at(-1) ?? 0;
 
-  /* spread */
   const spread =
     asks.length && bids.length
       ? parseFloat(asks[0].price) - parseFloat(bids[0].price)
@@ -153,17 +194,15 @@ export default function TradingPage() {
       ? (spread / parseFloat(ticker.last_price)) * 100
       : null;
 
-  /* buy/sell pressure (0-100, >50 means more bids) */
   const bidPct =
     maxBidCum + maxAskCum > 0
       ? Math.round((maxBidCum / (maxBidCum + maxAskCum)) * 100)
       : 50;
 
-  /* recent trades stats */
   const maxTradeQty = trades.length > 0
     ? Math.max(...trades.map((t) => parseFloat(t.qty)))
     : 0;
-  const buyCount = trades.filter((t) => tradeSide(t.is_buyer_maker) === "BUY").length;
+  const buyCount = trades.filter((t) => t.is_buyer).length;
   const tradeRatioPct = trades.length > 0
     ? Math.round((buyCount / trades.length) * 100)
     : 50;
@@ -172,7 +211,7 @@ export default function TradingPage() {
     <div className="tp-shell">
 
       {/* ── Ticker bar ─────────────────────────────────────────────────── */}
-      <div className="tp-ticker-bar">
+      <div className={`tp-ticker-bar${isStale ? " tp-stale-bar" : ""}`}>
         {/* Symbol picker */}
         <div className="tp-symbol-block">
           <SymbolSearch value={symbol} onChange={setSymbol} />
@@ -180,7 +219,7 @@ export default function TradingPage() {
 
         {/* Live stats */}
         {ticker ? (
-          <div className="tp-stats-strip">
+          <div className={`tp-stats-strip${isStale ? " tp-stale" : ""}`}>
             <div className="tp-price-block">
               <span className={`tp-price${isUp ? " tp-up" : " tp-dn"}`}>
                 {fmt(ticker.last_price)}
@@ -203,6 +242,9 @@ export default function TradingPage() {
               <span className="tp-stat-label">Low</span>
               <span className="tp-stat-value tp-dn">{fmt(ticker.low_price)}</span>
             </div>
+            {isStale && (
+              <span className="tp-ticker-stale-tag">⏸ Stale</span>
+            )}
           </div>
         ) : (
           <div className="tp-stats-strip">
@@ -210,7 +252,7 @@ export default function TradingPage() {
           </div>
         )}
 
-        {/* Period pills + refresh */}
+        {/* Period pills + refresh + connection indicator */}
         <div className="tp-controls-block">
           <div className="tp-period-row">
             {PERIODS.map((p) => (
@@ -227,20 +269,38 @@ export default function TradingPage() {
             className="tp-refresh-btn"
             onClick={() => {
               const ctrl = new AbortController();
-              setLoading(true);
-              void fetchAll(ctrl.signal);
+              void fetchCandles(ctrl.signal);
             }}
-            title="Refresh"
+            title="Refresh candles"
           >
             <ReloadOutlined />
           </button>
+          <span
+            className={`tp-ws-dot${connected ? " tp-ws-live" : reconnecting ? " tp-ws-reconnecting" : " tp-ws-dead"}`}
+            title={connected ? "Live" : reconnecting ? "Reconnecting…" : "Connection lost"}
+          />
         </div>
       </div>
 
-      {/* ── Error banner ───────────────────────────────────────────────── */}
-      {error && (
+      {/* ── Status banners ─────────────────────────────────────────────── */}
+      {reconnecting && !connected && (
+        <div className="tp-reconnect-banner">
+          <span className="tp-reconnect-spinner" />
+          Reconnecting to live stream…
+        </div>
+      )}
+      {!connected && !reconnecting && (
+        <div className="tp-lost-banner">
+          <span className="tp-lost-icon">⚠</span>
+          Connection lost — data is stale
+          <button className="tp-reconnect-btn" onClick={reconnect}>
+            Reconnect
+          </button>
+        </div>
+      )}
+      {candleError && (
         <div className="tp-error-banner">
-          Failed to load data: {error}
+          Failed to load candles: {candleError}
         </div>
       )}
 
@@ -249,7 +309,7 @@ export default function TradingPage() {
 
         {/* Chart */}
         <div className="tp-chart-card">
-          {loading && candles.length === 0 ? (
+          {candleLoading && candles.length === 0 ? (
             <div className="tp-chart-spin" style={{ height: chartHeight }}>
               <Spin size="large" />
             </div>
@@ -262,12 +322,15 @@ export default function TradingPage() {
         <div className="tp-right-col">
 
           {/* Order book */}
-          <div className="tp-book-card">
+          <div className={`tp-book-card${isStale ? " tp-stale" : ""}`}>
 
             {/* Header */}
             <div className="tp-book-header">
               <span className="tp-book-title">Order Book</span>
-              <span className="tp-book-pair">{symbol}</span>
+              <div className="tp-book-header-right">
+                {isStale && <span className="tp-stale-chip">STALE</span>}
+                <span className="tp-book-pair">{symbol}</span>
+              </div>
             </div>
 
             {/* Column labels */}
@@ -347,15 +410,19 @@ export default function TradingPage() {
           </div>
 
           {/* Recent trades */}
-          <div className="tp-trades-card">
+          <div className={`tp-trades-card${isStale ? " tp-stale" : ""}`}>
 
             {/* Header */}
             <div className="tp-trades-header">
               <span className="tp-trades-title">Recent Trades</span>
-              <span className="tp-trades-live">
-                <span className="tp-live-dot" />
-                LIVE
-              </span>
+              {connected ? (
+                <span className="tp-trades-live">
+                  <span className="tp-live-dot" />
+                  LIVE
+                </span>
+              ) : isStale ? (
+                <span className="tp-trades-paused">PAUSED</span>
+              ) : null}
             </div>
 
             {/* Column labels */}
@@ -367,9 +434,9 @@ export default function TradingPage() {
 
             {/* Trade rows */}
             <div className="tp-trades-list">
-              {trades.map((t) => {
-                const isBuy   = tradeSide(t.is_buyer_maker) === "BUY";
-                const volPct  = maxTradeQty > 0
+              {trades.slice(0, 20).map((t) => {
+                const isBuy  = t.is_buyer;
+                const volPct = maxTradeQty > 0
                   ? (parseFloat(t.qty) / maxTradeQty) * 100
                   : 0;
                 return (

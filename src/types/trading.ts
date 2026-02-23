@@ -3,6 +3,77 @@ export type ApiResponse<T> = {
   data?: T;
 };
 
+// ── WebSocket stream types ────────────────────────────────────────────────
+
+export type WsEventType =
+  | "book_snapshot"
+  | "ticker_update"
+  | "trade_update"
+  | "book_delta"
+  | "kline_update";
+
+export type WsMessage<T = unknown> = {
+  type: WsEventType;
+  symbol: string;
+  data: T;
+};
+
+/** Same shape as REST Ticker — re-used as TickerUpdate. */
+export type TickerUpdate = {
+  symbol: string;
+  last_price: string;
+  price_change: string;
+  price_change_percent: string;
+  volume: string;
+  quote_volume: string;
+  high_price: string;
+  low_price: string;
+  open_price: string;
+};
+
+/** Sent once on connect. Bids/asks are object arrays (same as REST). */
+export type BookSnapshot = {
+  last_update_id: number;
+  bids: PriceLevel[];
+  asks: PriceLevel[];
+};
+
+/**
+ * Real-time trade from WS stream.
+ * NOTE: uses `is_buyer` (true=BUY), opposite naming from REST `is_buyer_maker`.
+ */
+export type TradeUpdate = {
+  id: number;
+  price: string;
+  qty: string;
+  time: number; // ms timestamp
+  is_buyer: boolean; // true=BUY, false=SELL
+};
+
+/**
+ * Incremental order-book update.
+ * bids/asks are array-of-arrays [[price, qty], ...].
+ * qty="0.00000000" means remove that price level.
+ */
+export type BookDelta = {
+  first_update_id: number;
+  last_update_id: number;
+  bids: [string, string][];
+  asks: [string, string][];
+};
+
+/** Live 1m candle. is_closed=true when the candle period ends. */
+export type KlineUpdate = {
+  open_time: number;
+  close_time: number;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  is_closed: boolean;
+};
+
 export type ApiError = {
   message: string;
 };
