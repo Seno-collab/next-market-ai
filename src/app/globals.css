@@ -17529,6 +17529,25 @@ button {
   white-space: nowrap;
 }
 
+/* 24h range bar — sits inside tp-stat-item */
+.tp-range-track {
+  display: inline-block;
+  width: 52px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
+}
+.tp-range-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ef5350, #26a69a);
+  transition: width 0.4s ease;
+}
+
 /* Controls block — period pills + refresh */
 .tp-controls-block {
   display: flex;
@@ -17943,7 +17962,25 @@ button {
   font-size: 11px;
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
 }
+
+/* Change indicator — small triangle shown after a book_delta */
+@keyframes tp-chg-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+.tp-chg-ind {
+  font-size: 8px;
+  line-height: 1;
+  animation: tp-chg-fade 0.6s ease-out forwards;
+  flex-shrink: 0;
+}
+.tp-chg-up { color: #26a69a; }
+.tp-chg-dn { color: #ef5350; }
 
 .tp-book-total {
   flex: none;

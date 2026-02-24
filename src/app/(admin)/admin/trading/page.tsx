@@ -5,13 +5,14 @@ import dynamic from "next/dynamic";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
+  MinusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import { Spin } from "antd";
 import { useTheme } from "@/hooks/useTheme";
 import { tradingApi, candleToChart } from "@/lib/api/trading";
 import { useTradingStream } from "@/hooks/useTradingStream";
-import type { KlineUpdate, PriceLevel } from "@/types/trading";
+import type { KlineUpdate, OrderBookState, PriceLevel } from "@/types/trading";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 
 const TradingChart = dynamic(
@@ -26,7 +27,18 @@ const TradingChart = dynamic(
   },
 );
 
-const PERIODS = ["1m", "5m", "15m", "1h", "4h", "1d", "1M", "6M", "1Y"] as const;
+const PERIODS = [
+  "1m",
+  "5m",
+  "15m",
+  "1h",
+  "4h",
+  "1d",
+  "1M",
+  "6M",
+  "1Y",
+  "2Y",
+] as const;
 type Period = (typeof PERIODS)[number];
 
 type CandleBar = {
@@ -38,15 +50,16 @@ type CandleBar = {
 };
 
 const PERIOD_CONFIG: Record<Period, { interval: string; limit: number }> = {
-  "1m":  { interval: "1m",  limit: 60  },
-  "5m":  { interval: "5m",  limit: 60  },
-  "15m": { interval: "15m", limit: 60  },
-  "1h":  { interval: "1h",  limit: 100 },
-  "4h":  { interval: "4h",  limit: 90  },
-  "1d":  { interval: "1d",  limit: 90  },
-  "1M":  { interval: "1d",  limit: 30  },
-  "6M":  { interval: "1d",  limit: 180 },
-  "1Y":  { interval: "1d",  limit: 365 },
+  "1m": { interval: "1m", limit: 60 },
+  "5m": { interval: "5m", limit: 60 },
+  "15m": { interval: "15m", limit: 60 },
+  "1h": { interval: "1h", limit: 100 },
+  "4h": { interval: "4h", limit: 90 },
+  "1d": { interval: "1d", limit: 90 },
+  "1M": { interval: "1d", limit: 30 },
+  "6M": { interval: "1d", limit: 180 },
+  "1Y": { interval: "1d", limit: 365 },
+  "2Y": { interval: "1d", limit: 730 },
 };
 
 /* ── helpers ── */
@@ -59,7 +72,7 @@ function fmt(v: string | number, decimals = 2) {
 function fmtQty(v: string | number) {
   const n = parseFloat(String(v));
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
-  if (n >= 1_000)     return (n / 1_000).toFixed(2) + "K";
+  if (n >= 1_000) return (n / 1_000).toFixed(2) + "K";
   return n.toFixed(4);
 }
 function fmtTime(ms: number) {
@@ -71,11 +84,20 @@ function fmtTime(ms: number) {
   });
 }
 
+function toFiniteNumber(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
 /* ── cumulative depth ── */
 function buildCumulative(levels: PriceLevel[]): number[] {
   const out: number[] = [];
   let sum = 0;
-  for (const l of levels) { sum += parseFloat(l.quantity); out.push(sum); }
+  for (const l of levels) {
+    sum += parseFloat(l.quantity);
+    out.push(sum);
+  }
   return out;
 }
 
@@ -94,7 +116,9 @@ export default function TradingPage() {
   const { isDark } = useTheme();
   const [symbol, setSymbol] = useState(() => {
     if (typeof window === "undefined") return "BTCUSDT";
-    return new URLSearchParams(window.location.search).get("symbol") ?? "BTCUSDT";
+    return (
+      new URLSearchParams(window.location.search).get("symbol") ?? "BTCUSDT"
+    );
   });
   const [period, setPeriod] = useState<Period>("1h");
   const [candles, setCandles] = useState<CandleBar[]>([]);
@@ -104,7 +128,49 @@ export default function TradingPage() {
   const abortRef = useRef<AbortController | null>(null);
 
   /* ── Real-time stream ── */
-  const { ticker, trades, orderBook, liveCandle, connected, reconnecting, reconnect } = useTradingStream(symbol);
+  const {
+    ticker,
+    trades,
+    orderBook,
+    bookChanges,
+    liveCandle,
+    connected,
+    reconnecting,
+    everConnected,
+    reconnect,
+  } = useTradingStream(symbol);
+
+  /* ── REST fallback: load order book via REST if WS snapshot is slow ── */
+  const [restBook, setRestBook] = useState<OrderBookState | null>(null);
+
+  useEffect(() => {
+    // WS book arrived — REST fallback no longer needed.
+    if (orderBook) { setRestBook(null); return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const book = await tradingApi.getOrderBook(symbol, 20, ctrl.signal);
+        setRestBook({
+          lastUpdateId: book.last_update_id,
+          bids: new Map(book.bids.map((l) => [l.price, l.quantity])),
+          asks: new Map(book.asks.map((l) => [l.price, l.quantity])),
+          bestBid: book.best_bid,
+          bestAsk: book.best_ask,
+          spread: book.spread,
+          spreadPercent: book.spread_percent,
+          midPrice: book.mid_price,
+          totalBidQty: book.total_bid_qty,
+          totalAskQty: book.total_ask_qty,
+        });
+      } catch { /* WS snapshot will eventually arrive */ }
+    }, 3_000);
+    return () => { clearTimeout(timer); ctrl.abort(); };
+  }, [orderBook, symbol]);
+
+  useEffect(() => { setRestBook(null); }, [symbol]);
+
+  // Use WS book when available; fall back to REST snapshot while waiting.
+  const displayBook = orderBook ?? restBook;
 
   /* ── Resize handler ── */
   useEffect(() => {
@@ -118,19 +184,23 @@ export default function TradingPage() {
   }, []);
 
   /* ── Fetch OHLCV via REST on symbol / period change ── */
-  const fetchCandles = useCallback(async (sig: AbortSignal) => {
-    const { interval, limit } = PERIOD_CONFIG[period];
-    setCandleLoading(true);
-    setCandleError(null);
-    try {
-      const raw = await tradingApi.getOHLCV(symbol, interval, limit, sig);
-      setCandles(raw.map(candleToChart));
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") setCandleError((e as Error).message);
-    } finally {
-      setCandleLoading(false);
-    }
-  }, [symbol, period]);
+  const fetchCandles = useCallback(
+    async (sig: AbortSignal) => {
+      const { interval, limit } = PERIOD_CONFIG[period];
+      setCandleLoading(true);
+      setCandleError(null);
+      try {
+        const raw = await tradingApi.getOHLCV(symbol, interval, limit, sig);
+        setCandles(raw.map(candleToChart));
+      } catch (e) {
+        if ((e as Error).name !== "AbortError")
+          setCandleError((e as Error).message);
+      } finally {
+        setCandleLoading(false);
+      }
+    },
+    [symbol, period],
+  );
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -139,77 +209,64 @@ export default function TradingPage() {
     return () => ctrl.abort();
   }, [fetchCandles]);
 
-  /* ── Apply kline_update to live chart (only for 1m period) ── */
-  useEffect(() => {
-    if (!liveCandle || period !== "1m") return;
-    const bar = klineToBar(liveCandle);
-    if (liveCandle.is_closed) {
-      setCandles((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.time === bar.time) return prev;
-        return [...prev, bar];
-      });
-    } else {
-      setCandles((prev) => {
-        if (prev.length === 0) return [bar];
-        const last = prev[prev.length - 1];
-        return last.time === bar.time
-          ? [...prev.slice(0, -1), bar]
-          : [...prev, bar];
-      });
-    }
-  }, [liveCandle, period]);
+  /* ── Live candle bar passed directly to TradingChart via series.update() ── */
+  // Only 1m period: the WS stream sends 1m klines regardless of chart period.
+  // series.update() is O(1) — no full data reload on each tick.
+  const liveBar = period === "1m" && liveCandle ? klineToBar(liveCandle) : null;
 
-  /* ── Convert WS orderBook Maps → sorted PriceLevel[] (top 10) ── */
-  const bids: PriceLevel[] = orderBook
-    ? [...orderBook.bids.entries()]
+  /* ── Convert order book Maps → sorted PriceLevel[] (top 10) ── */
+  const bids: PriceLevel[] = displayBook
+    ? [...displayBook.bids.entries()]
         .sort(([a], [b]) => Number(b) - Number(a))
         .slice(0, 10)
         .map(([price, quantity]) => ({ price, quantity }))
     : [];
-  const asks: PriceLevel[] = orderBook
-    ? [...orderBook.asks.entries()]
+  const asks: PriceLevel[] = displayBook
+    ? [...displayBook.asks.entries()]
         .sort(([a], [b]) => Number(a) - Number(b))
         .slice(0, 10)
         .map(([price, quantity]) => ({ price, quantity }))
     : [];
 
   // True when we have data but the stream has dropped — show stale treatment.
-  const isStale = !connected && (ticker !== null || orderBook !== null || trades.length > 0);
+  const isStale =
+    !connected && (ticker !== null || displayBook !== null || trades.length > 0);
 
-  const priceChange = ticker ? parseFloat(ticker.price_change_percent) : 0;
-  const isUp        = priceChange >= 0;
+  // price_direction is server-computed — no need to re-derive on frontend.
+  const changeDirection = ticker?.price_direction ?? "flat";
+  const changeClass =
+    changeDirection === "up" ? " tp-up" : changeDirection === "down" ? " tp-dn" : "";
+  const rawPriceChange = toFiniteNumber(ticker?.price_change_percent);
+  const changeText =
+    rawPriceChange === null
+      ? "—"
+      : `${rawPriceChange > 0 ? "+" : rawPriceChange < 0 ? "-" : ""}${Math.abs(rawPriceChange).toFixed(2)}%`;
 
-  const asksCum   = buildCumulative(asks);
-  const bidsCum   = buildCumulative(bids);
+  const asksCum = buildCumulative(asks);
+  const bidsCum = buildCumulative(bids);
   const maxAskCum = asksCum.at(-1) ?? 0;
   const maxBidCum = bidsCum.at(-1) ?? 0;
 
-  const spread =
-    asks.length && bids.length
-      ? parseFloat(asks[0].price) - parseFloat(bids[0].price)
-      : null;
-  const spreadPct =
-    spread !== null && ticker
-      ? (spread / parseFloat(ticker.last_price)) * 100
-      : null;
+  // Use server-computed spread fields from the snapshot (more accurate than top-1 diff).
+  const spread    = displayBook ? parseFloat(displayBook.spread) : null;
+  const spreadPct = displayBook ? parseFloat(displayBook.spreadPercent) : null;
 
+  // Use total_bid/ask_qty from snapshot for pressure gauge (full depth, not just top 10).
+  const totalBid = displayBook ? parseFloat(displayBook.totalBidQty) : 0;
+  const totalAsk = displayBook ? parseFloat(displayBook.totalAskQty) : 0;
   const bidPct =
-    maxBidCum + maxAskCum > 0
-      ? Math.round((maxBidCum / (maxBidCum + maxAskCum)) * 100)
+    totalBid + totalAsk > 0
+      ? Math.round((totalBid / (totalBid + totalAsk)) * 100)
       : 50;
 
-  const maxTradeQty = trades.length > 0
-    ? Math.max(...trades.map((t) => parseFloat(t.qty)))
-    : 0;
+  const maxTradeQty =
+    trades.length > 0 ? Math.max(...trades.map((t) => parseFloat(t.qty))) : 0;
   const buyCount = trades.filter((t) => t.is_buyer).length;
-  const tradeRatioPct = trades.length > 0
-    ? Math.round((buyCount / trades.length) * 100)
-    : 50;
+  const tradeRatioPct =
+    trades.length > 0 ? Math.round((buyCount / trades.length) * 100) : 50;
 
   return (
     <div className="tp-shell">
-
       {/* ── Ticker bar ─────────────────────────────────────────────────── */}
       <div className={`tp-ticker-bar${isStale ? " tp-stale-bar" : ""}`}>
         {/* Symbol picker */}
@@ -221,13 +278,18 @@ export default function TradingPage() {
         {ticker ? (
           <div className={`tp-stats-strip${isStale ? " tp-stale" : ""}`}>
             <div className="tp-price-block">
-              <span className={`tp-price${isUp ? " tp-up" : " tp-dn"}`}>
+              <span className={`tp-price${changeClass}`}>
                 {fmt(ticker.last_price)}
               </span>
-              <span className={`tp-change${isUp ? " tp-up" : " tp-dn"}`}>
-                {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                {priceChange > 0 ? "+" : ""}
-                {priceChange.toFixed(2)}%
+              <span className={`tp-change${changeClass}`}>
+                {changeDirection === "up" ? (
+                  <ArrowUpOutlined />
+                ) : changeDirection === "down" ? (
+                  <ArrowDownOutlined />
+                ) : (
+                  <MinusOutlined />
+                )}
+                {changeText}
               </span>
             </div>
             <div className="tp-stat-item tp-hide-xs">
@@ -242,9 +304,28 @@ export default function TradingPage() {
               <span className="tp-stat-label">Low</span>
               <span className="tp-stat-value tp-dn">{fmt(ticker.low_price)}</span>
             </div>
-            {isStale && (
-              <span className="tp-ticker-stale-tag">⏸ Stale</span>
-            )}
+            <div className="tp-stat-item tp-hide-sm">
+              <span className="tp-stat-label">VWAP</span>
+              <span className="tp-stat-value">{fmt(ticker.weighted_avg_price)}</span>
+            </div>
+            <div className="tp-stat-item tp-hide-sm">
+              <span className="tp-stat-label">Trades</span>
+              <span className="tp-stat-value">{ticker.trade_count.toLocaleString()}</span>
+            </div>
+            {/* 24h range bar — shows where last_price sits in [low, high] */}
+            <div className="tp-stat-item tp-hide-sm" style={{ gap: 4 }}>
+              <span className="tp-stat-label">Range</span>
+              <span className="tp-range-track">
+                <span
+                  className="tp-range-fill"
+                  style={{ width: `${ticker.range_percent}%` }}
+                />
+              </span>
+              <span className="tp-stat-value" style={{ fontSize: 10 }}>
+                {parseFloat(ticker.range_percent).toFixed(0)}%
+              </span>
+            </div>
+            {isStale && <span className="tp-ticker-stale-tag">⏸ Stale</span>}
           </div>
         ) : (
           <div className="tp-stats-strip">
@@ -268,7 +349,9 @@ export default function TradingPage() {
           <button
             className="tp-refresh-btn"
             onClick={() => {
+              if (abortRef.current) abortRef.current.abort();
               const ctrl = new AbortController();
+              abortRef.current = ctrl;
               void fetchCandles(ctrl.signal);
             }}
             title="Refresh candles"
@@ -277,7 +360,13 @@ export default function TradingPage() {
           </button>
           <span
             className={`tp-ws-dot${connected ? " tp-ws-live" : reconnecting ? " tp-ws-reconnecting" : " tp-ws-dead"}`}
-            title={connected ? "Live" : reconnecting ? "Reconnecting…" : "Connection lost"}
+            title={
+              connected
+                ? "Live"
+                : reconnecting
+                  ? "Reconnecting…"
+                  : "Connection lost"
+            }
           />
         </div>
       </div>
@@ -289,7 +378,7 @@ export default function TradingPage() {
           Reconnecting to live stream…
         </div>
       )}
-      {!connected && !reconnecting && (
+      {!connected && !reconnecting && everConnected && (
         <div className="tp-lost-banner">
           <span className="tp-lost-icon">⚠</span>
           Connection lost — data is stale
@@ -306,7 +395,6 @@ export default function TradingPage() {
 
       {/* ── Main content: chart + book + trades ────────────────────────── */}
       <div className="tp-main-grid">
-
         {/* Chart */}
         <div className="tp-chart-card">
           {candleLoading && candles.length === 0 ? (
@@ -314,16 +402,19 @@ export default function TradingPage() {
               <Spin size="large" />
             </div>
           ) : (
-            <TradingChart candles={candles} isDark={isDark} height={chartHeight} />
+            <TradingChart
+              candles={candles}
+              isDark={isDark}
+              height={chartHeight}
+              liveBar={liveBar}
+            />
           )}
         </div>
 
         {/* Right column: order book + trades */}
         <div className="tp-right-col">
-
           {/* Order book */}
           <div className={`tp-book-card${isStale ? " tp-stale" : ""}`}>
-
             {/* Header */}
             <div className="tp-book-header">
               <span className="tp-book-title">Order Book</span>
@@ -344,28 +435,45 @@ export default function TradingPage() {
             <div className="tp-asks">
               {[...asks].reverse().map((row, j) => {
                 const origIdx = asks.length - 1 - j;
-                const cum     = asksCum[origIdx] ?? 0;
-                const pct     = maxAskCum > 0 ? (cum / maxAskCum) * 100 : 0;
+                const cum = asksCum[origIdx] ?? 0;
+                const pct = maxAskCum > 0 ? (cum / maxAskCum) * 100 : 0;
                 return (
                   <div key={row.price} className="tp-book-row tp-ask-row">
-                    <div className="tp-depth-bar tp-ask-bar" style={{ width: `${pct}%` }} />
-                    <span className="tp-book-price tp-dn">{fmt(row.price)}</span>
-                    <span className="tp-book-size">{fmtQty(row.quantity)}</span>
+                    <div
+                      className="tp-depth-bar tp-ask-bar"
+                      style={{ width: `${pct}%` }}
+                    />
+                    <span className="tp-book-price tp-dn">
+                      {fmt(row.price)}
+                    </span>
+                    <span className="tp-book-size">
+                      {fmtQty(row.quantity)}
+                      {bookChanges.get(row.price) === "up" && (
+                        <span key={`u-${row.price}`} className="tp-chg-ind tp-chg-up">▲</span>
+                      )}
+                      {bookChanges.get(row.price) === "down" && (
+                        <span key={`d-${row.price}`} className="tp-chg-ind tp-chg-dn">▼</span>
+                      )}
+                    </span>
                     <span className="tp-book-total">{fmtQty(String(cum))}</span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Last price + spread row */}
+            {/* Mid price + spread row */}
             <div className="tp-mid-row">
               <div className="tp-mid-price">
-                <span className={isUp ? "tp-up" : "tp-dn"}>
-                  {ticker ? fmt(ticker.last_price) : "—"}
+                <span className={changeClass.trim()}>
+                  {ticker ? fmt(ticker.last_price) : (displayBook ? fmt(displayBook.midPrice) : "—")}
                 </span>
-                {isUp
-                  ? <ArrowUpOutlined className="tp-mid-arrow tp-up" />
-                  : <ArrowDownOutlined className="tp-mid-arrow tp-dn" />}
+                {changeDirection === "up" ? (
+                  <ArrowUpOutlined className="tp-mid-arrow tp-up" />
+                ) : changeDirection === "down" ? (
+                  <ArrowDownOutlined className="tp-mid-arrow tp-dn" />
+                ) : (
+                  <MinusOutlined className="tp-mid-arrow" />
+                )}
               </div>
               {spread !== null && (
                 <div className="tp-mid-spread">
@@ -373,7 +481,9 @@ export default function TradingPage() {
                   <span className="tp-mid-spread-val">
                     {spread.toFixed(4)}
                     {spreadPct !== null && (
-                      <span className="tp-mid-spread-pct"> ({spreadPct.toFixed(3)}%)</span>
+                      <span className="tp-mid-spread-pct">
+                        {" "}({spreadPct.toFixed(3)}%)
+                      </span>
                     )}
                   </span>
                 </div>
@@ -387,9 +497,22 @@ export default function TradingPage() {
                 const pct = maxBidCum > 0 ? (cum / maxBidCum) * 100 : 0;
                 return (
                   <div key={row.price} className="tp-book-row tp-bid-row">
-                    <div className="tp-depth-bar tp-bid-bar" style={{ width: `${pct}%` }} />
-                    <span className="tp-book-price tp-up">{fmt(row.price)}</span>
-                    <span className="tp-book-size">{fmtQty(row.quantity)}</span>
+                    <div
+                      className="tp-depth-bar tp-bid-bar"
+                      style={{ width: `${pct}%` }}
+                    />
+                    <span className="tp-book-price tp-up">
+                      {fmt(row.price)}
+                    </span>
+                    <span className="tp-book-size">
+                      {fmtQty(row.quantity)}
+                      {bookChanges.get(row.price) === "up" && (
+                        <span key={`u-${row.price}`} className="tp-chg-ind tp-chg-up">▲</span>
+                      )}
+                      {bookChanges.get(row.price) === "down" && (
+                        <span key={`d-${row.price}`} className="tp-chg-ind tp-chg-dn">▼</span>
+                      )}
+                    </span>
                     <span className="tp-book-total">{fmtQty(String(cum))}</span>
                   </div>
                 );
@@ -399,19 +522,20 @@ export default function TradingPage() {
             {/* Buy/Sell pressure gauge */}
             <div className="tp-pressure">
               <div className="tp-pressure-track">
-                <div className="tp-pressure-bid" style={{ width: `${bidPct}%` }} />
+                <div
+                  className="tp-pressure-bid"
+                  style={{ width: `${bidPct}%` }}
+                />
               </div>
               <div className="tp-pressure-labels">
                 <span className="tp-up">{bidPct}% B</span>
                 <span className="tp-dn">{100 - bidPct}% S</span>
               </div>
             </div>
-
           </div>
 
           {/* Recent trades */}
           <div className={`tp-trades-card${isStale ? " tp-stale" : ""}`}>
-
             {/* Header */}
             <div className="tp-trades-header">
               <span className="tp-trades-title">Recent Trades</span>
@@ -435,11 +559,10 @@ export default function TradingPage() {
             {/* Trade rows */}
             <div className="tp-trades-list">
               {trades.slice(0, 20).map((t) => {
-                const isBuy  = t.is_buyer;
+                const isBuy = t.is_buyer;
                 const tradeKey = `${t.id}-${t.time}-${isBuy ? "b" : "s"}-${t.price}-${t.qty}`;
-                const volPct = maxTradeQty > 0
-                  ? (parseFloat(t.qty) / maxTradeQty) * 100
-                  : 0;
+                const volPct =
+                  maxTradeQty > 0 ? (parseFloat(t.qty) / maxTradeQty) * 100 : 0;
                 return (
                   <div
                     key={tradeKey}
@@ -449,7 +572,9 @@ export default function TradingPage() {
                       className={`tp-trade-vol-bar${isBuy ? " tp-vol-buy" : " tp-vol-sell"}`}
                       style={{ width: `${volPct}%` }}
                     />
-                    <span className={`tp-trade-price${isBuy ? " tp-up" : " tp-dn"}`}>
+                    <span
+                      className={`tp-trade-price${isBuy ? " tp-up" : " tp-dn"}`}
+                    >
                       {fmt(t.price)}
                     </span>
                     <span className="tp-trade-qty">{fmtQty(t.qty)}</span>
@@ -474,9 +599,7 @@ export default function TradingPage() {
                 </div>
               </div>
             )}
-
           </div>
-
         </div>
       </div>
     </div>

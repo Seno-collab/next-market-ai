@@ -10,7 +10,8 @@ export type WsEventType =
   | "ticker_update"
   | "trade_update"
   | "book_delta"
-  | "kline_update";
+  | "kline_update"
+  | "stream_reconnected";
 
 export type WsMessage<T = unknown> = {
   type: WsEventType;
@@ -18,25 +19,14 @@ export type WsMessage<T = unknown> = {
   data: T;
 };
 
-/** Same shape as REST Ticker — re-used as TickerUpdate. */
-export type TickerUpdate = {
-  symbol: string;
-  last_price: string;
-  price_change: string;
-  price_change_percent: string;
-  volume: string;
-  quote_volume: string;
-  high_price: string;
-  low_price: string;
-  open_price: string;
-};
+/** WS ticker_update — same shape as REST Ticker. */
+export type TickerUpdate = Ticker;
 
-/** Sent once on connect. Bids/asks are object arrays (same as REST). */
-export type BookSnapshot = {
-  last_update_id: number;
-  bids: PriceLevel[];
-  asks: PriceLevel[];
-};
+/** WS book_snapshot — same shape as REST OrderBook (includes server-computed fields). */
+export type BookSnapshot = OrderBook;
+
+/** WS stream_reconnected — server Binance upstream đã reconnect, reset orderBook. */
+export type StreamReconnected = Record<string, never>;
 
 /**
  * Real-time trade from WS stream.
@@ -80,14 +70,39 @@ export type ApiError = {
 
 export type Ticker = {
   symbol: string;
+
+  // Price
   last_price: string;
-  price_change: string;
-  price_change_percent: string;
-  volume: string;
-  quote_volume: string;
+  open_price: string;
   high_price: string;
   low_price: string;
-  open_price: string;
+
+  // 24h change
+  price_change: string;
+  price_change_percent: string;
+
+  // Volume
+  volume: string;        // base asset (e.g. BTC)
+  quote_volume: string;  // quote asset (e.g. USDT)
+
+  // Advanced
+  weighted_avg_price: string; // VWAP 24h
+  last_qty: string;           // last trade qty
+  trade_count: number;        // number of trades 24h
+
+  // Inside market (best bid/ask at snapshot time)
+  best_bid: string;
+  best_bid_qty: string;
+  best_ask: string;
+  best_ask_qty: string;
+
+  // Time window
+  open_time: number;   // ms timestamp
+  close_time: number;  // ms timestamp
+
+  // Server-computed — no need to calculate on frontend
+  price_direction: "up" | "down" | "flat";
+  range_percent: string; // % position of last_price in [low, high]. "0"=bottom "100"=top
 };
 
 export type Candle = {
@@ -107,8 +122,38 @@ export type PriceLevel = {
 
 export type OrderBook = {
   last_update_id: number;
-  bids: PriceLevel[];
-  asks: PriceLevel[];
+  bids: PriceLevel[]; // sorted high → low
+  asks: PriceLevel[]; // sorted low → high
+
+  // Server-computed — no need to calculate on frontend
+  best_bid: string;
+  best_bid_qty: string;
+  best_ask: string;
+  best_ask_qty: string;
+  spread: string;         // best_ask - best_bid (absolute)
+  spread_percent: string; // spread / mid_price × 100 (4 decimal)
+  mid_price: string;      // (best_bid + best_ask) / 2
+  total_bid_qty: string;  // sum qty all bid levels
+  total_ask_qty: string;  // sum qty all ask levels
+};
+
+/**
+ * In-memory order book maintained by useTradingStream.
+ * bids/asks stored as Maps for O(1) delta apply.
+ * Convenience fields copied from the most recent book_snapshot.
+ */
+export type OrderBookState = {
+  lastUpdateId: number;
+  bids: Map<string, string>; // price → qty
+  asks: Map<string, string>; // price → qty
+  // From latest snapshot (not updated by deltas — deltas only touch bids/asks Maps)
+  bestBid: string;
+  bestAsk: string;
+  spread: string;
+  spreadPercent: string;
+  midPrice: string;
+  totalBidQty: string;
+  totalAskQty: string;
 };
 
 export type Trade = {
