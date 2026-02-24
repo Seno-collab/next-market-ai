@@ -20233,6 +20233,36 @@ button {
   gap: 16px;
 }
 
+/* Live WS indicator */
+.pf-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #34d399;
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+}
+.pf-ws-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 4px #34d399;
+  animation: pf-pulse 1.6s ease-in-out infinite;
+}
+.pf-ws-dot-inline { vertical-align: middle; }
+@keyframes pf-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
 .pf-eyebrow {
   display: flex;
   align-items: center;

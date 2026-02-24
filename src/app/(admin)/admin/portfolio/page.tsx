@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownOutlined,
@@ -12,15 +12,70 @@ import {
 import { Spin } from "antd";
 import type { PortfolioData, PositionRow } from "@/types/trading";
 
+/* ── Live types ─────────────────────────────────────────────────────────── */
+type LivePositionRow = PositionRow & {
+  live_price: number;
+  live_value: number;
+  live_unrealized_pnl: number;
+  live_unrealized_pnl_pct: number;
+  live_change_24h_pct: number;
+};
+
+type LivePortfolio = {
+  positions: LivePositionRow[];
+  total_invested: number;
+  total_live_value: number;
+  total_live_unrealized_pnl: number;
+  total_realized_pnl: number;
+  total_fees: number;
+  generated_at: string;
+};
+
+/* ── WS config ──────────────────────────────────────────────────────────── */
+const WS_BASE =
+  typeof window !== "undefined"
+    ? (process.env.NEXT_PUBLIC_WS_BASE_URL ??
+       window.location.origin.replace(/^http/, "ws"))
+    : "";
+
+const RECONNECT_DELAY_MS = 3_000;
+
 /* ── Formatters ─────────────────────────────────────────────────────────── */
 function usd(n: number) {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", {
+    style: "currency", currency: "USD",
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
 }
 function pct(n: number) { return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`; }
 function qty(n: number)  { return n.toFixed(8).replace(/\.?0+$/, ""); }
 function sign(n: number) { return n >= 0 ? "+" : ""; }
 
-async function fetchPortfolio(): Promise<PortfolioData> {
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+function toLive(p: PositionRow): LivePositionRow {
+  return {
+    ...p,
+    live_price:            p.current_price,
+    live_value:            p.current_value,
+    live_unrealized_pnl:     p.unrealized_pnl,
+    live_unrealized_pnl_pct: p.unrealized_pnl_pct,
+    live_change_24h_pct:     p.price_change_24h_pct,
+  };
+}
+
+function recalcTotals(positions: LivePositionRow[]) {
+  let liveValue = 0;
+  let livePnl   = 0;
+  for (const p of positions) {
+    if (p.net_qty > 0) {
+      liveValue += p.live_value;
+      livePnl   += p.live_unrealized_pnl;
+    }
+  }
+  return { total_live_value: liveValue, total_live_unrealized_pnl: livePnl };
+}
+
+async function fetchPortfolioData(): Promise<PortfolioData> {
   const res = await fetch("/api/trading/portfolio", { cache: "no-store" });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { message?: string };
@@ -58,20 +113,19 @@ function splitSymbol(symbol: string) {
 }
 
 /* ── Open position card ─────────────────────────────────────────────────── */
-function PositionCard({ p }: { p: PositionRow }) {
+function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
   const { base, quote } = splitSymbol(p.symbol);
   const grad   = coinGrad(base);
   const tclr   = coinClr(base);
-  const chgUp  = p.price_change_24h_pct >= 0;
-  const pnlUp  = p.unrealized_pnl >= 0;
+  const chgUp  = p.live_change_24h_pct >= 0;
+  const pnlUp  = p.live_unrealized_pnl >= 0;
 
-  /* centre-origin P&L bar: 50% = break-even, ±1% → ±0.5% fill, capped ±50 */
-  const barW  = `${Math.min(50, Math.abs(p.unrealized_pnl_pct) * 0.5)}%`;
+  const barW    = `${Math.min(50, Math.abs(p.live_unrealized_pnl_pct) * 0.5)}%`;
   const barSide = pnlUp ? { left: "50%" } : { right: "50%" };
 
   return (
     <div className="pf-card">
-      {/* Header: avatar + symbol + live price */}
+      {/* Header */}
       <div className="pf-card-head">
         <div className="pf-card-avatar" style={{ background: grad }}>
           {base.slice(0, 3)}
@@ -81,10 +135,13 @@ function PositionCard({ p }: { p: PositionRow }) {
           <span className="pf-card-quote">/{quote}</span>
         </div>
         <div className="pf-card-price-block">
-          <span className="pf-card-price">{usd(p.current_price)}</span>
+          <span className="pf-card-price">
+            {usd(p.live_price)}
+            {isLive && <span className="pf-ws-dot" title="Live" />}
+          </span>
           <span className={`pf-card-chg ${chgUp ? "pf-up" : "pf-dn"}`}>
             {chgUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-            {pct(p.price_change_24h_pct)}
+            {pct(p.live_change_24h_pct)}
           </span>
         </div>
       </div>
@@ -101,7 +158,7 @@ function PositionCard({ p }: { p: PositionRow }) {
         </div>
         <div className="pf-card-meta-item">
           <span className="pf-card-meta-label">Value</span>
-          <span className="pf-card-meta-val">{usd(p.current_value)}</span>
+          <span className="pf-card-meta-val">{usd(p.live_value)}</span>
         </div>
         <div className="pf-card-meta-item">
           <span className="pf-card-meta-label">Invested</span>
@@ -114,8 +171,8 @@ function PositionCard({ p }: { p: PositionRow }) {
         <div className="pf-card-pnl-row">
           <span className="pf-card-pnl-label">Unrealized P&amp;L</span>
           <span className={`pf-card-pnl-val ${pnlUp ? "pf-up" : "pf-dn"}`}>
-            {sign(p.unrealized_pnl)}{usd(p.unrealized_pnl)}
-            <span className="pf-card-pnl-pct">&nbsp;{pct(p.unrealized_pnl_pct)}</span>
+            {sign(p.live_unrealized_pnl)}{usd(p.live_unrealized_pnl)}
+            <span className="pf-card-pnl-pct">&nbsp;{pct(p.live_unrealized_pnl_pct)}</span>
           </span>
         </div>
         <div className="pf-card-bar-track">
@@ -127,7 +184,7 @@ function PositionCard({ p }: { p: PositionRow }) {
         </div>
       </div>
 
-      {/* Footer: realized + fees + chart link */}
+      {/* Footer */}
       <div className="pf-card-foot">
         <div className="pf-card-foot-left">
           {p.realized_pnl !== 0 && (
@@ -147,11 +204,11 @@ function PositionCard({ p }: { p: PositionRow }) {
   );
 }
 
-/* ── Closed position row (compact table) ────────────────────────────────── */
+/* ── Closed position row ────────────────────────────────────────────────── */
 function ClosedRow({ p }: { p: PositionRow }) {
   const { base, quote } = splitSymbol(p.symbol);
-  const grad  = coinGrad(base);
-  const tclr  = coinClr(base);
+  const grad   = coinGrad(base);
+  const tclr   = coinClr(base);
   const rpnlUp = p.realized_pnl >= 0;
 
   return (
@@ -193,37 +250,143 @@ function Tile({
    PAGE
    ══════════════════════════════════════════════════════════════════════════ */
 export default function PortfolioPage() {
-  const [data, setData]       = useState<PortfolioData | null>(null);
+  const [live, setLive]       = useState<LivePortfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [wsActive, setWsActive] = useState(false);
 
+  const mountedRef  = useRef(true);
+  const wsMapRef    = useRef<Map<string, WebSocket>>(new Map());
+
+  /* ── Close all WS connections ─────────────────────────────────────────── */
+  const closeAll = useCallback(() => {
+    // Clear map FIRST so onclose handlers won't attempt auto-reconnect
+    wsMapRef.current.forEach((ws) => ws.close());
+    wsMapRef.current.clear();
+    setWsActive(false);
+  }, []);
+
+  /* ── Subscribe one symbol ────────────────────────────────────────────── */
+  const subscribe = useCallback((symbol: string) => {
+    if (!WS_BASE || wsMapRef.current.has(symbol)) return;
+
+    const connect = () => {
+      if (!mountedRef.current) return;
+
+      const ws = new WebSocket(`${WS_BASE}/ws/trading?symbol=${symbol.toUpperCase()}`);
+      wsMapRef.current.set(symbol, ws);
+
+      ws.onopen = () => {
+        if (mountedRef.current && wsMapRef.current.size > 0) setWsActive(true);
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data as string) as {
+            type: string;
+            data: { last_price: string; price_change_percent: string };
+          };
+          if (msg.type !== "ticker_update" && msg.type !== "ticker_snapshot") return;
+
+          const livePrice    = Number(msg.data.last_price);
+          const liveChgPct   = Number(msg.data.price_change_percent);
+          if (!livePrice || !Number.isFinite(livePrice)) return;
+
+          setLive((prev) => {
+            if (!prev) return prev;
+            let changed = false;
+            const positions = prev.positions.map((p) => {
+              if (p.symbol !== symbol || p.net_qty <= 0) return p;
+              const liveValue   = p.net_qty * livePrice;
+              const livePnl     = liveValue - p.total_invested;
+              const livePnlPct  = p.total_invested !== 0
+                ? (livePnl / p.total_invested) * 100 : 0;
+              changed = true;
+              return {
+                ...p,
+                live_price:            livePrice,
+                live_value:            liveValue,
+                live_unrealized_pnl:     livePnl,
+                live_unrealized_pnl_pct: livePnlPct,
+                live_change_24h_pct:     liveChgPct,
+              };
+            });
+            if (!changed) return prev;
+            return { ...prev, positions, ...recalcTotals(positions) };
+          });
+        } catch { /* ignore parse errors */ }
+      };
+
+      ws.onclose = () => {
+        // Symbol not in map → closeAll() removed it → intentional close, skip reconnect
+        if (!wsMapRef.current.has(symbol)) return;
+        wsMapRef.current.delete(symbol);
+        if (wsMapRef.current.size === 0 && mountedRef.current) setWsActive(false);
+        // Unexpected disconnect — reconnect after delay
+        setTimeout(() => {
+          if (mountedRef.current) connect();
+        }, RECONNECT_DELAY_MS);
+      };
+
+      ws.onerror = () => ws.close();
+    };
+
+    connect();
+  }, []);  // setLive from useState is stable; wsMapRef/mountedRef are refs
+
+  /* ── Fetch REST + open WS per open position ──────────────────────────── */
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const d = await fetchPortfolio();
-      setData(d); setError(null);
+      const data = await fetchPortfolioData();
+      const positions = data.positions.map(toLive);
+      const totals    = recalcTotals(positions);
+
+      setLive({
+        positions,
+        total_invested:            data.total_invested,
+        total_realized_pnl:        data.total_realized_pnl,
+        total_fees:                data.total_fees,
+        generated_at:              data.generated_at,
+        ...totals,
+      });
+
+      // Re-subscribe: close old connections, open new ones for open positions
+      closeAll();
+      for (const p of data.positions) {
+        if (p.net_qty > 0) subscribe(p.symbol);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [closeAll, subscribe]);
 
   useEffect(() => {
+    mountedRef.current = true;
     void load();
-    const id = setInterval(() => void load(), 30_000);
-    return () => clearInterval(id);
-  }, [load]);
+    return () => {
+      mountedRef.current = false;
+      closeAll();
+    };
+  }, [load, closeAll]);
 
-  /* derived */
-  const totalPnL    = data ? data.total_unrealized_pnl + data.total_realized_pnl : 0;
-  const totalPnLPct = data && data.total_invested > 0
-    ? (data.total_unrealized_pnl / data.total_invested) * 100 : 0;
-  const open   = data?.positions.filter((p) => p.net_qty > 0) ?? [];
-  const closed = data?.positions.filter((p) => p.net_qty === 0) ?? [];
-  const pnlUp  = totalPnL >= 0;
-  const updatedAt = data
-    ? new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  /* ── Derived ─────────────────────────────────────────────────────────── */
+  const open   = live?.positions.filter((p) => p.net_qty > 0)  ?? [];
+  const closed = live?.positions.filter((p) => p.net_qty === 0) ?? [];
+
+  const totalPnL    = live
+    ? live.total_live_unrealized_pnl + live.total_realized_pnl : 0;
+  const totalPnLPct = live && live.total_invested > 0
+    ? (live.total_live_unrealized_pnl / live.total_invested) * 100 : 0;
+  const pnlUp = totalPnL >= 0;
+
+  const snapshotAt = live
+    ? new Date(live.generated_at).toLocaleTimeString([], {
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+      })
     : null;
 
   return (
@@ -233,14 +396,22 @@ export default function PortfolioPage() {
       <div className="pf-hero">
         <div className="pf-hero-top">
           <div>
-            <div className="pf-eyebrow"><WalletOutlined /> PORTFOLIO</div>
+            <div className="pf-eyebrow">
+              <WalletOutlined /> PORTFOLIO
+              {wsActive && (
+                <span className="pf-live-badge">
+                  <span className="pf-ws-dot pf-ws-dot-inline" />
+                  LIVE
+                </span>
+              )}
+            </div>
             <div className="pf-hero-value-row">
-              {data ? (
+              {live ? (
                 <>
-                  <span className="pf-hero-amount">{usd(data.total_current_value)}</span>
+                  <span className="pf-hero-amount">{usd(live.total_live_value)}</span>
                   <span className={`pf-hero-pnl ${pnlUp ? "pf-up" : "pf-dn"}`}>
                     {pnlUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    {sign(data.total_unrealized_pnl)}{usd(data.total_unrealized_pnl)}
+                    {sign(live.total_live_unrealized_pnl)}{usd(live.total_live_unrealized_pnl)}
                     <span className="pf-hero-pnl-pct">({pct(totalPnLPct)})</span>
                   </span>
                 </>
@@ -248,39 +419,41 @@ export default function PortfolioPage() {
                 <span className="pf-hero-amount">—</span>
               )}
             </div>
-            {updatedAt && <p className="pf-hero-sub">Updated {updatedAt}</p>}
+            {snapshotAt && (
+              <p className="pf-hero-sub">Snapshot {snapshotAt}</p>
+            )}
           </div>
           <button
             className="pf-refresh-btn"
             onClick={() => void load()}
             disabled={loading}
-            title="Refresh"
+            title="Sync positions"
           >
             <ReloadOutlined className={loading ? "pf-spin" : ""} />
-            Refresh
+            Sync
           </button>
         </div>
 
         {/* Invested vs Value progress bar */}
-        {data && data.total_invested > 0 && (
+        {live && live.total_invested > 0 && (
           <div className="pf-hero-bar-wrap">
             <div className="pf-hero-bar-track">
               <div
                 className={`pf-hero-bar-fill ${pnlUp ? "pf-hero-bar-up" : "pf-hero-bar-dn"}`}
                 style={{
-                  width: `${Math.min(100, (data.total_current_value / (data.total_invested * 1.5)) * 100)}%`,
+                  width: `${Math.min(100, (live.total_live_value / (live.total_invested * 1.5)) * 100)}%`,
                 }}
               />
               <div
                 className="pf-hero-bar-cost"
                 style={{
-                  left: `${Math.min(100, (data.total_invested / (data.total_invested * 1.5)) * 100)}%`,
+                  left: `${Math.min(100, (live.total_invested / (live.total_invested * 1.5)) * 100)}%`,
                 }}
               />
             </div>
             <div className="pf-hero-bar-labels">
               <span>0</span>
-              <span className="pf-hero-bar-lbl-cost">Cost {usd(data.total_invested)}</span>
+              <span className="pf-hero-bar-lbl-cost">Cost {usd(live.total_invested)}</span>
               <span>+50%</span>
             </div>
           </div>
@@ -291,26 +464,26 @@ export default function PortfolioPage() {
       {error && <div className="pf-error">Failed to load portfolio: {error}</div>}
 
       {/* ── Loading ───────────────────────────────────────────────────── */}
-      {loading && !data && (
+      {loading && !live && (
         <div className="pf-loading"><Spin size="large" /><span>Loading portfolio…</span></div>
       )}
 
-      {data && (
+      {live && (
         <>
           {/* ── Summary tiles ───────────────────────────────────────── */}
           <div className="pf-tiles">
-            <Tile label="Total Invested"  value={usd(data.total_invested)}   highlight />
-            <Tile label="Current Value"   value={usd(data.total_current_value)} highlight />
+            <Tile label="Total Invested"  value={usd(live.total_invested)} highlight />
+            <Tile label="Current Value"   value={usd(live.total_live_value)} highlight />
             <Tile
               label="Unrealized P&L"
-              value={`${sign(data.total_unrealized_pnl)}${usd(data.total_unrealized_pnl)}`}
+              value={`${sign(live.total_live_unrealized_pnl)}${usd(live.total_live_unrealized_pnl)}`}
               sub={pct(totalPnLPct)}
-              positive={data.total_unrealized_pnl >= 0}
+              positive={live.total_live_unrealized_pnl >= 0}
             />
             <Tile
               label="Realized P&L"
-              value={`${sign(data.total_realized_pnl)}${usd(data.total_realized_pnl)}`}
-              positive={data.total_realized_pnl >= 0}
+              value={`${sign(live.total_realized_pnl)}${usd(live.total_realized_pnl)}`}
+              positive={live.total_realized_pnl >= 0}
             />
             <Tile
               label="Total P&L"
@@ -318,7 +491,7 @@ export default function PortfolioPage() {
               positive={totalPnL >= 0}
               highlight
             />
-            <Tile label="Total Fees" value={usd(data.total_fees)} />
+            <Tile label="Total Fees" value={usd(live.total_fees)} />
           </div>
 
           {/* ── Open positions ──────────────────────────────────────── */}
@@ -329,7 +502,9 @@ export default function PortfolioPage() {
                 <span className="pf-section-badge">{open.length}</span>
               </div>
               <div className="pf-cards-grid">
-                {open.map((p) => <PositionCard key={p.symbol} p={p} />)}
+                {open.map((p) => (
+                  <PositionCard key={p.symbol} p={p} isLive={wsActive} />
+                ))}
               </div>
             </section>
           )}
@@ -354,7 +529,7 @@ export default function PortfolioPage() {
           )}
 
           {/* ── Empty ───────────────────────────────────────────────── */}
-          {data.positions.length === 0 && (
+          {live.positions.length === 0 && (
             <div className="pf-empty">
               <div className="pf-empty-icon"><WalletOutlined /></div>
               <p className="pf-empty-title">No positions yet</p>
