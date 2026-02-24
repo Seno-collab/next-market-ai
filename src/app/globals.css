@@ -17793,6 +17793,15 @@ button {
 }
 
 /* Inline STALE tag that sits at the far-right of the stats strip */
+/* Snapshot mode — ticker_update not yet received, showing ticker_snapshot */
+.tp-stats-strip.tp-snapshot {
+  opacity: 0.8;
+}
+.tp-stats-strip.tp-snapshot .tp-price,
+.tp-stats-strip.tp-snapshot .tp-stat-value {
+  color: #94a3b8;
+}
+
 .tp-ticker-stale-tag {
   margin-left: auto;
   display: inline-flex;

@@ -6,6 +6,7 @@ import type {
   BookSnapshot,
   KlineUpdate,
   OrderBookState,
+  TickerSnapshot,
   TickerUpdate,
   TradeUpdate,
   WsMessage,
@@ -70,6 +71,12 @@ export type BookChange = "up" | "down";
 export type BookChangeMap = Map<string, BookChange>;
 
 export type TradingStreamState = {
+  /**
+   * One-time snapshot sent by the server on connect.
+   * Available immediately — use as baseline before the first ticker_update arrives.
+   */
+  tickerSnapshot: TickerSnapshot | null;
+  /** Live ticker from ticker_update (~1/s). Overrides tickerSnapshot in the UI. */
   ticker: TickerUpdate | null;
   orderBook: OrderBookState | null;
   /** Size changes from the most-recent book_delta (price → "up"|"down"). */
@@ -93,6 +100,7 @@ const EMPTY_CHANGES: BookChangeMap = new Map();
 
 export function useTradingStream(symbol: string): TradingStreamReturn {
   const [state, setState] = useState<TradingStreamState>({
+    tickerSnapshot: null,
     ticker: null,
     orderBook: null,
     bookChanges: EMPTY_CHANGES,
@@ -215,6 +223,14 @@ export function useTradingStream(symbol: string): TradingStreamReturn {
           if (allChanges.size > 0) scheduleChangeClear();
           break;
         }
+
+        // ── ticker_snapshot ────────────────────────────────────────────────────
+        // Sent once on connect — provides immediate ticker data before the first
+        // ticker_update arrives (~1s delay). Store separately so the UI can
+        // distinguish "initial snapshot" from "live data".
+        case "ticker_snapshot":
+          setState((s) => ({ ...s, tickerSnapshot: msg.data as TickerSnapshot }));
+          break;
 
         // ── ticker_update ──────────────────────────────────────────────────────
         case "ticker_update":
@@ -342,7 +358,8 @@ export function useTradingStream(symbol: string): TradingStreamReturn {
 
   useEffect(() => {
     setState({
-      ticker: null, orderBook: null, bookChanges: EMPTY_CHANGES,
+      tickerSnapshot: null, ticker: null,
+      orderBook: null, bookChanges: EMPTY_CHANGES,
       trades: [], liveCandle: null,
       connected: false, reconnecting: false, everConnected: false,
     });

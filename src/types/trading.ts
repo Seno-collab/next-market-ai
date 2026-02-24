@@ -6,6 +6,7 @@ export type ApiResponse<T> = {
 // ── WebSocket stream types ────────────────────────────────────────────────
 
 export type WsEventType =
+  | "ticker_snapshot"
   | "book_snapshot"
   | "ticker_update"
   | "trade_update"
@@ -19,7 +20,13 @@ export type WsMessage<T = unknown> = {
   data: T;
 };
 
-/** WS ticker_update — same shape as REST Ticker. */
+/**
+ * WS ticker_snapshot — sent once on connect, same shape as REST Ticker.
+ * Use as initial display while waiting for the first ticker_update.
+ */
+export type TickerSnapshot = Ticker;
+
+/** WS ticker_update — same shape as REST Ticker, sent ~1/s. */
 export type TickerUpdate = Ticker;
 
 /** WS book_snapshot — same shape as REST OrderBook (includes server-computed fields). */

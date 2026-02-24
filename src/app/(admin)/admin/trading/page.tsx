@@ -129,6 +129,7 @@ export default function TradingPage() {
 
   /* ── Real-time stream ── */
   const {
+    tickerSnapshot,
     ticker,
     trades,
     orderBook,
@@ -139,6 +140,11 @@ export default function TradingPage() {
     everConnected,
     reconnect,
   } = useTradingStream(symbol);
+
+  // tickerSnapshot: initial data sent on connect (available immediately).
+  // ticker: live updates ~1/s (overrides snapshot).
+  // displayTicker: use live data when available, fall back to snapshot.
+  const displayTicker = ticker ?? tickerSnapshot;
 
   /* ── REST fallback: load order book via REST if WS snapshot is slow ── */
   const [restBook, setRestBook] = useState<OrderBookState | null>(null);
@@ -230,13 +236,13 @@ export default function TradingPage() {
 
   // True when we have data but the stream has dropped — show stale treatment.
   const isStale =
-    !connected && (ticker !== null || displayBook !== null || trades.length > 0);
+    !connected && (displayTicker !== null || displayBook !== null || trades.length > 0);
 
   // price_direction is server-computed — no need to re-derive on frontend.
-  const changeDirection = ticker?.price_direction ?? "flat";
+  const changeDirection = displayTicker?.price_direction ?? "flat";
   const changeClass =
     changeDirection === "up" ? " tp-up" : changeDirection === "down" ? " tp-dn" : "";
-  const rawPriceChange = toFiniteNumber(ticker?.price_change_percent);
+  const rawPriceChange = toFiniteNumber(displayTicker?.price_change_percent);
   const changeText =
     rawPriceChange === null
       ? "—"
@@ -275,11 +281,11 @@ export default function TradingPage() {
         </div>
 
         {/* Live stats */}
-        {ticker ? (
-          <div className={`tp-stats-strip${isStale ? " tp-stale" : ""}`}>
+        {displayTicker ? (
+          <div className={`tp-stats-strip${isStale ? " tp-stale" : ""}${!ticker && tickerSnapshot ? " tp-snapshot" : ""}`}>
             <div className="tp-price-block">
               <span className={`tp-price${changeClass}`}>
-                {fmt(ticker.last_price)}
+                {fmt(displayTicker.last_price)}
               </span>
               <span className={`tp-change${changeClass}`}>
                 {changeDirection === "up" ? (
@@ -294,23 +300,23 @@ export default function TradingPage() {
             </div>
             <div className="tp-stat-item tp-hide-xs">
               <span className="tp-stat-label">24h Vol</span>
-              <span className="tp-stat-value">{fmtQty(ticker.volume)}</span>
+              <span className="tp-stat-value">{fmtQty(displayTicker.volume)}</span>
             </div>
             <div className="tp-stat-item tp-hide-sm">
               <span className="tp-stat-label">High</span>
-              <span className="tp-stat-value tp-up">{fmt(ticker.high_price)}</span>
+              <span className="tp-stat-value tp-up">{fmt(displayTicker.high_price)}</span>
             </div>
             <div className="tp-stat-item tp-hide-sm">
               <span className="tp-stat-label">Low</span>
-              <span className="tp-stat-value tp-dn">{fmt(ticker.low_price)}</span>
+              <span className="tp-stat-value tp-dn">{fmt(displayTicker.low_price)}</span>
             </div>
             <div className="tp-stat-item tp-hide-sm">
               <span className="tp-stat-label">VWAP</span>
-              <span className="tp-stat-value">{fmt(ticker.weighted_avg_price)}</span>
+              <span className="tp-stat-value">{fmt(displayTicker.weighted_avg_price)}</span>
             </div>
             <div className="tp-stat-item tp-hide-sm">
               <span className="tp-stat-label">Trades</span>
-              <span className="tp-stat-value">{ticker.trade_count.toLocaleString()}</span>
+              <span className="tp-stat-value">{displayTicker.trade_count.toLocaleString()}</span>
             </div>
             {/* 24h range bar — shows where last_price sits in [low, high] */}
             <div className="tp-stat-item tp-hide-sm" style={{ gap: 4 }}>
@@ -318,11 +324,11 @@ export default function TradingPage() {
               <span className="tp-range-track">
                 <span
                   className="tp-range-fill"
-                  style={{ width: `${ticker.range_percent}%` }}
+                  style={{ width: `${displayTicker.range_percent}%` }}
                 />
               </span>
               <span className="tp-stat-value" style={{ fontSize: 10 }}>
-                {parseFloat(ticker.range_percent).toFixed(0)}%
+                {parseFloat(displayTicker.range_percent).toFixed(0)}%
               </span>
             </div>
             {isStale && <span className="tp-ticker-stale-tag">⏸ Stale</span>}
@@ -465,7 +471,7 @@ export default function TradingPage() {
             <div className="tp-mid-row">
               <div className="tp-mid-price">
                 <span className={changeClass.trim()}>
-                  {ticker ? fmt(ticker.last_price) : (displayBook ? fmt(displayBook.midPrice) : "—")}
+                  {displayTicker ? fmt(displayTicker.last_price) : (displayBook ? fmt(displayBook.midPrice) : "—")}
                 </span>
                 {changeDirection === "up" ? (
                   <ArrowUpOutlined className="tp-mid-arrow tp-up" />
