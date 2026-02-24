@@ -179,11 +179,18 @@ export type Transaction = {
   symbol: string;       // e.g. "BTCUSDT"
   side: "BUY" | "SELL";
   quantity: string;     // decimal string
-  price: string;        // decimal string
-  total: string;        // quantity * price, decimal string
+  price: string;        // decimal string (entry price)
+  total: string;        // quantity * entry price, decimal string
   fee: string;          // decimal string
   note: string;
   created_at: string;   // RFC3339 UTC
+
+  // ── Live market fields (enriched by server from Redis ticker cache) ────────
+  // Empty string "" when price is not yet in cache.
+  current_price: string; // live market price
+  current_value: string; // quantity × current_price
+  pnl: string;           // current_value - total (BUY only; "0" for SELL)
+  pnl_pct: string;       // (current_price - price) / price × 100 (BUY only; "0" for SELL)
 };
 
 export type CreateTransactionRequest = {
@@ -297,29 +304,36 @@ export type QuotesResponse = {
 export type CoinAISignal = "BUY" | "SELL" | "HOLD";
 
 export type BacktestResult = {
-  total_trades: number;
-  win_rate: number;       // 0-100 percentage
-  profit_factor: number;
-  max_drawdown: number;   // percentage
-  total_return: number;   // percentage
+  total_return: number;   // decimal  e.g. 0.082 = +8.2%
+  win_rate: number;       // decimal  e.g. 0.56  = 56%
+  max_drawdown: number;   // decimal, negative  e.g. -0.041 = -4.1%
+  sharpe: number;
+  trades: number;
 };
 
 export type TrainReport = {
   symbol: string;
   interval: string;
-  signal: CoinAISignal;
-  predicted_return: number; // percentage
-  confidence: number;       // 0-100
-  model_name: string;
-  trained_at: string;       // RFC3339 UTC
+  candles: number;
+  train_samples: number;
+  val_samples: number;
+  test_samples: number;
+  feature_names: string[];
+  train_loss: number;
+  val_loss: number;        // 0 when no validation split
+  best_epoch: number;      // 0 when no early stopping
+  test_mse: number;
+  test_directional_acc: number;  // decimal  e.g. 0.537 = 53.7%
   backtest: BacktestResult;
+  next_predicted_return: number; // decimal  e.g. 0.0018 = +0.18%
+  signal: CoinAISignal;
+  generated_at: string;   // RFC3339 UTC
 };
 
-export type WatchlistItem = {
-  symbol: string;
-  added_at: string;         // RFC3339 UTC
-  last_signal?: CoinAISignal;
-  last_trained_at?: string; // RFC3339 UTC
+/** GET /api/coinai/watchlist response */
+export type WatchlistResult = {
+  symbols: string[];
+  count: number;
 };
 
 export type AddWatchlistRequest = {

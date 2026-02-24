@@ -33,6 +33,12 @@ const { Text } = Typography;
 
 const PER_PAGE = 20;
 
+const WS_BASE =
+  typeof window !== "undefined"
+    ? (process.env.NEXT_PUBLIC_WS_BASE_URL ??
+       window.location.origin.replace(/^http/, "ws"))
+    : "";
+
 const SYMBOL_OPTIONS = [
   "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT",
   "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT",
@@ -53,6 +59,21 @@ function fmtDate(iso: string) {
   } catch { return iso; }
 }
 
+function pnlColor(pnl: string) {
+  const v = Number(pnl);
+  if (v > 0) return "tx-pnl-up";
+  if (v < 0) return "tx-pnl-dn";
+  return "tx-soft";
+}
+
+function fmtPnl(tx: Transaction) {
+  if (tx.side === "SELL" || !tx.current_price) return "—";
+  const v = Number(tx.pnl);
+  const sign = v > 0 ? "+" : "";
+  const pct = Number(tx.pnl_pct);
+  return `${sign}${v.toLocaleString("en-US", { maximumFractionDigits: 2 })} (${sign}${pct.toFixed(2)}%)`;
+}
+
 export default function TransactionsPage() {
   const [rows, setRows]           = useState<Transaction[]>([]);
   const [total, setTotal]         = useState(0);
@@ -63,7 +84,9 @@ export default function TransactionsPage() {
   const [creating, setCreating]   = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm<CreateTransactionRequest>();
-  const abortRef = useRef<AbortController | null>(null);
+  const abortRef  = useRef<AbortController | null>(null);
+  const wsRef     = useRef<WebSocket | null>(null);
+  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /* ── fetch ── */
   const load = useCallback(async (p: number, sym?: string) => {
@@ -80,10 +103,51 @@ export default function TransactionsPage() {
     } finally { setLoading(false); }
   }, []);
 
+  /* ── silent refetch (no loading spinner) for live P&L updates ── */
+  const silentRefetch = useCallback(async (p: number, sym?: string) => {
+    try {
+      const res = await transactionApi.list({ symbol: sym, page: p, per_page: PER_PAGE });
+      setRows(Array.isArray(res.transactions) ? res.transactions : []);
+      setTotal(Number.isFinite(res.total) ? res.total : 0);
+    } catch { /* swallow */ }
+  }, []);
+
+  /* ── initial load ── */
   useEffect(() => {
     void load(page, symbol);
     return () => abortRef.current?.abort();
   }, [load, page, symbol]);
+
+  /* ── real-time: WS when symbol selected, polling otherwise ── */
+  useEffect(() => {
+    // clear previous
+    wsRef.current?.close();
+    wsRef.current = null;
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+
+    if (symbol && WS_BASE) {
+      // connect WS for this symbol — refetch on every ticker_update
+      const ws = new WebSocket(`${WS_BASE}/ws/trading?symbol=${symbol.toUpperCase()}`);
+      wsRef.current = ws;
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data as string) as { type: string };
+          if (msg.type === "ticker_update" || msg.type === "ticker_snapshot") {
+            void silentRefetch(page, symbol);
+          }
+        } catch { /* ignore parse errors */ }
+      };
+    } else {
+      // no symbol filter — poll every 5 s to keep P&L fresh across all symbols
+      pollRef.current = setInterval(() => void silentRefetch(page, symbol), 5_000);
+    }
+
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
+  }, [symbol, page, silentRefetch]);
 
   /* ── create ── */
   async function handleCreate(values: CreateTransactionRequest) {
@@ -123,16 +187,21 @@ export default function TransactionsPage() {
 
   const safeRows = Array.isArray(rows) ? rows : [];
 
-  /* ── KPI aggregates (current page) ── */
+  /* ── KPI aggregates ── */
   const kpi = useMemo(() => {
     const buy  = safeRows.filter((r) => r.side === "BUY");
     const sell = safeRows.filter((r) => r.side === "SELL");
+    const totalPnl = buy.reduce((s, r) => {
+      const v = Number(r.pnl);
+      return s + (Number.isFinite(v) ? v : 0);
+    }, 0);
     return {
-      buyVol:  buy.reduce((s, r) => s + Number(r.total), 0),
-      sellVol: sell.reduce((s, r) => s + Number(r.total), 0),
-      fees:    safeRows.reduce((s, r) => s + Number(r.fee), 0),
-      buys:    buy.length,
-      sells:   sell.length,
+      buyVol:   buy.reduce((s, r) => s + Number(r.total), 0),
+      sellVol:  sell.reduce((s, r) => s + Number(r.total), 0),
+      fees:     safeRows.reduce((s, r) => s + Number(r.fee), 0),
+      buys:     buy.length,
+      sells:    sell.length,
+      totalPnl,
     };
   }, [safeRows]);
 
@@ -179,6 +248,18 @@ export default function TransactionsPage() {
             ${kpi.sellVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
           </div>
           <div className="tx-kpi-sub">Current page</div>
+        </div>
+
+        <div className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}>
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">Unrealized P&amp;L</span>
+            <DollarOutlined className="tx-kpi-icon" />
+          </div>
+          <div className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}>
+            {kpi.totalPnl >= 0 ? "+" : ""}
+            {kpi.totalPnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </div>
+          <div className="tx-kpi-sub">BUY positions · current page</div>
         </div>
 
         <div className="tx-kpi-card tx-kpi-amber">
@@ -254,8 +335,10 @@ export default function TransactionsPage() {
                   <th>Symbol</th>
                   <th>Side</th>
                   <th>Qty</th>
-                  <th>Price</th>
+                  <th>Entry Price</th>
+                  <th>Current</th>
                   <th>Total</th>
+                  <th>P&amp;L</th>
                   <th>Fee</th>
                   <th>Note</th>
                   <th></th>
@@ -264,6 +347,7 @@ export default function TransactionsPage() {
               <tbody>
                 {safeRows.map((tx) => {
                   const isBuy = tx.side === "BUY";
+                  const hasLive = tx.current_price !== "" && tx.current_price !== undefined;
                   return (
                     <tr key={tx.id} className="tx-row">
                       <td className="tx-soft tx-nowrap">{fmtDate(tx.created_at)}</td>
@@ -276,8 +360,14 @@ export default function TransactionsPage() {
                       </td>
                       <td className="tx-num">{fmtNum(tx.quantity, 6)}</td>
                       <td className="tx-num">${fmtNum(tx.price, 2)}</td>
+                      <td className="tx-num tx-live">
+                        {hasLive ? `$${fmtNum(tx.current_price, 2)}` : <span className="tx-soft">—</span>}
+                      </td>
                       <td className={`tx-num tx-total ${isBuy ? "buy-col" : "sell-col"}`}>
                         ${fmtNum(tx.total, 2)}
+                      </td>
+                      <td className={`tx-num tx-pnl-cell ${isBuy && hasLive ? pnlColor(tx.pnl) : "tx-soft"}`}>
+                        {fmtPnl(tx)}
                       </td>
                       <td className="tx-soft">{fmtNum(tx.fee, 4)}</td>
                       <td className="tx-soft tx-note">{tx.note || "—"}</td>

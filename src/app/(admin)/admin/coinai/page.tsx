@@ -12,7 +12,7 @@ import {
 import { Button, Form, Modal, Spin, Tag, Typography, message } from "antd";
 import { coinAiApi } from "@/lib/api/coinai";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
-import type { CoinAISignal, TrainReport, WatchlistItem } from "@/types/trading";
+import type { CoinAISignal, TrainReport } from "@/types/trading";
 
 const SIG_CLR: Record<CoinAISignal, string> = {
   BUY: "#34d399", SELL: "#f87171", HOLD: "#94a3b8",
@@ -22,12 +22,6 @@ const SIG_BG: Record<CoinAISignal, string> = {
   SELL: "rgba(248,113,113,0.1)",
   HOLD: "rgba(148,163,184,0.07)",
 };
-
-function SignalBadge({ s }: { s: CoinAISignal }) {
-  return (
-    <span className={`ci-badge ci-badge-${s.toLowerCase()}`}>{s}</span>
-  );
-}
 
 function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
@@ -39,7 +33,7 @@ function StatCard({ label, value, accent }: { label: string; value: string | num
 }
 
 export default function CoinAIPage() {
-  const [watchlist, setWatchlist]       = useState<WatchlistItem[]>([]);
+  const [watchlist, setWatchlist]       = useState<string[]>([]);
   const [loadingWL, setLoadingWL]       = useState(false);
   const [errorWL, setErrorWL]           = useState<string | null>(null);
 
@@ -61,8 +55,8 @@ export default function CoinAIPage() {
     setLoadingWL(true);
     setErrorWL(null);
     try {
-      const nextWatchlist = await coinAiApi.getWatchlist();
-      setWatchlist(Array.isArray(nextWatchlist) ? nextWatchlist : []);
+      const result = await coinAiApi.getWatchlist();
+      setWatchlist(result.symbols ?? []);
     } catch (e) {
       setErrorWL((e as Error).message);
     } finally {
@@ -108,7 +102,7 @@ export default function CoinAIPage() {
     try {
       await coinAiApi.removeFromWatchlist(symbol);
       void messageApi.success(`${symbol} removed`);
-      setWatchlist((prev) => prev.filter((w) => w.symbol !== symbol));
+      setWatchlist((prev) => prev.filter((s) => s !== symbol));
       if (activeSymbol === symbol) { setReport(null); setActiveSymbol(null); }
     } catch (e) {
       void messageApi.error((e as Error).message);
@@ -175,14 +169,13 @@ export default function CoinAIPage() {
           )}
 
           <div className="ci-wl-list">
-            {safeWatchlist.map((item) => (
+            {safeWatchlist.map((sym) => (
               <div
-                key={item.symbol}
-                className={`ci-wl-row${activeSymbol === item.symbol ? " ci-wl-row-active" : ""}`}
+                key={sym}
+                className={`ci-wl-row${activeSymbol === sym ? " ci-wl-row-active" : ""}`}
               >
                 <div className="ci-wl-info">
-                  <span className="ci-wl-symbol">{item.symbol}</span>
-                  {item.last_signal && <SignalBadge s={item.last_signal} />}
+                  <span className="ci-wl-symbol">{sym}</span>
                 </div>
                 <div className="ci-wl-actions">
                   <Button
@@ -190,8 +183,8 @@ export default function CoinAIPage() {
                     type="primary"
                     ghost
                     icon={<RobotOutlined />}
-                    loading={loadingTrain && activeSymbol === item.symbol}
-                    onClick={() => void runTrain(item.symbol, "1h")}
+                    loading={loadingTrain && activeSymbol === sym}
+                    onClick={() => void runTrain(sym, "1h")}
                   >
                     Analyze
                   </Button>
@@ -201,7 +194,7 @@ export default function CoinAIPage() {
                     ghost
                     icon={<DeleteOutlined />}
                     className="ci-del-btn"
-                    onClick={() => void handleRemove(item.symbol)}
+                    onClick={() => void handleRemove(sym)}
                   />
                 </div>
               </div>
@@ -221,7 +214,9 @@ export default function CoinAIPage() {
 
           {loadingTrain && (
             <div className="ci-center-spin">
-              <Spin size="large" tip="Training AI model..." />
+              <Spin size="large" tip="Training AI model...">
+                <div className="ci-spin-tip-anchor" />
+              </Spin>
             </div>
           )}
 
@@ -246,12 +241,11 @@ export default function CoinAIPage() {
                   <div className="ci-sig-label" style={{ color: SIG_CLR[report.signal] }}>
                     {report.signal}
                   </div>
-                  <div className="ci-sig-model">{report.model_name}</div>
                 </div>
                 <div className="ci-sig-right">
                   <div className="ci-conf-ring" style={{ "--ring-clr": score } as React.CSSProperties}>
-                    <span className="ci-conf-num">{report.confidence}%</span>
-                    <span className="ci-conf-lbl">confidence</span>
+                    <span className="ci-conf-num">{(report.test_directional_acc * 100).toFixed(1)}%</span>
+                    <span className="ci-conf-lbl">directional acc</span>
                   </div>
                 </div>
               </div>
@@ -260,12 +254,12 @@ export default function CoinAIPage() {
               <div className="ci-kpi-row">
                 <StatCard
                   label="Predicted Return"
-                  value={`${report.predicted_return >= 0 ? "+" : ""}${report.predicted_return.toFixed(2)}%`}
-                  accent={report.predicted_return >= 0 ? "#34d399" : "#f87171"}
+                  value={`${report.next_predicted_return >= 0 ? "+" : ""}${(report.next_predicted_return * 100).toFixed(2)}%`}
+                  accent={report.next_predicted_return >= 0 ? "#34d399" : "#f87171"}
                 />
-                <StatCard label="Win Rate" value={`${report.backtest.win_rate.toFixed(1)}%`} accent="#7dd3fc" />
-                <StatCard label="Profit Factor" value={report.backtest.profit_factor.toFixed(2)} accent="#a78bfa" />
-                <StatCard label="Max Drawdown" value={`-${report.backtest.max_drawdown.toFixed(2)}%`} accent="#f87171" />
+                <StatCard label="Win Rate" value={`${(report.backtest.win_rate * 100).toFixed(1)}%`} accent="#7dd3fc" />
+                <StatCard label="Sharpe Ratio" value={report.backtest.sharpe.toFixed(2)} accent="#a78bfa" />
+                <StatCard label="Max Drawdown" value={`${(report.backtest.max_drawdown * 100).toFixed(2)}%`} accent="#f87171" />
               </div>
 
               {/* Backtest detail */}
@@ -274,30 +268,30 @@ export default function CoinAIPage() {
                 <div className="ci-bt-grid">
                   <div className="ci-bt-row">
                     <span className="ci-bt-k">Total Trades</span>
-                    <span className="ci-bt-v">{report.backtest.total_trades}</span>
+                    <span className="ci-bt-v">{report.backtest.trades}</span>
                   </div>
                   <div className="ci-bt-row">
                     <span className="ci-bt-k">Total Return</span>
                     <span className={`ci-bt-v ${report.backtest.total_return >= 0 ? "ci-up" : "ci-dn"}`}>
-                      {report.backtest.total_return >= 0 ? "+" : ""}{report.backtest.total_return.toFixed(2)}%
+                      {report.backtest.total_return >= 0 ? "+" : ""}{(report.backtest.total_return * 100).toFixed(2)}%
                     </span>
                   </div>
                   <div className="ci-bt-row">
                     <span className="ci-bt-k">Win Rate</span>
-                    <span className="ci-bt-v ci-up">{report.backtest.win_rate.toFixed(1)}%</span>
+                    <span className="ci-bt-v ci-up">{(report.backtest.win_rate * 100).toFixed(1)}%</span>
                   </div>
                   <div className="ci-bt-row">
-                    <span className="ci-bt-k">Profit Factor</span>
-                    <span className="ci-bt-v">{report.backtest.profit_factor.toFixed(2)}</span>
+                    <span className="ci-bt-k">Sharpe Ratio</span>
+                    <span className="ci-bt-v">{report.backtest.sharpe.toFixed(2)}</span>
                   </div>
                   <div className="ci-bt-row">
                     <span className="ci-bt-k">Max Drawdown</span>
-                    <span className="ci-bt-v ci-dn">{report.backtest.max_drawdown.toFixed(2)}%</span>
+                    <span className="ci-bt-v ci-dn">{(report.backtest.max_drawdown * 100).toFixed(2)}%</span>
                   </div>
                   <div className="ci-bt-row">
-                    <span className="ci-bt-k">Trained At</span>
+                    <span className="ci-bt-k">Generated At</span>
                     <span className="ci-bt-v ci-bt-ts">
-                      {new Date(report.trained_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                      {new Date(report.generated_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                   </div>
                 </div>

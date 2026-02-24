@@ -28,16 +28,10 @@ const TradingChart = dynamic(
 );
 
 const PERIODS = [
-  "1m",
-  "5m",
-  "15m",
-  "1h",
-  "4h",
-  "1d",
-  "1M",
-  "6M",
-  "1Y",
-  "2Y",
+  "1m", "3m", "5m", "15m", "30m",
+  "1h", "2h", "4h", "6h", "12h",
+  "1d", "1w",
+  "1M", "6M", "1Y", "2Y", "3Y",
 ] as const;
 type Period = (typeof PERIODS)[number];
 
@@ -50,16 +44,26 @@ type CandleBar = {
 };
 
 const PERIOD_CONFIG: Record<Period, { interval: string; limit: number }> = {
-  "1m": { interval: "1m", limit: 60 },
-  "5m": { interval: "5m", limit: 60 },
-  "15m": { interval: "15m", limit: 60 },
-  "1h": { interval: "1h", limit: 100 },
-  "4h": { interval: "4h", limit: 90 },
-  "1d": { interval: "1d", limit: 90 },
-  "1M": { interval: "1d", limit: 30 },
-  "6M": { interval: "1d", limit: 180 },
-  "1Y": { interval: "1d", limit: 365 },
-  "2Y": { interval: "1d", limit: 730 },
+  // ── Intraday ───────────────────────────────────────────────────────────────
+  "1m":  { interval: "1m",  limit: 120 },  // 2 h of 1m candles
+  "3m":  { interval: "3m",  limit: 120 },  // 6 h of 3m candles
+  "5m":  { interval: "5m",  limit: 120 },  // 10 h of 5m candles
+  "15m": { interval: "15m", limit: 96  },  // 24 h of 15m candles
+  "30m": { interval: "30m", limit: 96  },  // 48 h of 30m candles
+  // ── Multi-day ──────────────────────────────────────────────────────────────
+  "1h":  { interval: "1h",  limit: 168 },  // 1 week of 1h candles
+  "2h":  { interval: "2h",  limit: 120 },  // 10 days of 2h candles
+  "4h":  { interval: "4h",  limit: 120 },  // 20 days of 4h candles
+  "6h":  { interval: "6h",  limit: 120 },  // 30 days of 6h candles
+  "12h": { interval: "12h", limit: 120 },  // 60 days of 12h candles
+  // ── Long-term ──────────────────────────────────────────────────────────────
+  "1d":  { interval: "1d",  limit: 180 },  // 6 months of daily candles
+  "1w":  { interval: "1w",  limit: 104 },  // 2 years of weekly candles
+  "1M":  { interval: "1d",  limit: 30  },  // last 30 days
+  "6M":  { interval: "1d",  limit: 180 },  // last 180 days
+  "1Y":  { interval: "1d",  limit: 365 },  // last 1 year
+  "2Y":  { interval: "1d",  limit: 730 },  // last 2 years
+  "3Y":  { interval: "1w",  limit: 156 },  // 3 years of weekly candles
 };
 
 /* ── helpers ── */

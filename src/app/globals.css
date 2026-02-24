@@ -18726,9 +18726,13 @@ button {
 .tx-row:hover td { background: rgba(34,211,238,0.025); }
 
 /* Cell variants */
-.tx-soft   { color: #475569; }
-.tx-num    { font-variant-numeric: tabular-nums; font-weight: 600; color: #e2e8f0; }
-.tx-nowrap { white-space: nowrap; }
+.tx-soft      { color: #475569; }
+.tx-num       { font-variant-numeric: tabular-nums; font-weight: 600; color: #e2e8f0; }
+.tx-nowrap    { white-space: nowrap; }
+.tx-live      { color: #94a3b8; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tx-pnl-cell  { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+.tx-pnl-up    { color: #34d399; }
+.tx-pnl-dn    { color: #f87171; }
 .tx-note   { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; }
 .tx-total  { font-weight: 700; }
 .tx-total.buy-col  { color: #34d399; }
@@ -19474,6 +19478,7 @@ button {
 
 /* ── Utilities ── */
 .ci-center-spin { display: flex; justify-content: center; padding: 24px; }
+.ci-spin-tip-anchor { min-height: 48px; min-width: 240px; }
 .ci-err-banner {
   padding: 10px 14px;
   background: rgba(248, 113, 113, 0.08);
