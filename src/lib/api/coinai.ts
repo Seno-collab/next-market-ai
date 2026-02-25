@@ -1,11 +1,36 @@
 import type {
-  TrainReport,
-  WatchlistResult,
   AddWatchlistRequest,
   ApiResponse,
+  MultiTrainReport,
+  TrainMultiRequest,
+  TrainReport,
+  WatchlistResult,
 } from "@/types/trading";
 
-export type { TrainReport, WatchlistResult, AddWatchlistRequest };
+export type {
+  AddWatchlistRequest,
+  MultiTrainReport,
+  TrainMultiRequest,
+  TrainReport,
+  WatchlistResult,
+};
+
+export type TrainRealtimeOptions = {
+  interval?: string;
+  limit?: number;
+  trainRatio?: number;
+  epochs?: number;
+  refresh?: string;
+  maxUpdates?: number;
+};
+
+export type TrainRealtimeHandlers = {
+  onOpen?: () => void;
+  onStatus?: (status: string) => void;
+  onReport?: (report: TrainReport) => void;
+  onError?: (message: string) => void;
+  onNetworkError?: () => void;
+};
 
 // ── Generic fetch ─────────────────────────────────────────────────────────────
 
@@ -16,6 +41,15 @@ async function fetchCoinAI<T>(path: string, init?: RequestInit): Promise<T> {
   if (!("data" in body) || body.data === undefined)
     throw new Error("Missing data in response");
   return body.data;
+}
+
+function parseJson<T>(value: unknown): T | null {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
 }
 
 // ── API client ────────────────────────────────────────────────────────────────
@@ -41,6 +75,104 @@ export const coinAiApi = {
         epochs: options?.epochs,
       }),
     });
+  },
+
+  /** POST /api/coinai/train/multi */
+  trainMulti(req: TrainMultiRequest): Promise<MultiTrainReport> {
+    return fetchCoinAI<MultiTrainReport>("/api/coinai/train/multi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...req,
+        symbols: req.symbols.map((s) => s.toUpperCase()),
+      }),
+    });
+  },
+
+  /** GET /api/coinai/train/realtime (SSE) */
+  subscribeTrainRealtime(
+    symbol: string,
+    options: TrainRealtimeOptions = {},
+    handlers: TrainRealtimeHandlers = {},
+  ): () => void {
+    if (typeof window === "undefined") {
+      throw new Error("Realtime stream is only available in browser");
+    }
+
+    const params = new URLSearchParams();
+    params.set("symbol", symbol.trim().toUpperCase());
+    if (options.interval) params.set("interval", options.interval);
+    if (options.refresh) params.set("refresh", options.refresh);
+    if (typeof options.limit === "number") {
+      params.set("limit", String(options.limit));
+    }
+    if (typeof options.trainRatio === "number") {
+      params.set("train_ratio", String(options.trainRatio));
+    }
+    if (typeof options.epochs === "number") {
+      params.set("epochs", String(options.epochs));
+    }
+    if (
+      typeof options.maxUpdates === "number" &&
+      Number.isFinite(options.maxUpdates) &&
+      Number.isInteger(options.maxUpdates) &&
+      options.maxUpdates > 0
+    ) {
+      params.set("max_updates", String(options.maxUpdates));
+    }
+
+    const stream = new EventSource(
+      `/api/coinai/train/realtime?${params.toString()}`,
+    );
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      stream.close();
+    };
+
+    stream.onopen = () => {
+      handlers.onOpen?.();
+    };
+
+    stream.addEventListener("status", (event) => {
+      const payload = parseJson<{ status?: string; message?: string }>(
+        (event as MessageEvent<string>).data,
+      );
+      const status =
+        payload?.status ??
+        payload?.message ??
+        (event as MessageEvent<string>).data ??
+        "status";
+      handlers.onStatus?.(status);
+      if (status === "stream_done") {
+        close();
+      }
+    });
+
+    stream.addEventListener("report", (event) => {
+      const payload = parseJson<ApiResponse<TrainReport>>(
+        (event as MessageEvent<string>).data,
+      );
+      if (!payload?.data) {
+        handlers.onError?.("Invalid realtime report payload");
+        return;
+      }
+      handlers.onReport?.(payload.data);
+    });
+
+    stream.addEventListener("error", (event) => {
+      const data = (event as MessageEvent<string>).data;
+      if (typeof data === "string" && data.length > 0) {
+        const payload = parseJson<{ message?: string }>(data);
+        handlers.onError?.(payload?.message || data);
+        return;
+      }
+      handlers.onNetworkError?.();
+    });
+
+    return close;
   },
 
   /**

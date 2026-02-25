@@ -270,12 +270,39 @@ export type AnalysisResult = {
 	summary: string;
 };
 
+export type TradeDecisionMode = "hybrid" | "analysis" | "coinai";
+
+export type TradeDecision = {
+	mode: TradeDecisionMode;
+	final_signal: Signal;
+	source: string;
+	confidence: "HIGH" | "MEDIUM" | "LOW";
+	reason: string;
+	analysis_signal: Signal;
+	coinai_signal?: Signal;
+};
+
+export type CoinAISummary = {
+	signal: Signal;
+	next_predicted_return: number;
+	test_directional_acc: number;
+	train_loss: number;
+	test_mse: number;
+	orderbook_checked: boolean;
+	orderbook_anomalous: boolean;
+	orderbook_imbalance: number;
+	backtest: BacktestResult;
+	generated_at: string; // RFC3339 UTC
+};
+
 export type DailyReport = {
 	symbol: string;
 	date: string; // YYYY-MM-DD
 	interval: string;
 	ticker: Ticker;
 	analysis: AnalysisResult;
+	coinai?: CoinAISummary;
+	decision?: TradeDecision;
 	candles: Candle[];
 	generated_at: string; // RFC3339 UTC
 };
@@ -342,6 +369,38 @@ export type WatchlistResult = {
 
 export type AddWatchlistRequest = {
 	symbol: string;
+};
+
+export type TrainMultiRequest = {
+	symbols: string[]; // >= 2, uppercase
+	interval?: string; // default "1h"
+	limit?: number; // 1..1000, default 500 (per symbol)
+	train_ratio?: number; // (0,1), default 0.7
+	epochs?: number; // default 800
+};
+
+export type MultiSymbolSignal = {
+	symbol: string;
+	next_predicted_return: number;
+	signal: CoinAISignal;
+};
+
+export type MultiTrainReport = {
+	symbols: string[];
+	interval: string;
+	total_candles: number;
+	train_samples: number;
+	val_samples: number;
+	test_samples: number;
+	feature_names: string[];
+	train_loss: number;
+	val_loss: number;
+	best_epoch: number;
+	test_mse: number;
+	test_directional_acc: number;
+	backtest: BacktestResult;
+	signals: MultiSymbolSignal[];
+	generated_at: string; // RFC3339 UTC
 };
 
 // ── Portfolio types ─────────────────────────────────────────────────────────

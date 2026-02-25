@@ -19346,6 +19346,152 @@ button {
 .al-panel-sub   { font-size: 12px; color: #64748b; }
 .al-panel-meta  { display: flex; align-items: center; gap: 8px; }
 
+/* Report controls */
+.al-report-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+.al-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.al-control-label {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.al-date-input {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(6, 14, 26, 0.6);
+  color: #e4e9ff;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+/* Decision */
+.al-decision-card {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.al-decision-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.al-decision-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.al-decision-k {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.al-decision-signal {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.al-decision-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.al-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.al-dm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.al-dm-k {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.al-dm-v {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+.al-decision-reason {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+/* CoinAI snapshot */
+.al-coinai-card {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(6, 14, 26, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.al-coinai-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.al-ca-item {
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(6, 14, 26, 0.45);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.al-ca-k {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.al-ca-v {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e4e9ff;
+  font-variant-numeric: tabular-nums;
+}
+.al-coinai-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+.al-coinai-empty .al-empty-icon {
+  font-size: 16px;
+}
+.al-coinai-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
 /* Levels list */
 .al-levels { display: flex; flex-direction: column; gap: 10px; }
 .al-lvl { display: flex; align-items: center; gap: 10px; }
@@ -19474,6 +19620,9 @@ button {
   .al-command  { grid-template-columns: 1fr 1fr; }
   .al-cmd-sig  { grid-column: 1 / -1; flex-direction: row; }
   .al-ticker-row { grid-template-columns: repeat(3, 1fr); }
+  .al-report-controls { grid-template-columns: 1fr 1fr; }
+  .al-coinai-grid { grid-template-columns: repeat(2, 1fr); }
+  .al-decision-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 768px) {
   .al-shell { padding: 14px; gap: 14px; }
@@ -19484,11 +19633,15 @@ button {
   .al-sr-row  { grid-template-columns: 1fr; }
   .al-ind-grid { grid-template-columns: 1fr 1fr; }
   .al-ticker-row { grid-template-columns: repeat(2, 1fr); }
+  .al-report-controls { grid-template-columns: 1fr; }
+  .al-coinai-grid { grid-template-columns: 1fr 1fr; }
+  .al-decision-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
   .al-shell { padding: 10px; gap: 10px; }
   .al-ind-grid { grid-template-columns: 1fr; }
   .al-ticker-row { grid-template-columns: repeat(2, 1fr); }
+  .al-coinai-grid { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -19801,20 +19954,182 @@ button {
   justify-content: center;
 }
 
+/* ── Realtime + Multi ── */
+.ci-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.ci-stream-panel { border-top: 3px solid rgba(125, 211, 252, 0.45); }
+.ci-multi-panel  { border-top: 3px solid rgba(245, 158, 11, 0.45); }
+
+.ci-ctrl-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ci-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ci-ctrl-full {
+  grid-column: 1 / -1;
+}
+.ci-ctrl-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ci-ctrl-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ci-ctrl-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ci-ctrl .ant-input,
+.ci-ctrl .ant-input-number,
+.ci-ctrl .ant-segmented {
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+.ci-ctrl .ant-input-number {
+  width: 100%;
+}
+.ci-ctrl .ant-input-number-input {
+  color: #e2e8f0;
+}
+.ci-ctrl .ant-segmented-item {
+  color: #94a3b8;
+}
+.ci-ctrl .ant-segmented-item-selected {
+  background: rgba(52, 211, 153, 0.18);
+  color: #e4e9ff;
+}
+
+.ci-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ci-mini-report {
+  background: rgba(148, 163, 184, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ci-mini-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ci-mini-symbol {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e4e9ff;
+}
+.ci-mini-signal {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.ci-mini-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ci-mini-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.ci-mini-item strong {
+  color: #e4e9ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.ci-multi-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ci-multi-summary {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+.ci-multi-signals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.ci-multi-signal-card {
+  background: rgba(148, 163, 184, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ci-ms-symbol {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e4e9ff;
+}
+.ci-ms-badge {
+  width: fit-content;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ci-ms-pct {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1200px) {
   .ci-layout { grid-template-columns: 280px 1fr; }
+  .ci-extra-grid { grid-template-columns: 1fr; }
   .ci-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .ci-multi-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .ci-layout { grid-template-columns: 1fr; }
   .ci-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .ci-ctrl-grid { grid-template-columns: 1fr; }
+  .ci-ctrl-row { grid-template-columns: 1fr 1fr; }
+  .ci-multi-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .ci-shell  { padding: 12px; gap: 12px; }
-  .ci-kpi-row { grid-template-columns: 1fr 1fr; }
+  .ci-kpi-row { grid-template-columns: 1fr; }
   .ci-bt-grid { grid-template-columns: 1fr; }
   .ci-signal-banner { flex-direction: column; align-items: flex-start; }
+  .ci-ctrl-row { grid-template-columns: 1fr; }
+  .ci-mini-grid { grid-template-columns: 1fr; }
+  .ci-multi-signals { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

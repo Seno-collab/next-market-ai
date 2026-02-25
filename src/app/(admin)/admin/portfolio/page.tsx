@@ -35,7 +35,7 @@ type LivePortfolio = {
 const WS_BASE =
   typeof window !== "undefined"
     ? (process.env.NEXT_PUBLIC_WS_BASE_URL ??
-       window.location.origin.replace(/^http/, "ws"))
+      window.location.origin.replace(/^http/, "ws"))
     : "";
 
 const RECONNECT_DELAY_MS = 3_000;
@@ -43,33 +43,41 @@ const RECONNECT_DELAY_MS = 3_000;
 /* ── Formatters ─────────────────────────────────────────────────────────── */
 function usd(n: number) {
   return n.toLocaleString("en-US", {
-    style: "currency", currency: "USD",
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 }
-function pct(n: number) { return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`; }
-function qty(n: number)  { return n.toFixed(8).replace(/\.?0+$/, ""); }
-function sign(n: number) { return n >= 0 ? "+" : ""; }
+function pct(n: number) {
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+function qty(n: number) {
+  return n.toFixed(8).replace(/\.?0+$/, "");
+}
+function sign(n: number) {
+  return n >= 0 ? "+" : "";
+}
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function toLive(p: PositionRow): LivePositionRow {
   return {
     ...p,
-    live_price:            p.current_price,
-    live_value:            p.current_value,
-    live_unrealized_pnl:     p.unrealized_pnl,
+    live_price: p.current_price,
+    live_value: p.current_value,
+    live_unrealized_pnl: p.unrealized_pnl,
     live_unrealized_pnl_pct: p.unrealized_pnl_pct,
-    live_change_24h_pct:     p.price_change_24h_pct,
+    live_change_24h_pct: p.price_change_24h_pct,
   };
 }
 
 function recalcTotals(positions: LivePositionRow[]) {
   let liveValue = 0;
-  let livePnl   = 0;
+  let livePnl = 0;
   for (const p of positions) {
     if (p.net_qty > 0) {
       liveValue += p.live_value;
-      livePnl   += p.live_unrealized_pnl;
+      livePnl += p.live_unrealized_pnl;
     }
   }
   return { total_live_value: liveValue, total_live_unrealized_pnl: livePnl };
@@ -86,41 +94,59 @@ async function fetchPortfolioData(): Promise<PortfolioData> {
 
 /* ── Coin avatar colour palette ─────────────────────────────────────────── */
 const LETTER_COLORS: Record<string, [string, string]> = {
-  A: ["#f59e0b","#fbbf24"], B: ["#3b82f6","#60a5fa"],
-  C: ["#8b5cf6","#a78bfa"], D: ["#ec4899","#f472b6"],
-  E: ["#10b981","#34d399"], F: ["#f97316","#fb923c"],
-  G: ["#6366f1","#818cf8"], H: ["#14b8a6","#2dd4bf"],
-  I: ["#ef4444","#f87171"], J: ["#a855f7","#c084fc"],
-  K: ["#06b6d4","#22d3ee"], L: ["#84cc16","#a3e635"],
-  M: ["#f43f5e","#fb7185"], N: ["#22c55e","#4ade80"],
-  O: ["#fb923c","#fdba74"], P: ["#818cf8","#a5b4fc"],
-  Q: ["#2dd4bf","#5eead4"], R: ["#fbbf24","#fcd34d"],
-  S: ["#34d399","#6ee7b7"], T: ["#60a5fa","#93c5fd"],
-  U: ["#c084fc","#d8b4fe"], V: ["#4ade80","#86efac"],
-  W: ["#fb7185","#fda4af"], X: ["#38bdf8","#7dd3fc"],
-  Y: ["#a3e635","#bef264"], Z: ["#e879f9","#f0abfc"],
+  A: ["#f59e0b", "#fbbf24"],
+  B: ["#3b82f6", "#60a5fa"],
+  C: ["#8b5cf6", "#a78bfa"],
+  D: ["#ec4899", "#f472b6"],
+  E: ["#10b981", "#34d399"],
+  F: ["#f97316", "#fb923c"],
+  G: ["#6366f1", "#818cf8"],
+  H: ["#14b8a6", "#2dd4bf"],
+  I: ["#ef4444", "#f87171"],
+  J: ["#a855f7", "#c084fc"],
+  K: ["#06b6d4", "#22d3ee"],
+  L: ["#84cc16", "#a3e635"],
+  M: ["#f43f5e", "#fb7185"],
+  N: ["#22c55e", "#4ade80"],
+  O: ["#fb923c", "#fdba74"],
+  P: ["#818cf8", "#a5b4fc"],
+  Q: ["#2dd4bf", "#5eead4"],
+  R: ["#fbbf24", "#fcd34d"],
+  S: ["#34d399", "#6ee7b7"],
+  T: ["#60a5fa", "#93c5fd"],
+  U: ["#c084fc", "#d8b4fe"],
+  V: ["#4ade80", "#86efac"],
+  W: ["#fb7185", "#fda4af"],
+  X: ["#38bdf8", "#7dd3fc"],
+  Y: ["#a3e635", "#bef264"],
+  Z: ["#e879f9", "#f0abfc"],
 };
 function coinGrad(base: string) {
-  const [a, b] = LETTER_COLORS[base[0]?.toUpperCase() ?? ""] ?? ["#475569","#64748b"];
+  const [a, b] = LETTER_COLORS[base[0]?.toUpperCase() ?? ""] ?? [
+    "#475569",
+    "#64748b",
+  ];
   return `linear-gradient(135deg, ${a}, ${b})`;
 }
 function coinClr(base: string) {
   return LETTER_COLORS[base[0]?.toUpperCase() ?? ""]?.[0] ?? "#94a3b8";
 }
 function splitSymbol(symbol: string) {
-  const q = ["USDT","USDC","BUSD","BTC","ETH","BNB"].find((x) => symbol.endsWith(x));
+  const q = ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"].find((x) =>
+    symbol.endsWith(x),
+  );
   return { base: q ? symbol.slice(0, -q.length) : symbol, quote: q ?? "" };
 }
 
 /* ── Open position card ─────────────────────────────────────────────────── */
 function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
   const { base, quote } = splitSymbol(p.symbol);
-  const grad   = coinGrad(base);
-  const tclr   = coinClr(base);
-  const chgUp  = p.live_change_24h_pct >= 0;
-  const pnlUp  = p.live_unrealized_pnl >= 0;
+  const grad = coinGrad(base);
+  const tclr = coinClr(base);
+  const chgUp = p.live_change_24h_pct >= 0;
+  const pnlUp = p.live_unrealized_pnl >= 0;
 
-  const barW    = `${Math.min(50, Math.abs(p.live_unrealized_pnl_pct) * 0.5)}%`;
+  const barW = `${Math.min(50, Math.abs(p.live_unrealized_pnl_pct) * 0.5)}%`;
   const barSide = pnlUp ? { left: "50%" } : { right: "50%" };
 
   return (
@@ -131,7 +157,9 @@ function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
           {base.slice(0, 3)}
         </div>
         <div className="pf-card-name">
-          <span className="pf-card-base" style={{ color: tclr }}>{base}</span>
+          <span className="pf-card-base" style={{ color: tclr }}>
+            {base}
+          </span>
           <span className="pf-card-quote">/{quote}</span>
         </div>
         <div className="pf-card-price-block">
@@ -167,12 +195,17 @@ function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
       </div>
 
       {/* Unrealized P&L + centre bar */}
-      <div className={`pf-card-pnl ${pnlUp ? "pf-card-pnl-up" : "pf-card-pnl-dn"}`}>
+      <div
+        className={`pf-card-pnl ${pnlUp ? "pf-card-pnl-up" : "pf-card-pnl-dn"}`}
+      >
         <div className="pf-card-pnl-row">
           <span className="pf-card-pnl-label">Unrealized P&amp;L</span>
           <span className={`pf-card-pnl-val ${pnlUp ? "pf-up" : "pf-dn"}`}>
-            {sign(p.live_unrealized_pnl)}{usd(p.live_unrealized_pnl)}
-            <span className="pf-card-pnl-pct">&nbsp;{pct(p.live_unrealized_pnl_pct)}</span>
+            {sign(p.live_unrealized_pnl)}
+            {usd(p.live_unrealized_pnl)}
+            <span className="pf-card-pnl-pct">
+              &nbsp;{pct(p.live_unrealized_pnl_pct)}
+            </span>
           </span>
         </div>
         <div className="pf-card-bar-track">
@@ -188,15 +221,21 @@ function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
       <div className="pf-card-foot">
         <div className="pf-card-foot-left">
           {p.realized_pnl !== 0 && (
-            <span className={`pf-card-realized ${p.realized_pnl >= 0 ? "pf-up" : "pf-dn"}`}>
-              Realized {sign(p.realized_pnl)}{usd(p.realized_pnl)}
+            <span
+              className={`pf-card-realized ${p.realized_pnl >= 0 ? "pf-up" : "pf-dn"}`}
+            >
+              Realized {sign(p.realized_pnl)}
+              {usd(p.realized_pnl)}
             </span>
           )}
           {p.total_fees > 0 && (
             <span className="pf-card-fees">Fees {usd(p.total_fees)}</span>
           )}
         </div>
-        <Link href={`/admin/trading?symbol=${p.symbol}`} className="pf-card-chart-btn">
+        <Link
+          href={`/admin/trading?symbol=${p.symbol}`}
+          className="pf-card-chart-btn"
+        >
           <LineChartOutlined /> Chart
         </Link>
       </div>
@@ -207,8 +246,8 @@ function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
 /* ── Closed position row ────────────────────────────────────────────────── */
 function ClosedRow({ p }: { p: PositionRow }) {
   const { base, quote } = splitSymbol(p.symbol);
-  const grad   = coinGrad(base);
-  const tclr   = coinClr(base);
+  const grad = coinGrad(base);
+  const tclr = coinClr(base);
   const rpnlUp = p.realized_pnl >= 0;
 
   return (
@@ -217,12 +256,15 @@ function ClosedRow({ p }: { p: PositionRow }) {
         <div className="pf-closed-avatar" style={{ background: grad }}>
           {base.slice(0, 2)}
         </div>
-        <span className="pf-closed-base" style={{ color: tclr }}>{base}</span>
+        <span className="pf-closed-base" style={{ color: tclr }}>
+          {base}
+        </span>
         <span className="pf-closed-quote">/{quote}</span>
       </div>
       <span className="pf-closed-num">{usd(p.avg_buy_price)}</span>
       <span className={`pf-closed-num ${rpnlUp ? "pf-up" : "pf-dn"}`}>
-        {sign(p.realized_pnl)}{usd(p.realized_pnl)}
+        {sign(p.realized_pnl)}
+        {usd(p.realized_pnl)}
       </span>
       <span className="pf-closed-num pf-closed-fees">{usd(p.total_fees)}</span>
     </div>
@@ -231,12 +273,20 @@ function ClosedRow({ p }: { p: PositionRow }) {
 
 /* ── Summary stat tile ──────────────────────────────────────────────────── */
 function Tile({
-  label, value, sub, positive, highlight,
+  label,
+  value,
+  sub,
+  positive,
+  highlight,
 }: {
-  label: string; value: string; sub?: string; positive?: boolean; highlight?: boolean;
+  label: string;
+  value: string;
+  sub?: string;
+  positive?: boolean;
+  highlight?: boolean;
 }) {
-  const vCls = positive === undefined ? "pf-tile-neutral"
-    : positive ? "pf-up" : "pf-dn";
+  const vCls =
+    positive === undefined ? "pf-tile-neutral" : positive ? "pf-up" : "pf-dn";
   return (
     <div className={`pf-tile${highlight ? " pf-tile-hl" : ""}`}>
       <span className="pf-tile-label">{label}</span>
@@ -250,13 +300,13 @@ function Tile({
    PAGE
    ══════════════════════════════════════════════════════════════════════════ */
 export default function PortfolioPage() {
-  const [live, setLive]       = useState<LivePortfolio | null>(null);
+  const [live, setLive] = useState<LivePortfolio | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [wsActive, setWsActive] = useState(false);
 
-  const mountedRef  = useRef(true);
-  const wsMapRef    = useRef<Map<string, WebSocket>>(new Map());
+  const mountedRef = useRef(true);
+  const wsMapRef = useRef<Map<string, WebSocket>>(new Map());
 
   /* ── Close all WS connections ─────────────────────────────────────────── */
   const closeAll = useCallback(() => {
@@ -273,7 +323,9 @@ export default function PortfolioPage() {
     const connect = () => {
       if (!mountedRef.current) return;
 
-      const ws = new WebSocket(`${WS_BASE}/ws/trading?symbol=${symbol.toUpperCase()}`);
+      const ws = new WebSocket(
+        `${WS_BASE}/ws/trading?symbol=${symbol.toUpperCase()}`,
+      );
       wsMapRef.current.set(symbol, ws);
 
       ws.onopen = () => {
@@ -286,10 +338,11 @@ export default function PortfolioPage() {
             type: string;
             data: { last_price: string; price_change_percent: string };
           };
-          if (msg.type !== "ticker_update" && msg.type !== "ticker_snapshot") return;
+          if (msg.type !== "ticker_update" && msg.type !== "ticker_snapshot")
+            return;
 
-          const livePrice    = Number(msg.data.last_price);
-          const liveChgPct   = Number(msg.data.price_change_percent);
+          const livePrice = Number(msg.data.last_price);
+          const liveChgPct = Number(msg.data.price_change_percent);
           if (!livePrice || !Number.isFinite(livePrice)) return;
 
           setLive((prev) => {
@@ -297,31 +350,34 @@ export default function PortfolioPage() {
             let changed = false;
             const positions = prev.positions.map((p) => {
               if (p.symbol !== symbol || p.net_qty <= 0) return p;
-              const liveValue   = p.net_qty * livePrice;
-              const livePnl     = liveValue - p.total_invested;
-              const livePnlPct  = p.total_invested !== 0
-                ? (livePnl / p.total_invested) * 100 : 0;
+              const liveValue = p.net_qty * livePrice;
+              const livePnl = liveValue - p.total_invested;
+              const livePnlPct =
+                p.total_invested !== 0 ? (livePnl / p.total_invested) * 100 : 0;
               changed = true;
               return {
                 ...p,
-                live_price:            livePrice,
-                live_value:            liveValue,
-                live_unrealized_pnl:     livePnl,
+                live_price: livePrice,
+                live_value: liveValue,
+                live_unrealized_pnl: livePnl,
                 live_unrealized_pnl_pct: livePnlPct,
-                live_change_24h_pct:     liveChgPct,
+                live_change_24h_pct: liveChgPct,
               };
             });
             if (!changed) return prev;
             return { ...prev, positions, ...recalcTotals(positions) };
           });
-        } catch { /* ignore parse errors */ }
+        } catch {
+          /* ignore parse errors */
+        }
       };
 
       ws.onclose = () => {
         // Symbol not in map → closeAll() removed it → intentional close, skip reconnect
         if (!wsMapRef.current.has(symbol)) return;
         wsMapRef.current.delete(symbol);
-        if (wsMapRef.current.size === 0 && mountedRef.current) setWsActive(false);
+        if (wsMapRef.current.size === 0 && mountedRef.current)
+          setWsActive(false);
         // Unexpected disconnect — reconnect after delay
         setTimeout(() => {
           if (mountedRef.current) connect();
@@ -332,7 +388,7 @@ export default function PortfolioPage() {
     };
 
     connect();
-  }, []);  // setLive from useState is stable; wsMapRef/mountedRef are refs
+  }, []); // setLive from useState is stable; wsMapRef/mountedRef are refs
 
   /* ── Fetch REST + open WS per open position ──────────────────────────── */
   const load = useCallback(async () => {
@@ -341,14 +397,14 @@ export default function PortfolioPage() {
     try {
       const data = await fetchPortfolioData();
       const positions = data.positions.map(toLive);
-      const totals    = recalcTotals(positions);
+      const totals = recalcTotals(positions);
 
       setLive({
         positions,
-        total_invested:            data.total_invested,
-        total_realized_pnl:        data.total_realized_pnl,
-        total_fees:                data.total_fees,
-        generated_at:              data.generated_at,
+        total_invested: data.total_invested,
+        total_realized_pnl: data.total_realized_pnl,
+        total_fees: data.total_fees,
+        generated_at: data.generated_at,
         ...totals,
       });
 
@@ -374,24 +430,28 @@ export default function PortfolioPage() {
   }, [load, closeAll]);
 
   /* ── Derived ─────────────────────────────────────────────────────────── */
-  const open   = live?.positions.filter((p) => p.net_qty > 0)  ?? [];
+  const open = live?.positions.filter((p) => p.net_qty > 0) ?? [];
   const closed = live?.positions.filter((p) => p.net_qty === 0) ?? [];
 
-  const totalPnL    = live
-    ? live.total_live_unrealized_pnl + live.total_realized_pnl : 0;
-  const totalPnLPct = live && live.total_invested > 0
-    ? (live.total_live_unrealized_pnl / live.total_invested) * 100 : 0;
+  const totalPnL = live
+    ? live.total_live_unrealized_pnl + live.total_realized_pnl
+    : 0;
+  const totalPnLPct =
+    live && live.total_invested > 0
+      ? (live.total_live_unrealized_pnl / live.total_invested) * 100
+      : 0;
   const pnlUp = totalPnL >= 0;
 
   const snapshotAt = live
     ? new Date(live.generated_at).toLocaleTimeString([], {
-        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       })
     : null;
 
   return (
     <div className="pf-shell">
-
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <div className="pf-hero">
         <div className="pf-hero-top">
@@ -408,20 +468,23 @@ export default function PortfolioPage() {
             <div className="pf-hero-value-row">
               {live ? (
                 <>
-                  <span className="pf-hero-amount">{usd(live.total_live_value)}</span>
+                  <span className="pf-hero-amount">
+                    {usd(live.total_live_value)}
+                  </span>
                   <span className={`pf-hero-pnl ${pnlUp ? "pf-up" : "pf-dn"}`}>
                     {pnlUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    {sign(live.total_live_unrealized_pnl)}{usd(live.total_live_unrealized_pnl)}
-                    <span className="pf-hero-pnl-pct">({pct(totalPnLPct)})</span>
+                    {sign(live.total_live_unrealized_pnl)}
+                    {usd(live.total_live_unrealized_pnl)}
+                    <span className="pf-hero-pnl-pct">
+                      ({pct(totalPnLPct)})
+                    </span>
                   </span>
                 </>
               ) : (
                 <span className="pf-hero-amount">—</span>
               )}
             </div>
-            {snapshotAt && (
-              <p className="pf-hero-sub">Snapshot {snapshotAt}</p>
-            )}
+            {snapshotAt && <p className="pf-hero-sub">Snapshot {snapshotAt}</p>}
           </div>
           <button
             className="pf-refresh-btn"
@@ -453,7 +516,9 @@ export default function PortfolioPage() {
             </div>
             <div className="pf-hero-bar-labels">
               <span>0</span>
-              <span className="pf-hero-bar-lbl-cost">Cost {usd(live.total_invested)}</span>
+              <span className="pf-hero-bar-lbl-cost">
+                Cost {usd(live.total_invested)}
+              </span>
               <span>+50%</span>
             </div>
           </div>
@@ -461,19 +526,32 @@ export default function PortfolioPage() {
       </div>
 
       {/* ── Error ─────────────────────────────────────────────────────── */}
-      {error && <div className="pf-error">Failed to load portfolio: {error}</div>}
+      {error && (
+        <div className="pf-error">Failed to load portfolio: {error}</div>
+      )}
 
       {/* ── Loading ───────────────────────────────────────────────────── */}
       {loading && !live && (
-        <div className="pf-loading"><Spin size="large" /><span>Loading portfolio…</span></div>
+        <div className="pf-loading">
+          <Spin size="large" />
+          <span>Loading portfolio…</span>
+        </div>
       )}
 
       {live && (
         <>
           {/* ── Summary tiles ───────────────────────────────────────── */}
           <div className="pf-tiles">
-            <Tile label="Total Invested"  value={usd(live.total_invested)} highlight />
-            <Tile label="Current Value"   value={usd(live.total_live_value)} highlight />
+            <Tile
+              label="Total Invested"
+              value={usd(live.total_invested)}
+              highlight
+            />
+            <Tile
+              label="Current Value"
+              value={usd(live.total_live_value)}
+              highlight
+            />
             <Tile
               label="Unrealized P&L"
               value={`${sign(live.total_live_unrealized_pnl)}${usd(live.total_live_unrealized_pnl)}`}
@@ -514,7 +592,9 @@ export default function PortfolioPage() {
             <section className="pf-section">
               <div className="pf-section-hd">
                 <span className="pf-section-title">Closed Positions</span>
-                <span className="pf-section-badge pf-section-badge-muted">{closed.length}</span>
+                <span className="pf-section-badge pf-section-badge-muted">
+                  {closed.length}
+                </span>
               </div>
               <div className="pf-closed-table">
                 <div className="pf-closed-hd">
@@ -523,7 +603,9 @@ export default function PortfolioPage() {
                   <span>Realized P&L</span>
                   <span>Fees</span>
                 </div>
-                {closed.map((p) => <ClosedRow key={p.symbol} p={p} />)}
+                {closed.map((p) => (
+                  <ClosedRow key={p.symbol} p={p} />
+                ))}
               </div>
             </section>
           )}
@@ -531,9 +613,13 @@ export default function PortfolioPage() {
           {/* ── Empty ───────────────────────────────────────────────── */}
           {live.positions.length === 0 && (
             <div className="pf-empty">
-              <div className="pf-empty-icon"><WalletOutlined /></div>
+              <div className="pf-empty-icon">
+                <WalletOutlined />
+              </div>
               <p className="pf-empty-title">No positions yet</p>
-              <p className="pf-empty-sub">Add transactions to track your portfolio P&L.</p>
+              <p className="pf-empty-sub">
+                Add transactions to track your portfolio P&L.
+              </p>
             </div>
           )}
         </>

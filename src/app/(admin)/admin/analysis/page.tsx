@@ -5,12 +5,14 @@ import {
 	AlertOutlined,
 	ArrowDownOutlined,
 	ArrowUpOutlined,
+	CalendarOutlined,
 	ClockCircleOutlined,
 	DotChartOutlined,
 	FallOutlined,
 	LineChartOutlined,
 	MinusOutlined,
 	ReloadOutlined,
+	RobotOutlined,
 	RiseOutlined,
 	ThunderboltOutlined,
 } from "@ant-design/icons";
@@ -22,6 +24,7 @@ import type {
 	DailyReport,
 	Signal,
 	Strength,
+	TradeDecisionMode,
 } from "@/types/trading";
 
 const INTERVALS = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"] as const;
@@ -47,6 +50,11 @@ const STRENGTH_DOTS: Record<Strength, string> = {
 	MODERATE: "●●○",
 	WEAK: "●○○",
 };
+const DECISION_MODES: TradeDecisionMode[] = ["hybrid", "analysis", "coinai"];
+
+function getUtcToday() {
+	return new Date().toISOString().slice(0, 10);
+}
 
 function tone(val: string, buy: string, sell: string): "buy" | "sell" | "hold" {
 	return val === buy ? "buy" : val === sell ? "sell" : "hold";
@@ -60,9 +68,17 @@ function fmtP(v: string | number, dec = 2) {
 	return Number(v).toLocaleString("en-US", { maximumFractionDigits: dec });
 }
 
+function fmtSignedPercentFromDecimal(v: number, dec = 2) {
+	return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(dec)}%`;
+}
+
 export default function AnalysisPage() {
 	const [symbol, setSymbol] = useState("BTCUSDT");
 	const [interval, setIv] = useState<Interval>("1h");
+	const [reportDate, setReportDate] = useState<string>(getUtcToday);
+	const [decisionMode, setDecisionMode] =
+		useState<TradeDecisionMode>("hybrid");
+	const [includeCoinAI, setIncludeCoinAI] = useState(true);
 	const [analysis, setA] = useState<AnalysisResult | null>(null);
 	const [report, setR] = useState<DailyReport | null>(null);
 	const [loadingA, setLA] = useState(false);
@@ -80,7 +96,7 @@ export default function AnalysisPage() {
 		setLA(true);
 		setEA(null);
 		try {
-			setA(await analysisApi.getAnalysis(symbol, interval));
+			setA(await analysisApi.getAnalysis(symbol, interval, aRef.current.signal));
 		} catch (e) {
 			if ((e as Error).name !== "AbortError") setEA((e as Error).message);
 		} finally {
@@ -94,24 +110,40 @@ export default function AnalysisPage() {
 		setLR(true);
 		setER(null);
 		try {
-			setR(await analysisApi.getDailyReport(symbol, interval));
+			setR(
+				await analysisApi.getDailyReport(
+					symbol,
+					interval,
+					{
+						date: reportDate,
+						includeCoinAI,
+						decisionMode,
+					},
+					rRef.current.signal,
+				),
+			);
 		} catch (e) {
 			if ((e as Error).name !== "AbortError") setER((e as Error).message);
 		} finally {
 			setLR(false);
 		}
-	}, [symbol, interval]);
+	}, [decisionMode, includeCoinAI, interval, reportDate, symbol]);
 
 	useEffect(() => {
 		void fetchAnalysis();
-		void fetchReport();
 		pollRef.current = setInterval(() => void fetchAnalysis(), 30_000);
 		return () => {
 			aRef.current?.abort();
-			rRef.current?.abort();
 			if (pollRef.current) clearInterval(pollRef.current);
 		};
-	}, [fetchAnalysis, fetchReport]);
+	}, [fetchAnalysis]);
+
+	useEffect(() => {
+		void fetchReport();
+		return () => {
+			rRef.current?.abort();
+		};
+	}, [fetchReport]);
 
 	const scoreClr = analysis
 		? analysis.score >= 20
@@ -592,11 +624,60 @@ export default function AnalysisPage() {
 						{report && (
 							<span className="al-live-pill">
 								<span className="al-live-dot" />
-								{report.date}
+								{new Date(report.generated_at).toLocaleTimeString("en-US", {
+									hour: "2-digit",
+									minute: "2-digit",
+									second: "2-digit",
+									hour12: false,
+								})}
 							</span>
 						)}
 						{loadingR && <Spin size="small" />}
 					</div>
+				</div>
+
+				<div className="al-report-controls">
+					<label className="al-control">
+						<span className="al-control-label">
+							<CalendarOutlined /> Report Date (UTC)
+						</span>
+						<input
+							type="date"
+							className="al-date-input"
+							value={reportDate}
+							max={getUtcToday()}
+							onChange={(event) => setReportDate(event.target.value)}
+						/>
+					</label>
+					<div className="al-control">
+						<span className="al-control-label">Decision Mode</span>
+						<Segmented
+							options={DECISION_MODES.map((mode) => ({
+								label: mode.toUpperCase(),
+								value: mode,
+							}))}
+							value={decisionMode}
+							onChange={(value) => setDecisionMode(value as TradeDecisionMode)}
+						/>
+					</div>
+					<div className="al-control">
+						<span className="al-control-label">CoinAI in report</span>
+						<Segmented
+							options={[
+								{ label: "ON", value: "on" },
+								{ label: "OFF", value: "off" },
+							]}
+							value={includeCoinAI ? "on" : "off"}
+							onChange={(value) => setIncludeCoinAI(value === "on")}
+						/>
+					</div>
+					<Button
+						icon={<ReloadOutlined />}
+						onClick={() => void fetchReport()}
+						loading={loadingR}
+					>
+						Reload Report
+					</Button>
 				</div>
 
 				{errorR && (
@@ -614,6 +695,149 @@ export default function AnalysisPage() {
 
 				{report && (
 					<>
+						{/* Decision card */}
+						{report.decision && (
+							<div
+								className="al-decision-card"
+								style={{
+									borderColor: SIG_BORDER[report.decision.final_signal],
+									background: SIG_BG[report.decision.final_signal],
+								}}
+							>
+								<div className="al-decision-head">
+									<div className="al-decision-main">
+										<span className="al-decision-k">Final Signal</span>
+										<span
+											className="al-decision-signal"
+											style={{ color: SIG_CLR[report.decision.final_signal] }}
+										>
+											{report.decision.final_signal}
+										</span>
+									</div>
+									<div className="al-decision-badges">
+										<Chip
+											label={report.decision.mode.toUpperCase()}
+											t="hold"
+										/>
+										<Chip
+											label={report.decision.confidence}
+											t={
+												report.decision.confidence === "HIGH"
+													? "buy"
+													: report.decision.confidence === "LOW"
+														? "sell"
+														: "hold"
+											}
+										/>
+									</div>
+								</div>
+								<div className="al-decision-grid">
+									<div className="al-dm-row">
+										<span className="al-dm-k">Source</span>
+										<span className="al-dm-v">{report.decision.source}</span>
+									</div>
+									<div className="al-dm-row">
+										<span className="al-dm-k">Analysis Signal</span>
+										<span className="al-dm-v">{report.decision.analysis_signal}</span>
+									</div>
+									<div className="al-dm-row">
+										<span className="al-dm-k">CoinAI Signal</span>
+										<span className="al-dm-v">
+											{report.decision.coinai_signal ?? "N/A"}
+										</span>
+									</div>
+								</div>
+								<p className="al-decision-reason">{report.decision.reason}</p>
+							</div>
+						)}
+
+						{/* CoinAI snapshot */}
+						<div className="al-coinai-card">
+							<div className="al-panel-hd">
+								<span className="al-panel-title">
+									<RobotOutlined /> CoinAI Snapshot
+								</span>
+								<span className="al-panel-sub">
+									{report.coinai
+										? new Date(report.coinai.generated_at).toLocaleString(
+												"en-US",
+												{
+													dateStyle: "medium",
+													timeStyle: "short",
+												},
+											)
+										: includeCoinAI
+											? "No snapshot returned"
+											: "Disabled by filter"}
+								</span>
+							</div>
+							{report.coinai ? (
+								<div className="al-coinai-grid">
+									<div className="al-ca-item">
+										<span className="al-ca-k">Signal</span>
+										<span
+											className="al-ca-v"
+											style={{ color: SIG_CLR[report.coinai.signal] }}
+										>
+											{report.coinai.signal}
+										</span>
+									</div>
+									<div className="al-ca-item">
+										<span className="al-ca-k">Predicted Return</span>
+										<span
+											className={`al-ca-v ${report.coinai.next_predicted_return >= 0 ? "al-up" : "al-dn"}`}
+										>
+											{fmtSignedPercentFromDecimal(
+												report.coinai.next_predicted_return,
+												3,
+											)}
+										</span>
+									</div>
+									<div className="al-ca-item">
+										<span className="al-ca-k">Directional Acc</span>
+										<span className="al-ca-v">
+											{(report.coinai.test_directional_acc * 100).toFixed(1)}%
+										</span>
+									</div>
+									<div className="al-ca-item">
+										<span className="al-ca-k">Orderbook Imbalance</span>
+										<span className="al-ca-v">
+											{fmtSignedPercentFromDecimal(
+												report.coinai.orderbook_imbalance,
+												2,
+											)}
+										</span>
+									</div>
+									<div className="al-ca-item">
+										<span className="al-ca-k">Backtest Return</span>
+										<span
+											className={`al-ca-v ${report.coinai.backtest.total_return >= 0 ? "al-up" : "al-dn"}`}
+										>
+											{fmtSignedPercentFromDecimal(
+												report.coinai.backtest.total_return,
+												2,
+											)}
+										</span>
+									</div>
+									<div className="al-ca-item">
+										<span className="al-ca-k">Sharpe</span>
+										<span className="al-ca-v">
+											{report.coinai.backtest.sharpe.toFixed(2)}
+										</span>
+									</div>
+								</div>
+							) : (
+								<div className="al-coinai-empty">
+									<AlertOutlined className="al-empty-icon" />
+									<p>
+										{includeCoinAI
+											? "CoinAI data is unavailable for this report."
+											: "CoinAI is disabled. Set CoinAI to ON to include model snapshot."}
+									</p>
+								</div>
+							)}
+						</div>
+
 						{/* Ticker row */}
 						<div className="al-ticker-row">
 							{[
