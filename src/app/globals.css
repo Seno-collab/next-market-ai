@@ -17556,15 +17556,20 @@ button {
   padding: 10px 12px;
   border-left: 1px solid rgba(255,255,255,0.09);
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .tp-period-row {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
 }
 .tp-period-row::-webkit-scrollbar { display: none; }
 
@@ -18268,74 +18273,153 @@ button {
 .tp-hide-sm { }
 .tp-hide-xs { }
 
-@media (max-width: 1100px) {
+/* ── Responsive: Trading Page ─────────────────────────────────────────────── */
+
+/* Base shell: cap width on ultra-wide monitors */
+.tp-shell {
+  max-width: 1800px;
+  margin-inline: auto;
+}
+
+/* ── 1280px – large laptop ────────────────────────────────────────────────── */
+@media (max-width: 1280px) {
   .tp-main-grid {
-    grid-template-columns: 1fr 240px;
+    grid-template-columns: 1fr 260px;
   }
 }
 
-@media (max-width: 900px) {
+/* ── 1100px – small laptop / laptop with sidebar ─────────────────────────── */
+@media (max-width: 1100px) {
+  .tp-main-grid {
+    grid-template-columns: 1fr 230px;
+  }
+  .tp-stat-item { gap: 1px; }
+  .tp-stat-value { font-size: 12px; }
+}
+
+/* ── 960px – iPad landscape / small laptop ───────────────────────────────── */
+@media (max-width: 960px) {
   .tp-main-grid {
     grid-template-columns: 1fr;
   }
-
   .tp-right-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
+  /* Trades list shorter — it's now side-by-side with order book */
+  .tp-trades-list {
+    max-height: 220px;
+  }
 }
 
+/* ── 768px – iPad portrait ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .tp-shell {
     padding: 10px 12px 20px;
     gap: 10px;
   }
 
-  .tp-hide-sm {
-    display: none !important;
-  }
+  .tp-hide-sm { display: none !important; }
 
   .tp-ticker-bar {
-    border-radius: 12px;
+    border-radius: 10px;
   }
 
+  /* Stats strip: make scrollable horizontally so no data is lost */
   .tp-stats-strip {
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  .tp-stats-strip::-webkit-scrollbar { display: none; }
+
+  /* Price block stays prominent */
+  .tp-price-block {
+    flex-shrink: 0;
   }
 
+  /* Controls wrap to full-width row */
   .tp-controls-block {
     width: 100%;
     border-left: none;
     border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 8px 10px;
-    overflow-x: auto;
+    padding: 7px 10px;
+    gap: 5px;
   }
 
   .tp-period-row {
-    flex: 1;
+    flex: 1 1 0%;
+    min-width: 0;
   }
+
+  /* Order book cols tighter */
+  .tp-book-size  { width: 48px; }
+  .tp-book-total { width: 52px; }
+  .tp-book-cols span:nth-child(2) { width: 48px; }
+  .tp-book-cols span:nth-child(3) { width: 52px; }
+  .tp-trade-qty  { width: 48px; }
+  .tp-trade-time { width: 56px; }
+  .tp-trades-cols span:nth-child(2) { width: 48px; }
+  .tp-trades-cols span:nth-child(3) { width: 56px; }
 }
 
-@media (max-width: 600px) {
+/* ── 640px – large phone landscape / small phone ─────────────────────────── */
+@media (max-width: 640px) {
+  /* Stack order book and trades vertically */
   .tp-right-col {
     grid-template-columns: 1fr;
   }
+
+  /* Trades list back to normal height */
+  .tp-trades-list {
+    max-height: 200px;
+  }
+
+  .tp-stats-strip {
+    gap: 12px;
+    padding: 8px 10px;
+  }
 }
 
+/* ── 480px – phone portrait ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .tp-shell {
     padding: 8px 8px 16px;
+    gap: 8px;
   }
 
-  .tp-hide-xs {
-    display: none !important;
+  .tp-hide-xs { display: none !important; }
+
+  .tp-ticker-bar { border-radius: 8px; }
+
+  .tp-price { font-size: 17px; }
+  .tp-change { font-size: 12px; }
+
+  /* Tighter symbol block on very small screens */
+  .tp-symbol-block { padding: 8px 12px; }
+
+  /* Period buttons slightly smaller */
+  .tp-period-btn {
+    padding: 3px 7px;
+    font-size: 10px;
   }
 
-  .tp-price {
-    font-size: 18px;
-  }
+  /* Refresh button */
+  .tp-refresh-btn { width: 28px; height: 28px; font-size: 12px; }
+
+  /* Order book rows tighter */
+  .tp-book-row  { padding: 3px 10px; font-size: 11px; }
+  .tp-trade-row { padding: 4px 10px; font-size: 11px; }
+
+  .tp-mid-row { padding: 6px 10px; }
+  .tp-mid-price { font-size: 13px; }
+
+  .tp-pressure { padding: 6px 10px 8px; }
+  .tp-trades-ratio { padding: 6px 10px 8px; }
 }
 
 /* ── Dashboard: positions table horizontal scroll ── */
@@ -19576,22 +19660,82 @@ button {
 .ci-sig-label  { font-size: 36px; font-weight: 900; letter-spacing: 0.06em; }
 .ci-sig-model  { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
 
-/* Confidence ring (fake ring via box-shadow/border) */
-.ci-sig-right { display: flex; flex-direction: column; align-items: center; }
+/* ── Confidence ring ──────────────────────────────────────────────────────── */
+.ci-sig-right { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
 .ci-conf-ring {
-  width: 72px;
-  height: 72px;
+  position: relative;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  border: 4px solid var(--ring-clr, #94a3b8);
-  box-shadow: 0 0 12px var(--ring-clr, #94a3b8);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 4px;
+
+  /*
+   * 1. radial-gradient — dark hole (56 %) → ring is ~26 px thick at 120 px
+   * 2. conic-gradient  — colored arc from top (−90°) sweeps to --ring-pct,
+   *                      rest is dim dark track
+   */
+  background:
+    radial-gradient(circle at center, #0d1117 56%, transparent 57%),
+    conic-gradient(
+      from -90deg,
+      var(--ring-clr, #94a3b8)              0deg,
+      var(--ring-clr, #94a3b8)              var(--ring-pct, 270deg),
+      rgba(30, 41, 59, 0.5)  var(--ring-pct, 270deg),
+      rgba(30, 41, 59, 0.5)  360deg
+    );
+
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 14px -2px var(--ring-clr, #94a3b8),
+    0 0 36px -8px var(--ring-clr, #94a3b8);
+
+  animation: ci-ring-breathe 3s ease-in-out infinite;
 }
-.ci-conf-num { font-size: 18px; font-weight: 800; color: #e4e9ff; line-height: 1; }
-.ci-conf-lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+
+@keyframes ci-ring-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 0 14px -2px var(--ring-clr, #94a3b8),
+      0 0 36px -8px var(--ring-clr, #94a3b8);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.09),
+      0 0 22px -2px var(--ring-clr, #94a3b8),
+      0 0 52px -6px var(--ring-clr, #94a3b8);
+  }
+}
+
+/* Always white so it reads clearly regardless of signal colour */
+.ci-conf-num {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  /* gradient: pure white at top → ring colour at bottom */
+  background: linear-gradient(170deg, #ffffff 20%, var(--ring-clr, #94a3b8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  /* coloured glow behind the text */
+  filter: drop-shadow(0 0 10px var(--ring-clr, #94a3b8));
+}
+.ci-conf-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  /* subtle matching glow on label too */
+  text-shadow: 0 0 8px var(--ring-clr, #94a3b8);
+}
 
 /* ── KPI row ── */
 .ci-kpi-row {

@@ -243,7 +243,13 @@ export default function CoinAIPage() {
                   </div>
                 </div>
                 <div className="ci-sig-right">
-                  <div className="ci-conf-ring" style={{ "--ring-clr": score } as React.CSSProperties}>
+                  <div
+                    className="ci-conf-ring"
+                    style={{
+                      "--ring-clr": score,
+                      "--ring-pct": `${Math.round(report.test_directional_acc * 360)}deg`,
+                    } as React.CSSProperties}
+                  >
                     <span className="ci-conf-num">{(report.test_directional_acc * 100).toFixed(1)}%</span>
                     <span className="ci-conf-lbl">directional acc</span>
                   </div>

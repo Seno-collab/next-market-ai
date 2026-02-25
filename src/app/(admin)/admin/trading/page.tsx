@@ -186,7 +186,12 @@ export default function TradingPage() {
   useEffect(() => {
     function onResize() {
       const w = window.innerWidth;
-      setChartHeight(w < 480 ? 240 : w < 768 ? 320 : 460);
+      setChartHeight(
+        w < 480  ? 220 :
+        w < 640  ? 280 :
+        w < 960  ? 340 :
+        w < 1280 ? 400 : 480
+      );
     }
     onResize();
     window.addEventListener("resize", onResize);
