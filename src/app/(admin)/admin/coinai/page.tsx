@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  BulbOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  RobotOutlined,
-  SyncOutlined,
+	BulbOutlined,
+	DeleteOutlined,
+	EyeOutlined,
+	PlusOutlined,
+	RobotOutlined,
+	SyncOutlined,
 } from "@ant-design/icons";
 import { Button, Form, Modal, Spin, Tag, Typography, message } from "antd";
 import { coinAiApi } from "@/lib/api/coinai";
@@ -15,324 +15,403 @@ import SymbolSearch from "@/features/trading/components/SymbolSearch";
 import type { CoinAISignal, TrainReport } from "@/types/trading";
 
 const SIG_CLR: Record<CoinAISignal, string> = {
-  BUY: "#34d399", SELL: "#f87171", HOLD: "#94a3b8",
+	BUY: "#34d399",
+	SELL: "#f87171",
+	HOLD: "#94a3b8",
 };
 const SIG_BG: Record<CoinAISignal, string> = {
-  BUY:  "rgba(52,211,153,0.1)",
-  SELL: "rgba(248,113,113,0.1)",
-  HOLD: "rgba(148,163,184,0.07)",
+	BUY: "rgba(52,211,153,0.1)",
+	SELL: "rgba(248,113,113,0.1)",
+	HOLD: "rgba(148,163,184,0.07)",
 };
 
-function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
-  return (
-    <div className="ci-stat" style={{ "--ci-stat-accent": accent } as React.CSSProperties}>
-      <span className="ci-stat-label">{label}</span>
-      <span className="ci-stat-val">{value}</span>
-    </div>
-  );
+function StatCard({
+	label,
+	value,
+	accent,
+}: {
+	label: string;
+	value: string | number;
+	accent?: string;
+}) {
+	return (
+		<div
+			className="ci-stat"
+			style={{ "--ci-stat-accent": accent } as React.CSSProperties}
+		>
+			<span className="ci-stat-label">{label}</span>
+			<span className="ci-stat-val">{value}</span>
+		</div>
+	);
 }
 
 export default function CoinAIPage() {
-  const [watchlist, setWatchlist]       = useState<string[]>([]);
-  const [loadingWL, setLoadingWL]       = useState(false);
-  const [errorWL, setErrorWL]           = useState<string | null>(null);
+	const [watchlist, setWatchlist] = useState<string[]>([]);
+	const [loadingWL, setLoadingWL] = useState(false);
+	const [errorWL, setErrorWL] = useState<string | null>(null);
 
-  const [report, setReport]             = useState<TrainReport | null>(null);
-  const [loadingTrain, setLoadingTrain] = useState(false);
-  const [errorTrain, setErrorTrain]     = useState<string | null>(null);
-  const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
+	const [report, setReport] = useState<TrainReport | null>(null);
+	const [loadingTrain, setLoadingTrain] = useState(false);
+	const [errorTrain, setErrorTrain] = useState<string | null>(null);
+	const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
 
-  const [addOpen, setAddOpen]           = useState(false);
-  const [addSymbol, setAddSymbol]       = useState("BTCUSDT");
-  const [addLoading, setAddLoading]     = useState(false);
+	const [addOpen, setAddOpen] = useState(false);
+	const [addSymbol, setAddSymbol] = useState("BTCUSDT");
+	const [addLoading, setAddLoading] = useState(false);
 
-  const [messageApi, contextHolder]     = message.useMessage();
-  const trainRef = useRef<AbortController | null>(null);
-  const safeWatchlist = Array.isArray(watchlist) ? watchlist : [];
+	const [messageApi, contextHolder] = message.useMessage();
+	const trainRef = useRef<AbortController | null>(null);
+	const safeWatchlist = Array.isArray(watchlist) ? watchlist : [];
 
-  // ── Load watchlist ─────────────────────────────────────────────────────────
-  const loadWatchlist = useCallback(async () => {
-    setLoadingWL(true);
-    setErrorWL(null);
-    try {
-      const result = await coinAiApi.getWatchlist();
-      setWatchlist(result.symbols ?? []);
-    } catch (e) {
-      setErrorWL((e as Error).message);
-    } finally {
-      setLoadingWL(false);
-    }
-  }, []);
+	// ── Load watchlist ─────────────────────────────────────────────────────────
+	const loadWatchlist = useCallback(async () => {
+		setLoadingWL(true);
+		setErrorWL(null);
+		try {
+			const result = await coinAiApi.getWatchlist();
+			setWatchlist(result.symbols ?? []);
+		} catch (e) {
+			setErrorWL((e as Error).message);
+		} finally {
+			setLoadingWL(false);
+		}
+	}, []);
 
-  useEffect(() => { void loadWatchlist(); }, [loadWatchlist]);
+	useEffect(() => {
+		void loadWatchlist();
+	}, [loadWatchlist]);
 
-  // ── Train ──────────────────────────────────────────────────────────────────
-  const runTrain = useCallback(async (symbol: string, interval: string) => {
-    trainRef.current?.abort();
-    trainRef.current = new AbortController();
-    setLoadingTrain(true);
-    setErrorTrain(null);
-    setActiveSymbol(symbol);
-    try {
-      setReport(await coinAiApi.train(symbol, interval));
-    } catch (e) {
-      setErrorTrain((e as Error).message);
-    } finally {
-      setLoadingTrain(false);
-    }
-  }, []);
+	// ── Train ──────────────────────────────────────────────────────────────────
+	const runTrain = useCallback(async (symbol: string, interval: string) => {
+		trainRef.current?.abort();
+		trainRef.current = new AbortController();
+		setLoadingTrain(true);
+		setErrorTrain(null);
+		setActiveSymbol(symbol);
+		try {
+			setReport(await coinAiApi.train(symbol, interval));
+		} catch (e) {
+			setErrorTrain((e as Error).message);
+		} finally {
+			setLoadingTrain(false);
+		}
+	}, []);
 
-  // ── Add to watchlist ───────────────────────────────────────────────────────
-  async function handleAdd() {
-    setAddLoading(true);
-    try {
-      await coinAiApi.addToWatchlist({ symbol: addSymbol });
-      setAddOpen(false);
-      await loadWatchlist();
-      void messageApi.success(`${addSymbol} added to watchlist`);
-    } catch (e) {
-      void messageApi.error((e as Error).message);
-    } finally {
-      setAddLoading(false);
-    }
-  }
+	// ── Add to watchlist ───────────────────────────────────────────────────────
+	async function handleAdd() {
+		setAddLoading(true);
+		try {
+			await coinAiApi.addToWatchlist({ symbol: addSymbol });
+			setAddOpen(false);
+			await loadWatchlist();
+			void messageApi.success(`${addSymbol} added to watchlist`);
+		} catch (e) {
+			void messageApi.error((e as Error).message);
+		} finally {
+			setAddLoading(false);
+		}
+	}
 
-  // ── Remove from watchlist ──────────────────────────────────────────────────
-  async function handleRemove(symbol: string) {
-    try {
-      await coinAiApi.removeFromWatchlist(symbol);
-      void messageApi.success(`${symbol} removed`);
-      setWatchlist((prev) => prev.filter((s) => s !== symbol));
-      if (activeSymbol === symbol) { setReport(null); setActiveSymbol(null); }
-    } catch (e) {
-      void messageApi.error((e as Error).message);
-    }
-  }
+	// ── Remove from watchlist ──────────────────────────────────────────────────
+	async function handleRemove(symbol: string) {
+		try {
+			await coinAiApi.removeFromWatchlist(symbol);
+			void messageApi.success(`${symbol} removed`);
+			setWatchlist((prev) => prev.filter((s) => s !== symbol));
+			if (activeSymbol === symbol) {
+				setReport(null);
+				setActiveSymbol(null);
+			}
+		} catch (e) {
+			void messageApi.error((e as Error).message);
+		}
+	}
 
-  const score = report
-    ? report.signal === "BUY" ? "#34d399" : report.signal === "SELL" ? "#f87171" : "#94a3b8"
-    : "#94a3b8";
+	const score = report
+		? report.signal === "BUY"
+			? "#34d399"
+			: report.signal === "SELL"
+				? "#f87171"
+				: "#94a3b8"
+		: "#94a3b8";
 
-  return (
-    <div className="ci-shell">
-      {contextHolder}
+	return (
+		<div className="ci-shell">
+			{contextHolder}
 
-      {/* ── Header ── */}
-      <div className="ci-header">
-        <div className="ci-header-left">
-          <div className="ci-eyebrow"><RobotOutlined /> COIN AI</div>
-          <h1 className="ci-title">AI Trading Assistant</h1>
-        </div>
-        <div className="ci-header-right">
-          <Button
-            icon={<SyncOutlined spin={loadingWL} />}
-            onClick={() => void loadWatchlist()}
-            disabled={loadingWL}
-          >
-            Refresh
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setAddOpen(true)}
-          >
-            Add Symbol
-          </Button>
-        </div>
-      </div>
+			{/* ── Header ── */}
+			<div className="ci-header">
+				<div className="ci-header-left">
+					<div className="ci-eyebrow">
+						<RobotOutlined /> COIN AI
+					</div>
+					<h1 className="ci-title">AI Trading Assistant</h1>
+				</div>
+				<div className="ci-header-right">
+					<Button
+						icon={<SyncOutlined spin={loadingWL} />}
+						onClick={() => void loadWatchlist()}
+						disabled={loadingWL}
+					>
+						Refresh
+					</Button>
+					<Button
+						type="primary"
+						icon={<PlusOutlined />}
+						onClick={() => setAddOpen(true)}
+					>
+						Add Symbol
+					</Button>
+				</div>
+			</div>
 
-      <div className="ci-layout">
-        {/* ═══ WATCHLIST PANEL ═══ */}
-        <div className="ci-panel ci-watchlist-panel">
-          <div className="ci-panel-hd">
-            <span className="ci-panel-title"><EyeOutlined /> Watchlist</span>
-            <Tag>{safeWatchlist.length} symbols</Tag>
-          </div>
+			<div className="ci-layout">
+				{/* ═══ WATCHLIST PANEL ═══ */}
+				<div className="ci-panel ci-watchlist-panel">
+					<div className="ci-panel-hd">
+						<span className="ci-panel-title">
+							<EyeOutlined /> Watchlist
+						</span>
+						<Tag>{safeWatchlist.length} symbols</Tag>
+					</div>
 
-          {loadingWL && (
-            <div className="ci-center-spin"><Spin size="small" /></div>
-          )}
-          {errorWL && (
-            <div className="ci-err-banner">
-              <Typography.Text type="danger">{errorWL}</Typography.Text>
-            </div>
-          )}
+					{loadingWL && (
+						<div className="ci-center-spin">
+							<Spin size="small" />
+						</div>
+					)}
+					{errorWL && (
+						<div className="ci-err-banner">
+							<Typography.Text type="danger">{errorWL}</Typography.Text>
+						</div>
+					)}
 
-          {!loadingWL && !errorWL && safeWatchlist.length === 0 && (
-            <div className="ci-empty">
-              <RobotOutlined className="ci-empty-icon" />
-              <p>No symbols in watchlist</p>
-              <Button size="small" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-                Add first symbol
-              </Button>
-            </div>
-          )}
+					{!loadingWL && !errorWL && safeWatchlist.length === 0 && (
+						<div className="ci-empty">
+							<RobotOutlined className="ci-empty-icon" />
+							<p>No symbols in watchlist</p>
+							<Button
+								size="small"
+								icon={<PlusOutlined />}
+								onClick={() => setAddOpen(true)}
+							>
+								Add first symbol
+							</Button>
+						</div>
+					)}
 
-          <div className="ci-wl-list">
-            {safeWatchlist.map((sym) => (
-              <div
-                key={sym}
-                className={`ci-wl-row${activeSymbol === sym ? " ci-wl-row-active" : ""}`}
-              >
-                <div className="ci-wl-info">
-                  <span className="ci-wl-symbol">{sym}</span>
-                </div>
-                <div className="ci-wl-actions">
-                  <Button
-                    size="small"
-                    type="primary"
-                    ghost
-                    icon={<RobotOutlined />}
-                    loading={loadingTrain && activeSymbol === sym}
-                    onClick={() => void runTrain(sym, "1h")}
-                  >
-                    Analyze
-                  </Button>
-                  <Button
-                    size="small"
-                    danger
-                    ghost
-                    icon={<DeleteOutlined />}
-                    className="ci-del-btn"
-                    onClick={() => void handleRemove(sym)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+					<div className="ci-wl-list">
+						{safeWatchlist.map((sym) => (
+							<div
+								key={sym}
+								className={`ci-wl-row${activeSymbol === sym ? " ci-wl-row-active" : ""}`}
+							>
+								<div className="ci-wl-info">
+									<span className="ci-wl-symbol">{sym}</span>
+								</div>
+								<div className="ci-wl-actions">
+									<Button
+										size="small"
+										type="primary"
+										ghost
+										icon={<RobotOutlined />}
+										loading={loadingTrain && activeSymbol === sym}
+										onClick={() => void runTrain(sym, "1h")}
+									>
+										Analyze
+									</Button>
+									<Button
+										size="small"
+										danger
+										ghost
+										icon={<DeleteOutlined />}
+										className="ci-del-btn"
+										onClick={() => void handleRemove(sym)}
+									/>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
 
-        {/* ═══ TRAIN RESULT PANEL ═══ */}
-        <div className="ci-panel ci-result-panel">
-          {!report && !loadingTrain && !errorTrain && (
-            <div className="ci-result-placeholder">
-              <BulbOutlined className="ci-ph-icon" />
-              <p className="ci-ph-title">Select a symbol to analyze</p>
-              <p className="ci-ph-hint">Click &quot;Analyze&quot; on any watchlist item to run the AI model</p>
-            </div>
-          )}
+				{/* ═══ TRAIN RESULT PANEL ═══ */}
+				<div className="ci-panel ci-result-panel">
+					{!report && !loadingTrain && !errorTrain && (
+						<div className="ci-result-placeholder">
+							<BulbOutlined className="ci-ph-icon" />
+							<p className="ci-ph-title">Select a symbol to analyze</p>
+							<p className="ci-ph-hint">
+								Click &quot;Analyze&quot; on any watchlist item to run the AI
+								model
+							</p>
+						</div>
+					)}
 
-          {loadingTrain && (
-            <div className="ci-center-spin">
-              <Spin size="large" tip="Training AI model...">
-                <div className="ci-spin-tip-anchor" />
-              </Spin>
-            </div>
-          )}
+					{loadingTrain && (
+						<div className="ci-center-spin">
+							<Spin size="large" tip="Training AI model...">
+								<div className="ci-spin-tip-anchor" />
+							</Spin>
+						</div>
+					)}
 
-          {errorTrain && (
-            <div className="ci-err-banner">
-              <Typography.Text type="danger">{errorTrain}</Typography.Text>
-            </div>
-          )}
+					{errorTrain && (
+						<div className="ci-err-banner">
+							<Typography.Text type="danger">{errorTrain}</Typography.Text>
+						</div>
+					)}
 
-          {report && !loadingTrain && (
-            <>
-              {/* Signal Banner */}
-              <div
-                className="ci-signal-banner"
-                style={{ background: SIG_BG[report.signal], borderColor: SIG_CLR[report.signal] + "40" }}
-              >
-                <div className="ci-sig-left">
-                  <div className="ci-sig-symbol">{report.symbol}</div>
-                  <div className="ci-sig-iv">· {report.interval}</div>
-                </div>
-                <div className="ci-sig-center">
-                  <div className="ci-sig-label" style={{ color: SIG_CLR[report.signal] }}>
-                    {report.signal}
-                  </div>
-                </div>
-                <div className="ci-sig-right">
-                  <div
-                    className="ci-conf-ring"
-                    style={{
-                      "--ring-clr": score,
-                      "--ring-pct": `${Math.round(report.test_directional_acc * 360)}deg`,
-                    } as React.CSSProperties}
-                  >
-                    <span className="ci-conf-num">{(report.test_directional_acc * 100).toFixed(1)}%</span>
-                    <span className="ci-conf-lbl">directional acc</span>
-                  </div>
-                </div>
-              </div>
+					{report && !loadingTrain && (
+						<>
+							{/* Signal Banner */}
+							<div
+								className="ci-signal-banner"
+								style={{
+									background: SIG_BG[report.signal],
+									borderColor: SIG_CLR[report.signal] + "40",
+								}}
+							>
+								<div className="ci-sig-left">
+									<div className="ci-sig-symbol">{report.symbol}</div>
+									<div className="ci-sig-iv">· {report.interval}</div>
+								</div>
+								<div className="ci-sig-center">
+									<div
+										className="ci-sig-label"
+										style={{ color: SIG_CLR[report.signal] }}
+									>
+										{report.signal}
+									</div>
+								</div>
+								<div className="ci-sig-right">
+									<div
+										className="ci-conf-ring"
+										style={
+											{
+												"--ring-clr": score,
+												"--ring-pct": `${Math.round(report.test_directional_acc * 360)}deg`,
+											} as React.CSSProperties
+										}
+									>
+										<span className="ci-conf-num">
+											{(report.test_directional_acc * 100).toFixed(1)}%
+										</span>
+										<span className="ci-conf-lbl">directional acc</span>
+									</div>
+								</div>
+							</div>
 
-              {/* KPI row */}
-              <div className="ci-kpi-row">
-                <StatCard
-                  label="Predicted Return"
-                  value={`${report.next_predicted_return >= 0 ? "+" : ""}${(report.next_predicted_return * 100).toFixed(2)}%`}
-                  accent={report.next_predicted_return >= 0 ? "#34d399" : "#f87171"}
-                />
-                <StatCard label="Win Rate" value={`${(report.backtest.win_rate * 100).toFixed(1)}%`} accent="#7dd3fc" />
-                <StatCard label="Sharpe Ratio" value={report.backtest.sharpe.toFixed(2)} accent="#a78bfa" />
-                <StatCard label="Max Drawdown" value={`${(report.backtest.max_drawdown * 100).toFixed(2)}%`} accent="#f87171" />
-              </div>
+							{/* KPI row */}
+							<div className="ci-kpi-row">
+								<StatCard
+									label="Predicted Return"
+									value={`${report.next_predicted_return >= 0 ? "+" : ""}${(report.next_predicted_return * 100).toFixed(2)}%`}
+									accent={
+										report.next_predicted_return >= 0 ? "#34d399" : "#f87171"
+									}
+								/>
+								<StatCard
+									label="Win Rate"
+									value={`${(report.backtest.win_rate * 100).toFixed(1)}%`}
+									accent="#7dd3fc"
+								/>
+								<StatCard
+									label="Sharpe Ratio"
+									value={report.backtest.sharpe.toFixed(2)}
+									accent="#a78bfa"
+								/>
+								<StatCard
+									label="Max Drawdown"
+									value={`${(report.backtest.max_drawdown * 100).toFixed(2)}%`}
+									accent="#f87171"
+								/>
+							</div>
 
-              {/* Backtest detail */}
-              <div className="ci-bt-panel">
-                <div className="ci-bt-hd"><RobotOutlined /> Backtest Results</div>
-                <div className="ci-bt-grid">
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Total Trades</span>
-                    <span className="ci-bt-v">{report.backtest.trades}</span>
-                  </div>
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Total Return</span>
-                    <span className={`ci-bt-v ${report.backtest.total_return >= 0 ? "ci-up" : "ci-dn"}`}>
-                      {report.backtest.total_return >= 0 ? "+" : ""}{(report.backtest.total_return * 100).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Win Rate</span>
-                    <span className="ci-bt-v ci-up">{(report.backtest.win_rate * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Sharpe Ratio</span>
-                    <span className="ci-bt-v">{report.backtest.sharpe.toFixed(2)}</span>
-                  </div>
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Max Drawdown</span>
-                    <span className="ci-bt-v ci-dn">{(report.backtest.max_drawdown * 100).toFixed(2)}%</span>
-                  </div>
-                  <div className="ci-bt-row">
-                    <span className="ci-bt-k">Generated At</span>
-                    <span className="ci-bt-v ci-bt-ts">
-                      {new Date(report.generated_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+							{/* Backtest detail */}
+							<div className="ci-bt-panel">
+								<div className="ci-bt-hd">
+									<RobotOutlined /> Backtest Results
+								</div>
+								<div className="ci-bt-grid">
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Total Trades</span>
+										<span className="ci-bt-v">{report.backtest.trades}</span>
+									</div>
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Total Return</span>
+										<span
+											className={`ci-bt-v ${report.backtest.total_return >= 0 ? "ci-up" : "ci-dn"}`}
+										>
+											{report.backtest.total_return >= 0 ? "+" : ""}
+											{(report.backtest.total_return * 100).toFixed(2)}%
+										</span>
+									</div>
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Win Rate</span>
+										<span className="ci-bt-v ci-up">
+											{(report.backtest.win_rate * 100).toFixed(1)}%
+										</span>
+									</div>
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Sharpe Ratio</span>
+										<span className="ci-bt-v">
+											{report.backtest.sharpe.toFixed(2)}
+										</span>
+									</div>
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Max Drawdown</span>
+										<span className="ci-bt-v ci-dn">
+											{(report.backtest.max_drawdown * 100).toFixed(2)}%
+										</span>
+									</div>
+									<div className="ci-bt-row">
+										<span className="ci-bt-k">Generated At</span>
+										<span className="ci-bt-v ci-bt-ts">
+											{new Date(report.generated_at).toLocaleString("en-US", {
+												dateStyle: "medium",
+												timeStyle: "short",
+											})}
+										</span>
+									</div>
+								</div>
+							</div>
+						</>
+					)}
+				</div>
+			</div>
 
-      {/* ── Add Symbol Modal ── */}
-      <Modal
-        open={addOpen}
-        onCancel={() => setAddOpen(false)}
-        footer={null}
-        title={
-          <div className="ci-modal-hd">
-            <PlusOutlined className="ci-modal-icon" />
-            <span>Add to Watchlist</span>
-          </div>
-        }
-      >
-        <Form layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item label="Symbol">
-            <SymbolSearch value={addSymbol} onChange={setAddSymbol} />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-              <Button type="primary" loading={addLoading} onClick={() => void handleAdd()}>
-                Add Symbol
-              </Button>
-            </div>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
-  );
+			{/* ── Add Symbol Modal ── */}
+			<Modal
+				open={addOpen}
+				onCancel={() => setAddOpen(false)}
+				footer={null}
+				title={
+					<div className="ci-modal-hd">
+						<PlusOutlined className="ci-modal-icon" />
+						<span>Add to Watchlist</span>
+					</div>
+				}
+			>
+				<Form layout="vertical" style={{ marginTop: 16 }}>
+					<Form.Item label="Symbol">
+						<SymbolSearch value={addSymbol} onChange={setAddSymbol} />
+					</Form.Item>
+					<Form.Item style={{ marginBottom: 0 }}>
+						<div
+							style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+						>
+							<Button onClick={() => setAddOpen(false)}>Cancel</Button>
+							<Button
+								type="primary"
+								loading={addLoading}
+								onClick={() => void handleAdd()}
+							>
+								Add Symbol
+							</Button>
+						</div>
+					</Form.Item>
+				</Form>
+			</Modal>
+		</div>
+	);
 }

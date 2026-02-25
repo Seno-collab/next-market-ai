@@ -1,4 +1,6 @@
-type ApiHandler<T extends unknown[]> = (...args: T) => Response | Promise<Response>;
+type ApiHandler<T extends unknown[]> = (
+  ...args: T
+) => Response | Promise<Response>;
 
 const logPrefix = "[api]";
 
@@ -35,11 +37,16 @@ export function withApiLogging<T extends unknown[]>(handler: ApiHandler<T>) {
     try {
       const response = await handler(...args);
       const duration = Date.now() - start;
-      console.info(`${logPrefix} ${method} ${url} -> ${response.status} ${duration}ms`);
+      console.info(
+        `${logPrefix} ${method} ${url} -> ${response.status} ${duration}ms`,
+      );
       return response;
     } catch (error) {
       const duration = Date.now() - start;
-      console.error(`${logPrefix} ${method} ${url} -> ERROR ${duration}ms`, error);
+      console.error(
+        `${logPrefix} ${method} ${url} -> ERROR ${duration}ms`,
+        error,
+      );
       throw error;
     }
   };

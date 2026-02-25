@@ -30,7 +30,7 @@ export default function Error500Scene() {
       60,
       mountEl.clientWidth / mountEl.clientHeight,
       0.1,
-      1000
+      1000,
     );
     camera.position.set(0, 0, 16);
 
@@ -228,8 +228,14 @@ export default function Error500Scene() {
     }
 
     const particleGeometry = new THREE.BufferGeometry();
-    particleGeometry.setAttribute("position", new THREE.Float32BufferAttribute(particlePositions, 3));
-    particleGeometry.setAttribute("color", new THREE.Float32BufferAttribute(particleColors, 3));
+    particleGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(particlePositions, 3),
+    );
+    particleGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(particleColors, 3),
+    );
     geometries.push(particleGeometry);
 
     const particleMaterial = new THREE.PointsMaterial({
@@ -274,7 +280,7 @@ export default function Error500Scene() {
       hex.position.set(
         Math.cos(angle) * r,
         (Math.random() - 0.5) * 6,
-        Math.sin(angle) * r - 2
+        Math.sin(angle) * r - 2,
       );
       hex.userData = {
         rotSpeed: (Math.random() - 0.5) * 1.5,
@@ -329,11 +335,15 @@ export default function Error500Scene() {
       glitchTimer -= dt;
       if (glitchTimer <= 0) {
         currentGlitch = Math.random() > 0.6 ? 1.0 : 0.0;
-        glitchTimer = currentGlitch > 0 ? 0.08 + Math.random() * 0.12 : 1 + Math.random() * 3;
+        glitchTimer =
+          currentGlitch > 0
+            ? 0.08 + Math.random() * 0.12
+            : 1 + Math.random() * 3;
       }
       const glitchTarget = currentGlitch;
       const currentVal = coreMaterial.uniforms.glitchIntensity.value;
-      coreMaterial.uniforms.glitchIntensity.value += (glitchTarget - currentVal) * 0.15;
+      coreMaterial.uniforms.glitchIntensity.value +=
+        (glitchTarget - currentVal) * 0.15;
 
       // Update shaders
       coreMaterial.uniforms.time.value = t;
@@ -355,11 +365,12 @@ export default function Error500Scene() {
         ring.rotation.x = d.tilt + Math.sin(t * 0.5 + i) * 0.1;
         ring.rotation.z += d.speed * 0.003;
         const mat = ring.material as THREE.MeshBasicMaterial;
-        mat.opacity = (0.4 - i * 0.07) + Math.sin(t * 1.5 + i * 1.2) * 0.1;
+        mat.opacity = 0.4 - i * 0.07 + Math.sin(t * 1.5 + i * 1.2) * 0.1;
       });
 
       // Animate particles (spiral flow)
-      const positions = particleGeometry.attributes.position.array as Float32Array;
+      const positions = particleGeometry.attributes.position
+        .array as Float32Array;
       for (let i = 0; i < particleCount; i++) {
         const data = particleData[i];
         data.angle += data.speed * 0.008;

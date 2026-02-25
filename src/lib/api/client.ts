@@ -99,7 +99,7 @@ export function getStoredAuthTokens(): StoredAuthTokens | null {
       return null;
     }
     const expiresAt = normalizeEpochMs(
-      typeof parsed.expiresAt === "number" ? parsed.expiresAt : undefined
+      typeof parsed.expiresAt === "number" ? parsed.expiresAt : undefined,
     );
     return {
       accessToken: parsed.accessToken,
@@ -137,7 +137,7 @@ export function setStoredAuthTokens(tokens: StoredAuthTokens | null) {
   }
   globalThis.window.localStorage.setItem(
     AUTH_TOKENS_STORAGE_KEY,
-    JSON.stringify(normalized)
+    JSON.stringify(normalized),
   );
 }
 
@@ -145,18 +145,14 @@ export function getStoredRestaurantId() {
   if (!isBrowser) {
     return null;
   }
-  const raw = globalThis.window.localStorage.getItem(
-    RESTAURANT_ID_STORAGE_KEY
-  );
+  const raw = globalThis.window.localStorage.getItem(RESTAURANT_ID_STORAGE_KEY);
   if (!raw) {
     return null;
   }
   return raw;
 }
 
-export function setStoredRestaurantId(
-  restaurantId: number | string | null
-) {
+export function setStoredRestaurantId(restaurantId: number | string | null) {
   if (!isBrowser) {
     return;
   }
@@ -186,10 +182,7 @@ export function setStoredRestaurantId(
   if (currentValue === value) {
     return;
   }
-  globalThis.window.localStorage.setItem(
-    RESTAURANT_ID_STORAGE_KEY,
-    value
-  );
+  globalThis.window.localStorage.setItem(RESTAURANT_ID_STORAGE_KEY, value);
   dispatchRestaurantIdChange(value);
 }
 
@@ -198,7 +191,7 @@ function dispatchRestaurantIdChange(restaurantId: string | null) {
     return;
   }
   globalThis.window.dispatchEvent(
-    new CustomEvent(RESTAURANT_ID_CHANGE_EVENT, { detail: { restaurantId } })
+    new CustomEvent(RESTAURANT_ID_CHANGE_EVENT, { detail: { restaurantId } }),
   );
 }
 
@@ -220,13 +213,12 @@ function extractStoredTokens(payload: unknown): StoredAuthTokens | null {
     typeof value === "string" ? value : undefined;
   const readNumber = (value: unknown) =>
     typeof value === "number" && Number.isFinite(value) ? value : undefined;
-  const readEpochMs = (value: unknown) =>
-    normalizeEpochMs(readNumber(value));
+  const readEpochMs = (value: unknown) => normalizeEpochMs(readNumber(value));
 
   for (const source of sources) {
     const accessToken = readString(source.accessToken ?? source.access_token);
     const refreshToken = readString(
-      source.refreshToken ?? source.refresh_token
+      source.refreshToken ?? source.refresh_token,
     );
     if (accessToken && refreshToken) {
       return {
@@ -312,7 +304,9 @@ function resolveRequestMethod(input: RequestInfo | URL, init?: RequestInit) {
 function formatRequestUrl(input: RequestInfo | URL) {
   const url = resolveRequestUrl(input);
   try {
-    const base = isBrowser ? globalThis.window.location.origin : "http://localhost";
+    const base = isBrowser
+      ? globalThis.window.location.origin
+      : "http://localhost";
     const parsed = new URL(url, base);
     return `${parsed.pathname}${parsed.search}`;
   } catch {
@@ -346,10 +340,7 @@ function decodeBase64Url(value: string) {
   }
   try {
     const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
-    const padded = normalized.padEnd(
-      Math.ceil(normalized.length / 4) * 4,
-      "="
-    );
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
     return globalThis.atob(padded);
   } catch {
     return null;
@@ -385,7 +376,10 @@ function resolveExpiresAt(tokens: StoredAuthTokens) {
   if (jwtExpiresAt) {
     return jwtExpiresAt;
   }
-  if (typeof tokens.expiresIn === "number" && Number.isFinite(tokens.expiresIn)) {
+  if (
+    typeof tokens.expiresIn === "number" &&
+    Number.isFinite(tokens.expiresIn)
+  ) {
     const issuedAt =
       typeof tokens.issuedAt === "number" && Number.isFinite(tokens.issuedAt)
         ? tokens.issuedAt
@@ -518,7 +512,7 @@ export function notifyError(message: string) {
 
 export async function fetchJson<T>(
   input: RequestInfo | URL,
-  init?: RequestInit
+  init?: RequestInit,
 ) {
   const skipAuth = shouldSkipAuth(init);
   const shouldLog = process.env.NODE_ENV === "development";
@@ -539,7 +533,7 @@ export async function fetchJson<T>(
       const duration = Date.now() - start;
       console.error(
         `${logPrefix} ${method} ${url} -> ERROR ${duration}ms`,
-        error
+        error,
       );
     }
     const message = error instanceof Error ? error.message : "Network error";
@@ -549,7 +543,7 @@ export async function fetchJson<T>(
   if (shouldLog) {
     const duration = Date.now() - start;
     console.info(
-      `${logPrefix} ${method} ${url} -> ${response.status} ${duration}ms`
+      `${logPrefix} ${method} ${url} -> ${response.status} ${duration}ms`,
     );
   }
 
@@ -558,12 +552,15 @@ export async function fetchJson<T>(
     if (isBrowser && response.status >= 500) {
       const message = await getErrorMessage(response);
       // Store error info for the error page
-      sessionStorage.setItem("api_error", JSON.stringify({
-        status: response.status,
-        message,
-        url: formatRequestUrl(input),
-        timestamp: Date.now(),
-      }));
+      sessionStorage.setItem(
+        "api_error",
+        JSON.stringify({
+          status: response.status,
+          message,
+          url: formatRequestUrl(input),
+          timestamp: Date.now(),
+        }),
+      );
       // Redirect to error page
       globalThis.window.location.href = "/error-500";
       // Throw to stop execution

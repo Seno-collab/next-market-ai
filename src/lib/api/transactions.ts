@@ -38,7 +38,7 @@ function readNumber(value: unknown): number | null {
 
 function normalizeListResponse(
   payload: unknown,
-  query?: ListTransactionsQuery
+  query?: ListTransactionsQuery,
 ): ListTransactionsResponse {
   const root = readRecord(payload);
   const firstData = readRecord(root?.data);
@@ -51,16 +51,13 @@ function normalizeListResponse(
     ? (transactionsValue as Transaction[])
     : [];
 
-  const totalRaw =
-    source?.total ?? source?.total_items ?? source?.totalItems;
+  const totalRaw = source?.total ?? source?.total_items ?? source?.totalItems;
   const pageRaw = source?.page ?? source?.current_page ?? source?.currentPage;
-  const perPageRaw =
-    source?.per_page ?? source?.perPage ?? source?.limit;
+  const perPageRaw = source?.per_page ?? source?.perPage ?? source?.limit;
 
   const total = readNumber(totalRaw) ?? transactions.length;
   const page = readNumber(pageRaw) ?? query?.page ?? DEFAULT_PAGE;
-  const perPage =
-    readNumber(perPageRaw) ?? query?.per_page ?? DEFAULT_PER_PAGE;
+  const perPage = readNumber(perPageRaw) ?? query?.per_page ?? DEFAULT_PER_PAGE;
 
   return {
     transactions,
@@ -96,7 +93,7 @@ export const transactionApi = {
   async list(query?: ListTransactionsQuery): Promise<ListTransactionsResponse> {
     const params = new URLSearchParams();
     if (query?.symbol) params.set("symbol", query.symbol.toUpperCase());
-    if (query?.page)     params.set("page",     String(query.page));
+    if (query?.page) params.set("page", String(query.page));
     if (query?.per_page) params.set("per_page", String(query.per_page));
     const qs = params.toString();
     const payload = await fetchJson<unknown>(

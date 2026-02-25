@@ -10,10 +10,11 @@ export type { TrainReport, WatchlistResult, AddWatchlistRequest };
 // ── Generic fetch ─────────────────────────────────────────────────────────────
 
 async function fetchCoinAI<T>(path: string, init?: RequestInit): Promise<T> {
-  const res  = await fetch(path, { cache: "no-store", ...init });
+  const res = await fetch(path, { cache: "no-store", ...init });
   const body = (await res.json()) as ApiResponse<T>;
   if (!res.ok) throw new Error(body.message || `HTTP ${res.status}`);
-  if (!("data" in body) || body.data === undefined) throw new Error("Missing data in response");
+  if (!("data" in body) || body.data === undefined)
+    throw new Error("Missing data in response");
   return body.data;
 }
 
@@ -33,11 +34,11 @@ export const coinAiApi = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        symbol:      symbol.toUpperCase(),
+        symbol: symbol.toUpperCase(),
         interval,
-        limit:       options?.limit,
+        limit: options?.limit,
         train_ratio: options?.trainRatio,
-        epochs:      options?.epochs,
+        epochs: options?.epochs,
       }),
     });
   },

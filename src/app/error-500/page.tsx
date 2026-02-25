@@ -11,7 +11,14 @@ const { Title, Paragraph, Text } = Typography;
 // Dynamic import for Three.js component (no SSR)
 const Error500Scene = dynamic(
   () => import("@/features/errors/components/Error500Scene"),
-  { ssr: false, loading: () => <div className="error-3d-loading"><Spin size="large" /></div> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="error-3d-loading">
+        <Spin size="large" />
+      </div>
+    ),
+  },
 );
 
 type ApiError = {
@@ -110,14 +117,25 @@ export default function Error500Page() {
               <div className="error-visual-card-3d error-visual-card-500">
                 <div className="error-visual-header">
                   <div className="error-visual-icon error-visual-icon-warning">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      width="24"
+                      height="24"
+                    >
+                      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
                     </svg>
                   </div>
-                  <span className="error-visual-label">{t("errors.server.visualLabel")}</span>
+                  <span className="error-visual-label">
+                    {t("errors.server.visualLabel")}
+                  </span>
                 </div>
-                <div className="error-visual-value">{t("errors.server.visualValue")}</div>
-                <div className="error-visual-detail">{t("errors.server.visualDetail")}</div>
+                <div className="error-visual-value">
+                  {t("errors.server.visualValue")}
+                </div>
+                <div className="error-visual-detail">
+                  {t("errors.server.visualDetail")}
+                </div>
 
                 <div className="error-visual-bars error-visual-bars-500">
                   <span className="error-bar-3d error-bar-critical" />
@@ -131,7 +149,9 @@ export default function Error500Page() {
 
               <div className="error-stats-row">
                 <div className="error-stat error-stat-critical">
-                  <span className="error-stat-value">{errorInfo?.status || 500}</span>
+                  <span className="error-stat-value">
+                    {errorInfo?.status || 500}
+                  </span>
                   <span className="error-stat-label">Error Code</span>
                 </div>
                 <div className="error-stat error-stat-warning">

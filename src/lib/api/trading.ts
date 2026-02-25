@@ -1,4 +1,11 @@
-import type { ApiResponse, ApiError, Ticker, Candle, OrderBook, Trade } from "@/types/trading";
+import type {
+  ApiResponse,
+  ApiError,
+  Ticker,
+  Candle,
+  OrderBook,
+  Trade,
+} from "@/types/trading";
 
 // Resolves to "" when running same-domain (Nginx proxy) or the env var for standalone dev.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";

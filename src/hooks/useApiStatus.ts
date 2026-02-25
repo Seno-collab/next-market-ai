@@ -19,7 +19,10 @@ type ApiStatusState = {
 
 const DEFAULT_ENDPOINT = "/api/status";
 
-export function useApiStatus({ endpoint = DEFAULT_ENDPOINT, auto = true }: UseApiStatusOptions = {}): ApiStatusState {
+export function useApiStatus({
+  endpoint = DEFAULT_ENDPOINT,
+  auto = true,
+}: UseApiStatusOptions = {}): ApiStatusState {
   const { t } = useLocale();
   const [data, setData] = useState<ApiStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,9 @@ export function useApiStatus({ endpoint = DEFAULT_ENDPOINT, auto = true }: UseAp
     try {
       setLoading(true);
       setError(null);
-      const payload = await fetchJson<ApiStatus>(endpoint, { cache: "no-store" });
+      const payload = await fetchJson<ApiStatus>(endpoint, {
+        cache: "no-store",
+      });
       setData(payload);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("errors.generic");

@@ -13,7 +13,13 @@ import { useCallback, useState } from "react";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-type AuthAction = "register" | "login" | "logout" | "profile" | "refresh" | "changePassword";
+type AuthAction =
+  | "register"
+  | "login"
+  | "logout"
+  | "profile"
+  | "refresh"
+  | "changePassword";
 
 type ChangePasswordPayload = {
   currentPassword: string;
@@ -56,20 +62,24 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<AuthAction | null>(null);
 
-  const withAction = useCallback(async (action: AuthAction, task: () => Promise<void>) => {
-    setLoadingAction(action);
-    setMessage(null);
-    setError(null);
-    try {
-      await task();
-      setMessage(action);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t("errors.generic");
-      setError(errorMessage);
-    } finally {
-      setLoadingAction(null);
-    }
-  }, [t]);
+  const withAction = useCallback(
+    async (action: AuthAction, task: () => Promise<void>) => {
+      setLoadingAction(action);
+      setMessage(null);
+      setError(null);
+      try {
+        await task();
+        setMessage(action);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : t("errors.generic");
+        setError(errorMessage);
+      } finally {
+        setLoadingAction(null);
+      }
+    },
+    [t],
+  );
 
   const register = useCallback(
     async (payload: RegisterPayload) =>
@@ -139,11 +149,14 @@ export function useAuth() {
   const fetchProfile = useCallback(
     async () =>
       withAction("profile", async () => {
-        const response = await fetchJson<{ user: AuthPublicUser }>("/api/auth/profile", {
-          method: "GET",
-          headers: authorizedHeaders(),
-          cache: "no-store",
-        });
+        const response = await fetchJson<{ user: AuthPublicUser }>(
+          "/api/auth/profile",
+          {
+            method: "GET",
+            headers: authorizedHeaders(),
+            cache: "no-store",
+          },
+        );
         setProfile(response.user);
         setUser(response.user);
       }),
@@ -156,12 +169,15 @@ export function useAuth() {
         if (!tokens?.refreshToken) {
           throw new Error(t("errors.refreshTokenMissing"));
         }
-        const response = await fetchJson<{ tokens: AuthTokens }>("/api/auth/refresh-token", {
-          method: "POST",
-          headers: JSON_HEADERS,
-          body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-          cache: "no-store",
-        });
+        const response = await fetchJson<{ tokens: AuthTokens }>(
+          "/api/auth/refresh-token",
+          {
+            method: "POST",
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+            cache: "no-store",
+          },
+        );
         const nextTokens = extractTokens(response);
         setTokens(nextTokens);
         setStoredAuthTokens(nextTokens);
