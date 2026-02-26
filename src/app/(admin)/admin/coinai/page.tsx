@@ -556,7 +556,10 @@ export default function CoinAIPage() {
 					<div className="ci-ctrl-grid">
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Symbol</span>
-							<SymbolSearch value={realtimeSymbol} onChange={setRealtimeSymbol} />
+							<SymbolSearch
+								value={realtimeSymbol}
+								onChangeAction={setRealtimeSymbol}
+							/>
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Interval</span>
@@ -831,7 +834,7 @@ export default function CoinAIPage() {
 			>
 				<Form layout="vertical" style={{ marginTop: 16 }}>
 					<Form.Item label="Symbol">
-						<SymbolSearch value={addSymbol} onChange={setAddSymbol} />
+						<SymbolSearch value={addSymbol} onChangeAction={setAddSymbol} />
 					</Form.Item>
 					<Form.Item style={{ marginBottom: 0 }}>
 						<div

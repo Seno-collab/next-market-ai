@@ -7,6 +7,70 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
+type MaybeErrorWithCause = Error & {
+	cause?: {
+		code?: string;
+		message?: string;
+	};
+};
+
+function isUpstreamTerminationError(error: unknown) {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	const candidate = error as MaybeErrorWithCause;
+	if (candidate.name === "AbortError") {
+		return true;
+	}
+
+	const message = candidate.message.toLowerCase();
+	if (message.includes("terminated") || message.includes("aborted")) {
+		return true;
+	}
+
+	const causeCode = candidate.cause?.code;
+	if (causeCode === "UND_ERR_SOCKET") {
+		return true;
+	}
+
+	return false;
+}
+
+function bridgeRealtimeStream(upstream: ReadableStream<Uint8Array>) {
+	const reader = upstream.getReader();
+
+	return new ReadableStream<Uint8Array>({
+		async start(controller) {
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) {
+						controller.close();
+						return;
+					}
+					if (value) {
+						controller.enqueue(value);
+					}
+				}
+			} catch (error) {
+				if (isUpstreamTerminationError(error)) {
+					controller.close();
+					return;
+				}
+				controller.error(error);
+			}
+		},
+		async cancel() {
+			try {
+				await reader.cancel();
+			} catch {
+				// Reader can already be closed when downstream disconnects.
+			}
+		},
+	});
+}
+
 /** GET /api/coinai/train/realtime?symbol=BTCUSDT&interval=1m&refresh=20s */
 export const GET = withApiLogging(async (request: NextRequest) => {
 	const origin = new URL(request.url).origin;
@@ -30,6 +94,7 @@ export const GET = withApiLogging(async (request: NextRequest) => {
 					Connection: "keep-alive",
 				},
 				cache: "no-store",
+				signal: request.signal,
 			},
 		);
 
@@ -54,7 +119,9 @@ export const GET = withApiLogging(async (request: NextRequest) => {
 		headers.set("Connection", "keep-alive");
 		headers.set("X-Accel-Buffering", "no");
 
-		return new Response(response.body, {
+		const bridgedStream = bridgeRealtimeStream(response.body);
+
+		return new Response(bridgedStream, {
 			status: response.status,
 			headers,
 		});

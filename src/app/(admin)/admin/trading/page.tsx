@@ -504,7 +504,7 @@ export default function TradingPage() {
       <div className={`tp-ticker-bar${isStale ? " tp-stale-bar" : ""}`}>
         {/* Symbol picker */}
         <div className="tp-symbol-block">
-          <SymbolSearch value={symbol} onChange={setSymbol} />
+          <SymbolSearch value={symbol} onChangeAction={setSymbol} />
         </div>
 
         {/* Live stats */}

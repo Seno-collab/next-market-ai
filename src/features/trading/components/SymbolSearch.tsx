@@ -15,7 +15,7 @@ type SymbolItem = {
 
 type Props = {
 	value: string;
-	onChange: (symbol: string) => void;
+	onChangeAction: (symbol: string) => void;
 };
 
 const DEFAULT_QUOTES = ["USDT", "BTC", "ETH", "BNB"];
@@ -58,7 +58,7 @@ function formatDisplay(symbol: string): { base: string; quote: string } {
 	return { base: symbol, quote: "" };
 }
 
-export default function SymbolSearch({ value, onChange }: Props) {
+export default function SymbolSearch({ value, onChangeAction }: Props) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [tab, setTab] = useState("USDT");
@@ -132,7 +132,7 @@ export default function SymbolSearch({ value, onChange }: Props) {
 		: symbols.slice(0, 50);
 
 	function select(symbol: string) {
-		onChange(symbol);
+		onChangeAction(symbol);
 		setOpen(false);
 	}
 

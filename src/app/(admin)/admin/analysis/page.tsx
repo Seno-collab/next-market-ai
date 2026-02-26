@@ -164,7 +164,7 @@ export default function AnalysisPage() {
 					<h1 className="al-title">Technical Analysis</h1>
 				</div>
 				<div className="al-toolbar-right">
-					<SymbolSearch value={symbol} onChange={setSymbol} />
+					<SymbolSearch value={symbol} onChangeAction={setSymbol} />
 					<div className="al-iv-scroll">
 						<Segmented
 							options={INTERVALS.map((i) => ({
