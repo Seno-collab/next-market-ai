@@ -277,7 +277,7 @@ export default function SymbolsPage() {
 
 									<div className="sb-item-actions">
 										<Link
-											href={`/admin/trading?symbol=${item.symbol}`}
+											href={`/workspace/trading?symbol=${item.symbol}`}
 											className="sb-btn-chart"
 										>
 											<LineChartOutlined />

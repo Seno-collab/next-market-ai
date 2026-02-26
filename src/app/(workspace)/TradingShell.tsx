@@ -43,42 +43,42 @@ const HeaderScene = dynamic(() => import("@/components/layout/HeaderScene"), {
 
 const navItems = [
 	{
-		key: "/admin/dashboard",
+		key: "/workspace/dashboard",
 		icon: <SettingOutlined />,
 		labelKey: "nav.dashboard",
 	},
 	{
-		key: "/admin/profile",
+		key: "/workspace/profile",
 		icon: <UserOutlined />,
 		labelKey: "nav.profile",
 	},
 	{
-		key: "/admin/trading",
+		key: "/workspace/trading",
 		icon: <LineChartOutlined />,
 		labelKey: "nav.trading",
 	},
 	{
-		key: "/admin/symbols",
+		key: "/workspace/symbols",
 		icon: <AppstoreOutlined />,
 		labelKey: "nav.symbols",
 	},
 	{
-		key: "/admin/portfolio",
+		key: "/workspace/portfolio",
 		icon: <WalletOutlined />,
 		labelKey: "nav.portfolio",
 	},
 	{
-		key: "/admin/transactions",
+		key: "/workspace/transactions",
 		icon: <SwapOutlined />,
 		labelKey: "nav.transactions",
 	},
 	{
-		key: "/admin/analysis",
+		key: "/workspace/analysis",
 		icon: <ThunderboltOutlined />,
 		labelKey: "nav.analysis",
 	},
 	{
-		key: "/admin/coinai",
+		key: "/workspace/coinai",
 		icon: <RobotOutlined />,
 		labelKey: "nav.coinai",
 	},
@@ -102,7 +102,7 @@ export default function TradingShell({
 
 	const selectedKey =
 		navItems.find((item) => pathname.startsWith(item.key))?.key ??
-		"/admin/dashboard";
+		"/workspace/dashboard";
 
 	return (
 		<Layout className="admin-layout">

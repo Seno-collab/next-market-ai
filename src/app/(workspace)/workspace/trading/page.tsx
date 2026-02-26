@@ -53,6 +53,7 @@ const PERIODS = [
   "3Y",
 ] as const;
 type Period = (typeof PERIODS)[number];
+const COMPACT_PERIODS: readonly Period[] = ["5m", "15m", "1h", "4h"];
 
 type CandleBar = {
   time: number;
@@ -150,7 +151,11 @@ export default function TradingPage() {
   const [candleLoading, setCandleLoading] = useState(true);
   const [candleError, setCandleError] = useState<string | null>(null);
   const [chartHeight, setChartHeight] = useState(460);
+  const [isCompactControls, setIsCompactControls] = useState(false);
+  const [showCompactControls, setShowCompactControls] = useState(true);
+  const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const periodMenuRef = useRef<HTMLDivElement | null>(null);
 
   /* ── Real-time stream ── */
   const {
@@ -179,6 +184,44 @@ export default function TradingPage() {
   const wsBookUpdateAtRef = useRef(0);
   const hasWsBookRef = useRef(false);
   const wsConnectedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const media = window.matchMedia("(max-width: 1024px)");
+    const syncControlsMode = (mobile: boolean) => {
+      setIsCompactControls(mobile);
+      setShowCompactControls(!mobile);
+    };
+
+    syncControlsMode(media.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncControlsMode(event.matches);
+    };
+
+    media.addEventListener("change", handleChange);
+    return () => {
+      media.removeEventListener("change", handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPeriodMenuOpen) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!periodMenuRef.current?.contains(target)) {
+        setIsPeriodMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+    };
+  }, [isPeriodMenuOpen]);
 
   useEffect(() => {
     if (ticker) {
@@ -497,11 +540,18 @@ export default function TradingPage() {
     displayTrades.length > 0
       ? Math.round((buyCount / displayTrades.length) * 100)
       : 50;
+  const controlsExpanded = !isCompactControls || showCompactControls;
+  const compactPeriods = COMPACT_PERIODS;
+  const remainingPeriods = PERIODS.filter((p) => !compactPeriods.includes(p));
+  const activeInMore = remainingPeriods.includes(period);
+  const moreCount = remainingPeriods.length;
 
   return (
     <div className="tp-shell">
       {/* ── Ticker bar ─────────────────────────────────────────────────── */}
-      <div className={`tp-ticker-bar${isStale ? " tp-stale-bar" : ""}`}>
+      <div
+        className={`tp-ticker-bar${isStale ? " tp-stale-bar" : ""}${isPeriodMenuOpen ? " tp-period-menu-open" : ""}`}
+      >
         {/* Symbol picker */}
         <div className="tp-symbol-block">
           <SymbolSearch value={symbol} onChangeAction={setSymbol} />
@@ -579,30 +629,87 @@ export default function TradingPage() {
         )}
 
         {/* Period pills + refresh + connection indicator */}
-        <div className="tp-controls-block">
-          <div className="tp-period-row">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                className={`tp-period-btn${period === p ? " tp-period-active" : ""}`}
-                onClick={() => setPeriod(p)}
-              >
-                {p}
-              </button>
-            ))}
+        <div
+          className={`tp-controls-block${controlsExpanded ? " tp-controls-open" : " tp-controls-collapsed"}`}
+        >
+          {isCompactControls && (
+            <button
+              type="button"
+              className="tp-controls-toggle"
+              onClick={() => {
+                setShowCompactControls((prev) => !prev);
+                setIsPeriodMenuOpen(false);
+              }}
+              aria-expanded={controlsExpanded}
+              aria-label={controlsExpanded ? "Hide time controls" : "Show time controls"}
+            >
+              {controlsExpanded ? "Hide" : "Show"}
+            </button>
+          )}
+          <div className="tp-controls-main">
+            <div className="tp-period-row">
+              {compactPeriods.map((p) => (
+                <button
+                  key={p}
+                  className={`tp-period-btn${period === p ? " tp-period-active" : ""}`}
+                  onClick={() => {
+                    setPeriod(p);
+                    setIsPeriodMenuOpen(false);
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {moreCount > 0 && (
+              <div className="tp-period-more-wrap" ref={periodMenuRef}>
+                <button
+                  type="button"
+                  className={`tp-period-more-btn${activeInMore ? " is-active" : ""}${isPeriodMenuOpen ? " is-open" : ""}`}
+                  onClick={() => setIsPeriodMenuOpen((prev) => !prev)}
+                  aria-haspopup="menu"
+                  aria-expanded={isPeriodMenuOpen}
+                  title="More timeframes"
+                >
+                  {activeInMore ? period : `+${moreCount}`}
+                  <span className="tp-period-more-caret">
+                    {isPeriodMenuOpen ? "^" : "v"}
+                  </span>
+                </button>
+                <div
+                  className={`tp-period-dropdown${isPeriodMenuOpen ? " is-open" : ""}`}
+                  role="menu"
+                >
+                  {remainingPeriods.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      role="menuitem"
+                      className={`tp-period-dropdown-item${period === p ? " is-selected" : ""}`}
+                      onClick={() => {
+                        setPeriod(p);
+                        setIsPeriodMenuOpen(false);
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button
+              className="tp-refresh-btn"
+              onClick={() => {
+                if (abortRef.current) abortRef.current.abort();
+                const ctrl = new AbortController();
+                abortRef.current = ctrl;
+                void fetchCandles(ctrl.signal);
+              }}
+              title="Refresh candles"
+            >
+              <ReloadOutlined />
+            </button>
           </div>
-          <button
-            className="tp-refresh-btn"
-            onClick={() => {
-              if (abortRef.current) abortRef.current.abort();
-              const ctrl = new AbortController();
-              abortRef.current = ctrl;
-              void fetchCandles(ctrl.signal);
-            }}
-            title="Refresh candles"
-          >
-            <ReloadOutlined />
-          </button>
           <span
             className={`tp-ws-dot${connected ? " tp-ws-live" : reconnecting ? " tp-ws-reconnecting" : " tp-ws-dead"}`}
             title={

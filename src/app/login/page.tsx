@@ -78,7 +78,7 @@ export default function LoginPage() {
     try {
       await login({ email: values.email, password: values.password });
       setSuccess(t("login.success"));
-      window.location.href = "/admin/dashboard";
+      window.location.href = "/workspace/dashboard";
     } catch {}
   };
 

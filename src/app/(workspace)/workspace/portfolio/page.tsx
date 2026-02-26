@@ -233,7 +233,7 @@ function PositionCard({ p, isLive }: { p: LivePositionRow; isLive: boolean }) {
           )}
         </div>
         <Link
-          href={`/admin/trading?symbol=${p.symbol}`}
+          href={`/workspace/trading?symbol=${p.symbol}`}
           className="pf-card-chart-btn"
         >
           <LineChartOutlined /> Chart

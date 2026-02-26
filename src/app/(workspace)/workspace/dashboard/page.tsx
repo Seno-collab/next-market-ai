@@ -21,7 +21,7 @@ import {
 import Sparkline from "@/components/ui/Sparkline";
 
 const DashboardGlobeScene = dynamic(
-  () => import("@/features/admin/components/DashboardGlobeScene"),
+  () => import("@/features/workspace/components/DashboardGlobeScene"),
   {
     ssr: false,
     loading: () => (
@@ -32,7 +32,7 @@ const DashboardGlobeScene = dynamic(
   },
 );
 const DashboardParticleField = dynamic(
-  () => import("@/features/admin/components/DashboardParticleField"),
+  () => import("@/features/workspace/components/DashboardParticleField"),
   { ssr: false },
 );
 

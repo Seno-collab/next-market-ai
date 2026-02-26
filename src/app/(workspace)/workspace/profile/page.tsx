@@ -20,7 +20,7 @@ import { useLocale } from "@/hooks/useLocale";
 import type { AuthPublicUser } from "@/features/auth/types";
 
 const ProfileIdentityScene = dynamic(
-	() => import("@/features/admin/components/ProfileIdentityScene"),
+	() => import("@/features/workspace/components/ProfileIdentityScene"),
 	{
 		ssr: false,
 		loading: () => (

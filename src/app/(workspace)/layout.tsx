@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import TradingShell from "@/app/(admin)/TradingShell";
+import TradingShell from "@/app/(workspace)/TradingShell";
 import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
