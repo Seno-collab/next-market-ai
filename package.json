@@ -32,7 +32,7 @@
     "@types/three": "^0.182.0",
     "eslint": "^10",
     "eslint-config-next": "16.1.6",
-    "swagger-typescript-api": "^13.2.16",
+    "swagger-typescript-api": "^13.2.18",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
