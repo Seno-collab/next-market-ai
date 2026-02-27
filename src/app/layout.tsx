@@ -59,7 +59,7 @@ export const metadata: Metadata = {
 		"portfolio management",
 		"smart trading",
 		"real-time analytics",
-		"admin dashboard",
+		"trading control center",
 		"3D visualization",
 		"trading tools",
 	],

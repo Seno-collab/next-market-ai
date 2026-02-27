@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiLogging } from "@/lib/api/withApiLogging";
+import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 type TrainMultiBody = {
 	symbols?: string[];
 	interval?: string;
+	algorithm?: "auto" | "linear" | "ensemble";
 	limit?: number;
 	train_ratio?: number;
+	val_ratio?: number;
+	min_trust_score?: number;
 	epochs?: number;
+	long_threshold?: number;
+	short_threshold?: number;
+	slippage_bps?: number;
+	latency_bars?: number;
+	max_drawdown_stop?: number;
 };
+
+function resolveAuthHeader(request: NextRequest): string | null {
+	const header = request.headers.get("authorization");
+	if (header) return header;
+	const cookie = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+	if (cookie) return `Bearer ${cookie}`;
+	return null;
+}
 
 /** POST /api/coinai/train/multi */
 export const POST = withApiLogging(async (request: NextRequest) => {
@@ -22,14 +39,19 @@ export const POST = withApiLogging(async (request: NextRequest) => {
 	}
 
 	try {
-		const body = (await request.json()) as TrainMultiBody;
+		const body = (await request.json().catch(() => ({}))) as TrainMultiBody;
 		const symbols = Array.isArray(body.symbols)
 			? body.symbols.map((symbol) => symbol.toUpperCase())
 			: [];
+		const auth = resolveAuthHeader(request);
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+		};
+		if (auth) headers.Authorization = auth;
 
 		const response = await fetch(`${API_BASE_URL}/api/coinai/train/multi`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers,
 			body: JSON.stringify({
 				...body,
 				symbols,

@@ -333,6 +333,7 @@ export type QuotesResponse = {
 // ── CoinAI types ────────────────────────────────────────────────────────────
 
 export type CoinAISignal = "BUY" | "SELL" | "HOLD";
+export type CoinAIAlgorithm = "auto" | "linear" | "ensemble";
 
 export type BacktestResult = {
 	total_return: number; // decimal  e.g. 0.082 = +8.2%
@@ -342,9 +343,31 @@ export type BacktestResult = {
 	trades: number;
 };
 
+export type ReliabilityComponents = {
+	directional_acc_score: number;
+	error_score: number;
+	sharpe_score: number;
+	drawdown_score: number;
+	signal_strength_score: number;
+};
+
+export type SignalReliability = {
+	score: number;
+	level: "LOW" | "MEDIUM" | "HIGH";
+	is_trusted: boolean;
+	min_trusted_score: number;
+	adjustment_reason?:
+		| "trusted"
+		| "hold_signal"
+		| "score_below_threshold"
+		| "weak_signal_strength";
+	components: ReliabilityComponents;
+};
+
 export type TrainReport = {
 	symbol: string;
 	interval: string;
+	model_algorithm: CoinAIAlgorithm;
 	candles: number;
 	train_samples: number;
 	val_samples: number;
@@ -357,7 +380,9 @@ export type TrainReport = {
 	test_directional_acc: number; // decimal  e.g. 0.537 = 53.7%
 	backtest: BacktestResult;
 	next_predicted_return: number; // decimal  e.g. 0.0018 = +0.18%
+	raw_signal: CoinAISignal;
 	signal: CoinAISignal;
+	reliability: SignalReliability;
 	generated_at: string; // RFC3339 UTC
 };
 
@@ -374,9 +399,17 @@ export type AddWatchlistRequest = {
 export type TrainMultiRequest = {
 	symbols: string[]; // >= 2, uppercase
 	interval?: string; // default "1h"
-	limit?: number; // 1..1000, default 500 (per symbol)
+	algorithm?: CoinAIAlgorithm; // auto | linear | ensemble (default auto)
+	limit?: number; // 50..1000 (0 means use backend default 500)
 	train_ratio?: number; // (0,1), default 0.7
-	epochs?: number; // default 800
+	val_ratio?: number; // [0,1) and train_ratio + val_ratio < 1
+	min_trust_score?: number; // 0..1 (default 0.58)
+	epochs?: number; // 1..3000 (0 means use backend default 800)
+	long_threshold?: number;
+	short_threshold?: number;
+	slippage_bps?: number; // 0..1000
+	latency_bars?: number; // 0..50
+	max_drawdown_stop?: number; // 0..1
 };
 
 export type MultiSymbolSignal = {

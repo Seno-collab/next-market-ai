@@ -36,8 +36,8 @@ export const messages = {
         "Tận dụng toàn bộ sức mạnh của Next.js App Router, hệ thống thiết kế Ant Design 5 và sân chơi Three.js để dựng những trải nghiệm web cao cấp chỉ trong vài phút.",
     },
     nav: {
-      admin: "Admin",
-      adminSubtitle: "Quản trị Trading",
+      admin: "Trung tâm điều hành",
+      adminSubtitle: "Điều hành giao dịch",
       dashboard: "Dashboard",
       menu: "Menu",
       trading: "Thị trường",
@@ -601,7 +601,7 @@ export const messages = {
         "Leverage Next.js App Router, Ant Design 5, and a Three.js playground to craft premium experiences quickly.",
     },
     nav: {
-      admin: "Admin",
+      admin: "Control Center",
       adminSubtitle: "Trading operations",
       dashboard: "Dashboard",
       menu: "Menu",

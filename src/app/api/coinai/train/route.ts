@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiLogging } from "@/lib/api/withApiLogging";
+import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 type TrainBody = {
   symbol?: string;
   interval?: string;
+  algorithm?: "auto" | "linear" | "ensemble";
   limit?: number;
   train_ratio?: number;
+  val_ratio?: number;
+  min_trust_score?: number;
   epochs?: number;
+  long_threshold?: number;
+  short_threshold?: number;
+  slippage_bps?: number;
+  latency_bars?: number;
+  max_drawdown_stop?: number;
 };
+
+function resolveAuthHeader(request: NextRequest): string | null {
+  const header = request.headers.get("authorization");
+  if (header) return header;
+  const cookie = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  if (cookie) return `Bearer ${cookie}`;
+  return null;
+}
 
 /**
  * POST /api/coinai/train
@@ -23,19 +40,49 @@ export const POST = withApiLogging(async (request: NextRequest) => {
   }
 
   try {
-    const body = (await request.json()) as TrainBody;
+    const body = (await request.json().catch(() => ({}))) as TrainBody;
 
     // Build query params from JSON body fields.
     const params = new URLSearchParams();
-    if (body.symbol)      params.set("symbol",      body.symbol.toUpperCase());
-    if (body.interval)    params.set("interval",    body.interval);
-    if (body.limit)       params.set("limit",       String(body.limit));
-    if (body.train_ratio) params.set("train_ratio", String(body.train_ratio));
-    if (body.epochs)      params.set("epochs",      String(body.epochs));
+    if (body.symbol) params.set("symbol", body.symbol.toUpperCase());
+    if (body.interval) params.set("interval", body.interval);
+    if (body.algorithm) params.set("algorithm", body.algorithm);
+    if (typeof body.limit === "number") params.set("limit", String(body.limit));
+    if (typeof body.train_ratio === "number") {
+      params.set("train_ratio", String(body.train_ratio));
+    }
+    if (typeof body.val_ratio === "number") {
+      params.set("val_ratio", String(body.val_ratio));
+    }
+    if (typeof body.min_trust_score === "number") {
+      params.set("min_trust_score", String(body.min_trust_score));
+    }
+    if (typeof body.epochs === "number") {
+      params.set("epochs", String(body.epochs));
+    }
+    if (typeof body.long_threshold === "number") {
+      params.set("long_threshold", String(body.long_threshold));
+    }
+    if (typeof body.short_threshold === "number") {
+      params.set("short_threshold", String(body.short_threshold));
+    }
+    if (typeof body.slippage_bps === "number") {
+      params.set("slippage_bps", String(body.slippage_bps));
+    }
+    if (typeof body.latency_bars === "number") {
+      params.set("latency_bars", String(body.latency_bars));
+    }
+    if (typeof body.max_drawdown_stop === "number") {
+      params.set("max_drawdown_stop", String(body.max_drawdown_stop));
+    }
+
+    const auth = resolveAuthHeader(request);
+    const headers: Record<string, string> = {};
+    if (auth) headers.Authorization = auth;
 
     const response = await fetch(
       `${API_BASE_URL}/api/coinai/train?${params.toString()}`,
-      { method: "POST", cache: "no-store" },
+      { method: "POST", headers, cache: "no-store" },
     );
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });

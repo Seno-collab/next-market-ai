@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withApiLogging } from "@/lib/api/withApiLogging";
+import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -71,6 +72,14 @@ function bridgeRealtimeStream(upstream: ReadableStream<Uint8Array>) {
 	});
 }
 
+function resolveAuthHeader(request: NextRequest): string | null {
+	const header = request.headers.get("authorization");
+	if (header) return header;
+	const cookie = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+	if (cookie) return `Bearer ${cookie}`;
+	return null;
+}
+
 /** GET /api/coinai/train/realtime?symbol=BTCUSDT&interval=1m&refresh=20s */
 export const GET = withApiLogging(async (request: NextRequest) => {
 	const origin = new URL(request.url).origin;
@@ -82,21 +91,24 @@ export const GET = withApiLogging(async (request: NextRequest) => {
 	}
 
 	const search = new URL(request.url).search;
+	const auth = resolveAuthHeader(request);
+	const upstreamHeaders: Record<string, string> = {
+		Accept: "text/event-stream",
+		"Cache-Control": "no-cache",
+		Connection: "keep-alive",
+	};
+	if (auth) upstreamHeaders.Authorization = auth;
 
 	try {
 		const response = await fetch(
-			`${API_BASE_URL}/api/coinai/train/realtime${search}`,
-			{
-				method: "GET",
-				headers: {
-					Accept: "text/event-stream",
-					"Cache-Control": "no-cache",
-					Connection: "keep-alive",
+				`${API_BASE_URL}/api/coinai/train/realtime${search}`,
+				{
+					method: "GET",
+					headers: upstreamHeaders,
+					cache: "no-store",
+					signal: request.signal,
 				},
-				cache: "no-store",
-				signal: request.signal,
-			},
-		);
+			);
 
 		const contentType = response.headers.get("content-type") ?? "";
 		if (!response.ok && !contentType.includes("text/event-stream")) {
@@ -113,17 +125,17 @@ export const GET = withApiLogging(async (request: NextRequest) => {
 			);
 		}
 
-		const headers = new Headers();
-		headers.set("Content-Type", "text/event-stream; charset=utf-8");
-		headers.set("Cache-Control", "no-cache, no-transform");
-		headers.set("Connection", "keep-alive");
-		headers.set("X-Accel-Buffering", "no");
+		const responseHeaders = new Headers();
+		responseHeaders.set("Content-Type", "text/event-stream; charset=utf-8");
+		responseHeaders.set("Cache-Control", "no-cache, no-transform");
+		responseHeaders.set("Connection", "keep-alive");
+		responseHeaders.set("X-Accel-Buffering", "no");
 
 		const bridgedStream = bridgeRealtimeStream(response.body);
 
 		return new Response(bridgedStream, {
 			status: response.status,
-			headers,
+			headers: responseHeaders,
 		});
 	} catch {
 		return NextResponse.json(

@@ -5,14 +5,14 @@ import TradingShell from "@/app/(workspace)/TradingShell";
 import { AUTH_COOKIE_NAME } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
-	title: "Admin Dashboard",
+	title: "Trading Control Center",
 	description:
-		"Trading Seno Admin - Manage your trading portfolio, analytics, and market data with powerful 3D visualizations",
+		"Trading Seno Control Center - Manage your trading portfolio, analytics, and market data with powerful 3D visualizations",
 };
 
-type AdminLayoutProps = Readonly<{ children: React.ReactNode }>;
+type WorkspaceLayoutProps = Readonly<{ children: React.ReactNode }>;
 
-export default async function AdminLayout({ children }: AdminLayoutProps) {
+export default async function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
 	const cookieStore = await cookies();
 	const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 	if (!token) {
