@@ -16,7 +16,7 @@ import {
 	RiseOutlined,
 	ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Button, Segmented, Spin, Typography } from "antd";
+import { Button, Spin, Typography } from "antd";
 import { analysisApi } from "@/lib/api/analysis";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 import type {
@@ -166,14 +166,17 @@ export default function AnalysisPage() {
 				<div className="al-toolbar-right">
 					<SymbolSearch value={symbol} onChangeAction={setSymbol} />
 					<div className="al-iv-scroll">
-						<Segmented
-							options={INTERVALS.map((i) => ({
-								label: i.toUpperCase(),
-								value: i,
-							}))}
-							value={interval}
-							onChange={(v) => setIv(v as Interval)}
-						/>
+						<div className="al-period-row">
+							{INTERVALS.map((i) => (
+								<button
+									key={i}
+									className={`al-period-btn${interval === i ? " al-period-active" : ""}`}
+									onClick={() => setIv(i)}
+								>
+									{i.toUpperCase()}
+								</button>
+							))}
+						</div>
 					</div>
 					<Button
 						icon={<ReloadOutlined />}
@@ -651,25 +654,31 @@ export default function AnalysisPage() {
 					</label>
 					<div className="al-control">
 						<span className="al-control-label">Decision Mode</span>
-						<Segmented
-							options={DECISION_MODES.map((mode) => ({
-								label: mode.toUpperCase(),
-								value: mode,
-							}))}
-							value={decisionMode}
-							onChange={(value) => setDecisionMode(value as TradeDecisionMode)}
-						/>
+						<div className="al-period-row">
+							{DECISION_MODES.map((mode) => (
+								<button
+									key={mode}
+									className={`al-period-btn${decisionMode === mode ? " al-period-active" : ""}`}
+									onClick={() => setDecisionMode(mode)}
+								>
+									{mode.toUpperCase()}
+								</button>
+							))}
+						</div>
 					</div>
 					<div className="al-control">
 						<span className="al-control-label">CoinAI in report</span>
-						<Segmented
-							options={[
-								{ label: "ON", value: "on" },
-								{ label: "OFF", value: "off" },
-							]}
-							value={includeCoinAI ? "on" : "off"}
-							onChange={(value) => setIncludeCoinAI(value === "on")}
-						/>
+						<div className="al-period-row">
+							{(["on", "off"] as const).map((v) => (
+								<button
+									key={v}
+									className={`al-period-btn${(includeCoinAI ? "on" : "off") === v ? " al-period-active" : ""}`}
+									onClick={() => setIncludeCoinAI(v === "on")}
+								>
+									{v.toUpperCase()}
+								</button>
+							))}
+						</div>
 					</div>
 					<Button
 						icon={<ReloadOutlined />}

@@ -12,6 +12,18 @@ function resolveAuthHeader(request: NextRequest): string | null {
   return null;
 }
 
+async function readUpstreamPayload(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return { message: response.statusText || "CoinAI service unavailable" };
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: text };
+  }
+}
+
 /** GET /api/coinai/watchlist */
 export const GET = withApiLogging(async (request: NextRequest) => {
   const origin = new URL(request.url).origin;
@@ -20,15 +32,17 @@ export const GET = withApiLogging(async (request: NextRequest) => {
   }
 
   const auth = resolveAuthHeader(request);
-  const headers: Record<string, string> = {};
-  if (auth) headers.Authorization = auth;
+  if (!auth) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const headers: Record<string, string> = { Authorization: auth };
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/coinai/watchlist`, {
       headers,
       cache: "no-store",
     });
-    const data = await response.json();
+    const data = await readUpstreamPayload(response);
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json({ message: "CoinAI service unavailable" }, { status: 502 });
@@ -43,18 +57,23 @@ export const POST = withApiLogging(async (request: NextRequest) => {
   }
 
   const auth = resolveAuthHeader(request);
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (auth) headers.Authorization = auth;
+  if (!auth) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: auth,
+  };
 
   try {
     const { symbol } = (await request.json()) as { symbol?: string };
     const response = await fetch(`${API_BASE_URL}/api/coinai/watchlist`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ symbol: (symbol ?? "").toUpperCase() }),
+      body: JSON.stringify({ symbol: (symbol ?? "").trim().toUpperCase() }),
       cache: "no-store",
     });
-    const data = await response.json();
+    const data = await readUpstreamPayload(response);
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json({ message: "CoinAI service unavailable" }, { status: 502 });

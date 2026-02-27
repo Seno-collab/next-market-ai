@@ -28,6 +28,18 @@ function resolveAuthHeader(request: NextRequest): string | null {
   return null;
 }
 
+async function readUpstreamPayload(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return { message: response.statusText || "CoinAI service unavailable" };
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: text };
+  }
+}
+
 /**
  * POST /api/coinai/train
  * Frontend sends JSON body; this proxy converts it to query params
@@ -37,6 +49,10 @@ export const POST = withApiLogging(async (request: NextRequest) => {
   const origin = new URL(request.url).origin;
   if (!API_BASE_URL || API_BASE_URL === origin) {
     return NextResponse.json({ message: "CoinAI service not configured" }, { status: 503 });
+  }
+  const auth = resolveAuthHeader(request);
+  if (!auth) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -76,15 +92,13 @@ export const POST = withApiLogging(async (request: NextRequest) => {
       params.set("max_drawdown_stop", String(body.max_drawdown_stop));
     }
 
-    const auth = resolveAuthHeader(request);
-    const headers: Record<string, string> = {};
-    if (auth) headers.Authorization = auth;
+    const headers: Record<string, string> = { Authorization: auth };
 
     const response = await fetch(
       `${API_BASE_URL}/api/coinai/train?${params.toString()}`,
       { method: "POST", headers, cache: "no-store" },
     );
-    const data = await response.json();
+    const data = await readUpstreamPayload(response);
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json({ message: "CoinAI service unavailable" }, { status: 502 });

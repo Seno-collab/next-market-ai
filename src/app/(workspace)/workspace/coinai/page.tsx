@@ -18,21 +18,26 @@ import {
 	Input,
 	InputNumber,
 	Modal,
-	Segmented,
 	Spin,
 	Tag,
 	Typography,
 	message,
 } from "antd";
-import { coinAiApi, isCoinAiRequestError } from "@/lib/api/coinai";
+import { coinAiApi, isCoinAiApiError } from "@/lib/coinai-api";
+import { toCoinAIViewModel } from "@/lib/coinai-adapter";
+import {
+	formatPercent,
+	reliabilityBadgeColor,
+	reliabilityReasonText,
+	shouldRenderAdjustmentReason,
+} from "@/lib/coinai-ui";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 import type {
 	CoinAIAlgorithm,
 	CoinAISignal,
 	MultiTrainReport,
-	SignalReliability,
 	TrainReport,
-} from "@/types/trading";
+} from "@/types/coinai";
 
 const INTERVALS = [
 	"1m",
@@ -115,29 +120,17 @@ function isValidTrustScore(value: number) {
 	return Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
-function reliabilityLevelColor(level?: SignalReliability["level"]) {
-	if (level === "HIGH") return "green";
-	if (level === "MEDIUM") return "gold";
-	if (level === "LOW") return "red";
-	return "default";
-}
-
-function reliabilityReasonText(reliability?: SignalReliability) {
-	if (!reliability) return "Reliability data unavailable";
-	switch (reliability.adjustment_reason) {
-		case "trusted":
-			return "Signal passed trust gate";
-		case "hold_signal":
-			return "Model output is HOLD";
-		case "score_below_threshold":
-			return "Signal downgraded: reliability below threshold";
-		case "weak_signal_strength":
-			return "Signal downgraded: weak signal strength";
-		default:
-			return reliability.is_trusted
-				? "Signal trusted"
-				: "Signal not trusted by reliability gate";
+function formatThreshold(value: number | string | undefined | null) {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value.toFixed(4);
 	}
+	if (typeof value === "string" && value.trim() !== "") {
+		const parsed = Number(value);
+		if (Number.isFinite(parsed)) {
+			return parsed.toFixed(4);
+		}
+	}
+	return "N/A";
 }
 
 function parseRefreshMs(raw: string): number | null {
@@ -154,6 +147,94 @@ function parseRefreshMs(raw: string): number | null {
 		return null;
 	}
 	return milliseconds;
+}
+
+
+const COMPACT_IV_COUNT = 6;
+
+function IntervalPicker({
+	value,
+	onChange,
+}: {
+	value: Interval;
+	onChange: (v: Interval) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const wrapRef = useRef<HTMLDivElement>(null);
+	const compact = INTERVALS.slice(0, COMPACT_IV_COUNT) as unknown as Interval[];
+	const more = INTERVALS.slice(COMPACT_IV_COUNT) as unknown as Interval[];
+	const activeInMore = (more as string[]).includes(value);
+
+	useEffect(() => {
+		function handleClick(e: MouseEvent) {
+			if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+				setOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClick);
+		return () => document.removeEventListener("mousedown", handleClick);
+	}, []);
+
+	return (
+		<div className="ci-period-row">
+			{compact.map((iv) => (
+				<button
+					key={iv}
+					className={`ci-period-btn${value === iv ? " ci-period-active" : ""}`}
+					onClick={() => onChange(iv)}
+				>
+					{iv}
+				</button>
+			))}
+			<div className="ci-period-more-wrap" ref={wrapRef}>
+				<button
+					type="button"
+					className={`ci-period-more-btn${activeInMore ? " is-active" : ""}${open ? " is-open" : ""}`}
+					onClick={() => setOpen((prev) => !prev)}
+				>
+					{activeInMore ? value : `+${more.length}`}
+					<span className="ci-period-more-caret">{open ? "^" : "v"}</span>
+				</button>
+				<div className={`ci-period-dropdown${open ? " is-open" : ""}`}>
+					{more.map((iv) => (
+						<button
+							key={iv}
+							type="button"
+							className={`ci-period-dropdown-item${value === iv ? " is-selected" : ""}`}
+							onClick={() => {
+								onChange(iv);
+								setOpen(false);
+							}}
+						>
+							{iv}
+						</button>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function AlgorithmPicker({
+	value,
+	onChange,
+}: {
+	value: CoinAIAlgorithm;
+	onChange: (v: CoinAIAlgorithm) => void;
+}) {
+	return (
+		<div className="ci-period-row">
+			{ALGORITHMS.map((alg) => (
+				<button
+					key={alg}
+					className={`ci-period-btn${value === alg ? " ci-period-active" : ""}`}
+					onClick={() => onChange(alg)}
+				>
+					{alg.toUpperCase()}
+				</button>
+			))}
+		</div>
+	);
 }
 
 export default function CoinAIPage() {
@@ -239,7 +320,7 @@ export default function CoinAIPage() {
 			fallback = "Request failed",
 			options?: { trainLimited?: boolean },
 		) => {
-			if (isCoinAiRequestError(error)) {
+			if (isCoinAiApiError(error)) {
 				if (error.status === 401) {
 					handleAuthRequired();
 					return "Authentication required";
@@ -455,12 +536,13 @@ export default function CoinAIPage() {
 					setRealtimeReport(nextReport);
 					setRealtimeUpdates((prev) => prev + 1);
 				},
-				onError: (message) => {
+				onError: (message, status) => {
 					setRealtimeError(message);
-					if (/too many coinai train requests/i.test(message)) {
+					if (status === 429 || /too many coinai train requests/i.test(message)) {
 						triggerTrainCooldown();
 					}
 					if (
+						status === 401 ||
 						/(missing|invalid).*(access token|authorization)|unauthorized|authentication/i.test(
 							message,
 						)
@@ -570,27 +652,27 @@ export default function CoinAIPage() {
 		if (
 			!Number.isInteger(multiLimit) ||
 			!Number.isFinite(multiLimit) ||
-			multiLimit < 50 ||
+			(multiLimit !== 0 && multiLimit < 50) ||
 			multiLimit > 1000
 		) {
-			setMultiError("Limit must be an integer in range 50..1000");
+			setMultiError("Limit must be 0 or an integer in range 50..1000");
 			return;
 		}
 		if (
 			!Number.isFinite(multiTrainRatio) ||
-			multiTrainRatio <= 0 ||
+			(multiTrainRatio !== 0 && multiTrainRatio <= 0) ||
 			multiTrainRatio >= 1
 		) {
-			setMultiError("Train ratio must be in range (0,1)");
+			setMultiError("Train ratio must be 0 or in range (0,1)");
 			return;
 		}
 		if (
 			!Number.isInteger(multiEpochs) ||
 			!Number.isFinite(multiEpochs) ||
-			multiEpochs < 1 ||
+			(multiEpochs !== 0 && multiEpochs < 1) ||
 			multiEpochs > 3000
 		) {
-			setMultiError("Epochs must be an integer in range 1..3000");
+			setMultiError("Epochs must be 0 or an integer in range 1..3000");
 			return;
 		}
 
@@ -625,6 +707,14 @@ export default function CoinAIPage() {
 				? "#f87171"
 				: "#94a3b8"
 		: "#94a3b8";
+	const reportView = useMemo(
+		() => (report ? toCoinAIViewModel(report) : null),
+		[report],
+	);
+	const realtimeView = useMemo(
+		() => (realtimeReport ? toCoinAIViewModel(realtimeReport) : null),
+		[realtimeReport],
+	);
 
 	const multiSignals = useMemo(
 		() => (multiReport?.signals ?? []).slice(0, 12),
@@ -677,14 +767,7 @@ export default function CoinAIPage() {
 					</div>
 					<div className="ci-ctrl">
 						<span className="ci-ctrl-label">Single Train Algorithm</span>
-						<Segmented
-							options={ALGORITHMS.map((item) => ({
-								label: item.toUpperCase(),
-								value: item,
-							}))}
-							value={trainAlgorithm}
-							onChange={(value) => setTrainAlgorithm(value as CoinAIAlgorithm)}
-						/>
+						<AlgorithmPicker value={trainAlgorithm} onChange={setTrainAlgorithm} />
 					</div>
 					<div className="ci-ctrl">
 						<span className="ci-ctrl-label">Min Trust Score</span>
@@ -797,21 +880,26 @@ export default function CoinAIPage() {
 								}}
 							>
 								<div className="ci-sig-left">
-									<div className="ci-sig-symbol">{report.symbol}</div>
+									<div className="ci-sig-symbol">
+										{reportView?.symbol ?? report.symbol}
+									</div>
 									<div className="ci-sig-iv">
-										· {report.interval} ·{" "}
-										{(report.model_algorithm ?? "auto").toUpperCase()}
+										· {reportView?.interval ?? report.interval} ·{" "}
+										{(reportView?.modelAlgorithm ?? report.model_algorithm ?? "auto").toUpperCase()}
 									</div>
 								</div>
 								<div className="ci-sig-center">
 									<div
 										className="ci-sig-label"
-										style={{ color: SIG_CLR[report.signal] }}
+										style={{
+											color: SIG_CLR[reportView?.signal ?? report.signal],
+										}}
 									>
-										{report.signal}
+										{reportView?.signal ?? report.signal}
 									</div>
 									<div className="ci-sig-iv">
-										raw {report.raw_signal} {"->"} final {report.signal}
+										raw {reportView?.rawSignal ?? report.raw_signal} {"->"} final{" "}
+										{reportView?.signal ?? report.signal}
 									</div>
 								</div>
 								<div className="ci-sig-right">
@@ -833,16 +921,54 @@ export default function CoinAIPage() {
 							</div>
 
 							<div className="ci-row-actions">
-								<Tag color={reliabilityLevelColor(report.reliability?.level)}>
-									Reliability{" "}
-									{Math.round((report.reliability?.score ?? 0) * 100)}%
+								<Tag color={reliabilityBadgeColor(report.reliability)}>
+									Reliability {Math.round((report.reliability.score ?? 0) * 100)}%
 								</Tag>
 								<Tag color={report.reliability?.is_trusted ? "green" : "volcano"}>
 									{report.reliability?.is_trusted ? "Trusted" : "Not trusted"}
 								</Tag>
+								{shouldRenderAdjustmentReason(
+									reportView?.rawSignal ?? report.raw_signal,
+									reportView?.signal ?? report.signal,
+								) && (
+									<Tag color="volcano">
+										Adjustment:{" "}
+										{reliabilityReasonText(report.reliability.adjustment_reason)}
+									</Tag>
+								)}
 								<Tag>
-									{reliabilityReasonText(report.reliability)} (min{" "}
-									{(report.reliability?.min_trusted_score ?? DEFAULT_MIN_TRUST_SCORE).toFixed(2)})
+									min trust {(report.reliability.min_trusted_score ?? DEFAULT_MIN_TRUST_SCORE).toFixed(2)}
+								</Tag>
+								<Tag>
+									Thresholds L{" "}
+									{formatThreshold(reportView?.thresholds.long ?? report.applied_long_threshold)} / S{" "}
+									{formatThreshold(reportView?.thresholds.short ?? report.applied_short_threshold)}
+								</Tag>
+								{report.threshold_optimization && (
+									<Tag color={report.threshold_optimization.used ? "blue" : "default"}>
+										Threshold Opt{" "}
+										{report.threshold_optimization.used
+											? `ON (${report.threshold_optimization.candidate_pairs} pairs)`
+											: "OFF"}
+									</Tag>
+								)}
+							</div>
+							<div className="ci-row-actions">
+								<Tag>
+									dir {formatPercent(report.reliability.components.directional_acc_score, 1)}
+								</Tag>
+								<Tag>err {formatPercent(report.reliability.components.error_score, 1)}</Tag>
+								<Tag>
+									sharpe {formatPercent(report.reliability.components.sharpe_score, 1)}
+								</Tag>
+								<Tag>
+									dd {formatPercent(report.reliability.components.drawdown_score, 1)}
+								</Tag>
+								<Tag>
+									str {formatPercent(report.reliability.components.signal_strength_score, 1)}
+								</Tag>
+								<Tag>
+									support {formatPercent(report.reliability.components.trade_support_score, 1)}
 								</Tag>
 							</div>
 
@@ -940,25 +1066,11 @@ export default function CoinAIPage() {
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Interval</span>
-							<Segmented
-								options={INTERVALS.map((item) => ({
-									label: item.toUpperCase(),
-									value: item,
-								}))}
-								value={realtimeInterval}
-								onChange={(value) => setRealtimeInterval(value as Interval)}
-							/>
+							<IntervalPicker value={realtimeInterval} onChange={setRealtimeInterval} />
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Algorithm</span>
-							<Segmented
-								options={ALGORITHMS.map((item) => ({
-									label: item.toUpperCase(),
-									value: item,
-								}))}
-								value={realtimeAlgorithm}
-								onChange={(value) => setRealtimeAlgorithm(value as CoinAIAlgorithm)}
-							/>
+							<AlgorithmPicker value={realtimeAlgorithm} onChange={setRealtimeAlgorithm} />
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Min Trust Score</span>
@@ -1065,7 +1177,15 @@ export default function CoinAIPage() {
 								<div className="ci-mini-item">
 									<span>Signals</span>
 									<strong>
-										{realtimeReport.raw_signal} {"->"} {realtimeReport.signal}
+										{realtimeView?.rawSignal ?? realtimeReport.raw_signal} {"->"}{" "}
+										{realtimeView?.signal ?? realtimeReport.signal}
+									</strong>
+								</div>
+								<div className="ci-mini-item">
+									<span>Thresholds</span>
+									<strong>
+										L {formatThreshold(realtimeReport.applied_long_threshold)} / S{" "}
+										{formatThreshold(realtimeReport.applied_short_threshold)}
 									</strong>
 								</div>
 								<div className="ci-mini-item">
@@ -1077,7 +1197,25 @@ export default function CoinAIPage() {
 								</div>
 								<div className="ci-mini-item">
 									<span>Trust Gate</span>
-									<strong>{reliabilityReasonText(realtimeReport.reliability)}</strong>
+									<strong>
+										{shouldRenderAdjustmentReason(
+											realtimeView?.rawSignal ?? realtimeReport.raw_signal,
+											realtimeView?.signal ?? realtimeReport.signal,
+										)
+											? reliabilityReasonText(
+													realtimeReport.reliability.adjustment_reason,
+												)
+											: "No adjustment"}
+									</strong>
+								</div>
+								<div className="ci-mini-item">
+									<span>Support Score</span>
+									<strong>
+										{formatPercent(
+											realtimeReport.reliability.components.trade_support_score,
+											1,
+										)}
+									</strong>
 								</div>
 								<div className="ci-mini-item">
 									<span>Directional Acc</span>
@@ -1117,25 +1255,11 @@ export default function CoinAIPage() {
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Interval</span>
-							<Segmented
-								options={INTERVALS.map((item) => ({
-									label: item.toUpperCase(),
-									value: item,
-								}))}
-								value={multiInterval}
-								onChange={(value) => setMultiInterval(value as Interval)}
-							/>
+							<IntervalPicker value={multiInterval} onChange={setMultiInterval} />
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Algorithm</span>
-							<Segmented
-								options={ALGORITHMS.map((item) => ({
-									label: item.toUpperCase(),
-									value: item,
-								}))}
-								value={multiAlgorithm}
-								onChange={(value) => setMultiAlgorithm(value as CoinAIAlgorithm)}
-							/>
+							<AlgorithmPicker value={multiAlgorithm} onChange={setMultiAlgorithm} />
 						</div>
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Min Trust Score</span>
@@ -1155,7 +1279,7 @@ export default function CoinAIPage() {
 							<div className="ci-ctrl-inline">
 								<span className="ci-ctrl-label">Limit</span>
 								<InputNumber
-									min={50}
+									min={0}
 									max={1000}
 									value={multiLimit}
 									onChange={(value) =>
@@ -1166,7 +1290,7 @@ export default function CoinAIPage() {
 							<div className="ci-ctrl-inline">
 								<span className="ci-ctrl-label">Train Ratio</span>
 								<InputNumber
-									min={0.01}
+									min={0}
 									max={0.99}
 									step={0.01}
 									value={multiTrainRatio}
@@ -1179,7 +1303,7 @@ export default function CoinAIPage() {
 						<div className="ci-ctrl">
 							<span className="ci-ctrl-label">Epochs</span>
 							<InputNumber
-								min={1}
+								min={0}
 								max={3000}
 								value={multiEpochs}
 								onChange={(value) =>
@@ -1210,11 +1334,22 @@ export default function CoinAIPage() {
 					{multiReport && (
 						<div className="ci-multi-wrap">
 							<div className="ci-multi-summary">
-								{multiReport.symbols.join(" + ")} · {multiReport.total_candles} candles
-								{" · "}
+								{multiReport.symbols.join(" + ")} · {multiReport.total_candles} candles ·{" "}
 								{multiReport.train_samples} train / {multiReport.test_samples} test
+								{" · "}
+								{(multiReport.model_algorithm ?? multiAlgorithm).toUpperCase()} · L{" "}
+								{formatThreshold(multiReport.applied_long_threshold)} / S{" "}
+								{formatThreshold(multiReport.applied_short_threshold)}
 								{" · "}generated {formatGeneratedAt(multiReport.generated_at)}
 							</div>
+							{multiReport.threshold_optimization && (
+								<div className="ci-multi-summary">
+									Threshold optimization:{" "}
+									{multiReport.threshold_optimization.used
+										? `enabled (${multiReport.threshold_optimization.candidate_pairs} candidate pairs, score ${multiReport.threshold_optimization.score.toFixed(3)})`
+										: "not used"}
+								</div>
+							)}
 
 							<div className="ci-multi-signals">
 								{multiSignals.map((signal) => (
@@ -1227,8 +1362,17 @@ export default function CoinAIPage() {
 												background: SIG_BG[signal.signal],
 											}}
 										>
-											{signal.signal}
+											{signal.raw_signal ?? signal.signal} {"->"} {signal.signal}
 										</span>
+										<span className="ci-ms-symbol">
+											rel {Math.round(((signal.reliability?.score ?? 0) as number) * 100)}% (
+											{signal.reliability?.level ?? "N/A"})
+										</span>
+										{shouldRenderAdjustmentReason(signal.raw_signal, signal.signal) && (
+											<span className="ci-ms-symbol">
+												{reliabilityReasonText(signal.reliability.adjustment_reason)}
+											</span>
+										)}
 										<span
 											className={`ci-ms-pct ${signal.next_predicted_return >= 0 ? "ci-up" : "ci-dn"}`}
 										>

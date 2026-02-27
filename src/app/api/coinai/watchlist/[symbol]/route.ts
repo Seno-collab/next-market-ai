@@ -14,6 +14,18 @@ function resolveAuthHeader(request: NextRequest): string | null {
   return null;
 }
 
+async function readUpstreamPayload(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return { message: response.statusText || "CoinAI service unavailable" };
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: text };
+  }
+}
+
 /** DELETE /api/coinai/watchlist/:symbol */
 export const DELETE = withApiLogging(async (request: NextRequest, ctx: RouteContext) => {
   const origin = new URL(request.url).origin;
@@ -23,15 +35,18 @@ export const DELETE = withApiLogging(async (request: NextRequest, ctx: RouteCont
 
   const { symbol } = await ctx.params;
   const auth = resolveAuthHeader(request);
-  const headers: Record<string, string> = {};
-  if (auth) headers.Authorization = auth;
+  if (!auth) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const headers: Record<string, string> = { Authorization: auth };
 
   try {
+    const normalizedSymbol = symbol.trim().toUpperCase();
     const response = await fetch(
-      `${API_BASE_URL}/api/coinai/watchlist/${symbol.toUpperCase()}`,
+      `${API_BASE_URL}/api/coinai/watchlist/${encodeURIComponent(normalizedSymbol)}`,
       { method: "DELETE", headers, cache: "no-store" },
     );
-    const data = await response.json();
+    const data = await readUpstreamPayload(response);
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json({ message: "CoinAI service unavailable" }, { status: 502 });

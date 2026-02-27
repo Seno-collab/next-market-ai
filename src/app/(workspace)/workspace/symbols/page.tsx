@@ -10,7 +10,7 @@ import {
 	StarOutlined,
 } from "@ant-design/icons";
 import { Input, Spin, message } from "antd";
-import { coinAiApi } from "@/lib/api/coinai";
+import { coinAiApi, isCoinAiRequestError } from "@/lib/api/coinai";
 import type { QuoteItem, SymbolItem } from "@/types/trading";
 
 /* ── Coin avatar colour palette (by first letter) ─────────────────────────── */
@@ -89,6 +89,7 @@ export default function SymbolsPage() {
 	const [added, setAdded] = useState<Set<string>>(new Set());
 
 	const symbolCache = useRef<Record<string, SymbolItem[]>>({});
+	const loginRedirectingRef = useRef(false);
 	const deferred = useDeferredValue(search);
 	const [msgApi, ctxHolder] = message.useMessage();
 
@@ -129,7 +130,17 @@ export default function SymbolsPage() {
 			setAdded((p) => new Set(p).add(sym));
 			void msgApi.success(`${sym} added to watchlist`);
 		} catch (e) {
-			void msgApi.error((e as Error).message);
+			if (isCoinAiRequestError(e) && e.status === 401) {
+				void msgApi.warning("Session expired. Redirecting to login...");
+				if (!loginRedirectingRef.current && typeof window !== "undefined") {
+					loginRedirectingRef.current = true;
+					window.setTimeout(() => {
+						window.location.href = "/login";
+					}, 350);
+				}
+			} else {
+				void msgApi.error((e as Error).message);
+			}
 		} finally {
 			setAdding((p) => {
 				const n = new Set(p);

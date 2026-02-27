@@ -7,6 +7,13 @@ import type {
   TrainReport,
   WatchlistResult,
 } from "@/types/trading";
+import {
+  CoinAiValidationError,
+  normalizeCoinAiInterval,
+  normalizeCoinAiRefreshDuration,
+  normalizeCoinAiSymbol,
+  resolveCoinAiAlgorithm,
+} from "./coinai.validation";
 
 export type {
   AddWatchlistRequest,
@@ -41,21 +48,15 @@ export type TrainRealtimeHandlers = {
   onOpen?: () => void;
   onStatus?: (status: string) => void;
   onReport?: (report: TrainReport) => void;
-  onError?: (message: string) => void;
+  onError?: (message: string, status?: number) => void;
   onNetworkError?: () => void;
 };
 
 type ApiMessageBody<T> = ApiResponse<T> & { message?: string };
-const COIN_AI_ALGORITHMS = ["auto", "linear", "ensemble"] as const;
-
-function normalizeAlgorithm(
-  algorithm: unknown,
-  fallback: CoinAIAlgorithm,
-): CoinAIAlgorithm {
-  return COIN_AI_ALGORITHMS.includes(algorithm as CoinAIAlgorithm)
-    ? (algorithm as CoinAIAlgorithm)
-    : fallback;
-}
+const DEFAULT_TRAIN_RATIO = 0.7;
+const DEFAULT_LONG_THRESHOLD = 0.0015;
+const DEFAULT_SHORT_THRESHOLD = -0.0015;
+const MAX_UPDATES_DEFAULT = 180;
 
 export class CoinAiRequestError extends Error {
   readonly status: number;
@@ -73,6 +74,24 @@ export function isCoinAiRequestError(
   error: unknown,
 ): error is CoinAiRequestError {
   return error instanceof CoinAiRequestError;
+}
+
+function withValidation<T>(callback: () => T): T {
+  try {
+    return callback();
+  } catch (error) {
+    if (error instanceof CoinAiValidationError) {
+      throw new CoinAiRequestError(400, error.message);
+    }
+    throw error;
+  }
+}
+
+function resolveAlgorithm(
+  algorithm: unknown,
+  fallback: CoinAIAlgorithm,
+): CoinAIAlgorithm {
+  return withValidation(() => resolveCoinAiAlgorithm(algorithm, fallback));
 }
 
 async function readApiBody<T>(res: Response): Promise<ApiMessageBody<T>> {
@@ -137,6 +156,178 @@ function parseJson<T>(value: unknown): T | null {
   }
 }
 
+function hasNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function normalizeSymbol(symbol: string): string {
+  return withValidation(() => normalizeCoinAiSymbol(symbol));
+}
+
+function normalizeInterval(interval: string): string {
+  return withValidation(() => normalizeCoinAiInterval(interval));
+}
+
+function assertIntegerRange(
+  value: number,
+  min: number,
+  max: number,
+  fieldName: string,
+) {
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new CoinAiRequestError(
+      400,
+      `${fieldName} must be an integer in range ${min}..${max}`,
+    );
+  }
+}
+
+function assertRange(
+  value: number,
+  min: number,
+  max: number,
+  fieldName: string,
+  bounds: "inclusive" | "exclusiveMin" = "inclusive",
+) {
+  const isValid =
+    bounds === "exclusiveMin"
+      ? value > min && value <= max
+      : value >= min && value <= max;
+  if (!isValid) {
+    const text =
+      bounds === "exclusiveMin"
+        ? `${fieldName} must be in range (${min},${max}]`
+        : `${fieldName} must be in range ${min}..${max}`;
+    throw new CoinAiRequestError(400, text);
+  }
+}
+
+function validateTrainAndValRatio(
+  trainRatio: number | undefined,
+  valRatio: number | undefined,
+  options: { allowTrainRatioZero?: boolean } = {},
+) {
+  const allowTrainRatioZero = options.allowTrainRatioZero ?? false;
+  if (trainRatio !== undefined && !hasNumber(trainRatio)) {
+    throw new CoinAiRequestError(400, "train_ratio must be a number");
+  }
+  if (valRatio !== undefined && !hasNumber(valRatio)) {
+    throw new CoinAiRequestError(400, "val_ratio must be a number");
+  }
+  if (hasNumber(trainRatio)) {
+    if (allowTrainRatioZero && trainRatio === 0) {
+      // 0 means backend default (0.7) for train/multi.
+    } else if (trainRatio <= 0 || trainRatio >= 1) {
+      throw new CoinAiRequestError(400, "train_ratio must be in range (0,1)");
+    }
+  }
+
+  if (hasNumber(valRatio) && (valRatio < 0 || valRatio >= 1)) {
+    throw new CoinAiRequestError(400, "val_ratio must be in range [0,1)");
+  }
+
+  if (hasNumber(valRatio)) {
+    const effectiveTrainRatio = hasNumber(trainRatio)
+      ? allowTrainRatioZero && trainRatio === 0
+        ? DEFAULT_TRAIN_RATIO
+        : trainRatio
+      : DEFAULT_TRAIN_RATIO;
+    if (effectiveTrainRatio + valRatio >= 1) {
+      throw new CoinAiRequestError(
+        400,
+        "train_ratio + val_ratio must be < 1",
+      );
+    }
+  }
+}
+
+function validateThresholds(longThreshold?: number, shortThreshold?: number) {
+  if (longThreshold !== undefined && !hasNumber(longThreshold)) {
+    throw new CoinAiRequestError(400, "long_threshold must be a number");
+  }
+  if (shortThreshold !== undefined && !hasNumber(shortThreshold)) {
+    throw new CoinAiRequestError(400, "short_threshold must be a number");
+  }
+  const longValue = longThreshold ?? DEFAULT_LONG_THRESHOLD;
+  const shortValue = shortThreshold ?? DEFAULT_SHORT_THRESHOLD;
+  if (!(longValue > shortValue)) {
+    throw new CoinAiRequestError(
+      400,
+      "long_threshold must be greater than short_threshold",
+    );
+  }
+}
+
+function validateRefreshDuration(refresh: string): string {
+  return withValidation(() => normalizeCoinAiRefreshDuration(refresh));
+}
+
+function validateTrainParams(
+  options: TrainParams | undefined,
+  cfg: { allowLimitZero?: boolean; allowTrainRatioZero?: boolean; allowEpochZero?: boolean } = {},
+) {
+  const allowLimitZero = cfg.allowLimitZero ?? false;
+  const allowTrainRatioZero = cfg.allowTrainRatioZero ?? false;
+  const allowEpochZero = cfg.allowEpochZero ?? false;
+
+  if (options?.limit !== undefined && !hasNumber(options.limit)) {
+    throw new CoinAiRequestError(400, "limit must be a number");
+  }
+  if (hasNumber(options?.limit)) {
+    if (allowLimitZero && options.limit === 0) {
+      // 0 means backend default.
+    } else {
+      assertIntegerRange(options.limit, 50, 1000, "limit");
+    }
+  }
+
+  validateTrainAndValRatio(options?.trainRatio, options?.valRatio, {
+    allowTrainRatioZero,
+  });
+
+  if (options?.minTrustScore !== undefined && !hasNumber(options.minTrustScore)) {
+    throw new CoinAiRequestError(400, "min_trust_score must be a number");
+  }
+  if (hasNumber(options?.minTrustScore)) {
+    assertRange(options.minTrustScore, 0, 1, "min_trust_score");
+  }
+
+  if (options?.epochs !== undefined && !hasNumber(options.epochs)) {
+    throw new CoinAiRequestError(400, "epochs must be a number");
+  }
+  if (hasNumber(options?.epochs)) {
+    if (allowEpochZero && options.epochs === 0) {
+      // 0 means backend default.
+    } else {
+      assertIntegerRange(options.epochs, 1, 3000, "epochs");
+    }
+  }
+
+  validateThresholds(options?.longThreshold, options?.shortThreshold);
+
+  if (options?.slippageBps !== undefined && !hasNumber(options.slippageBps)) {
+    throw new CoinAiRequestError(400, "slippage_bps must be a number");
+  }
+  if (hasNumber(options?.slippageBps)) {
+    assertRange(options.slippageBps, 0, 1000, "slippage_bps");
+  }
+  if (options?.latencyBars !== undefined && !hasNumber(options.latencyBars)) {
+    throw new CoinAiRequestError(400, "latency_bars must be a number");
+  }
+  if (hasNumber(options?.latencyBars)) {
+    assertIntegerRange(options.latencyBars, 0, 50, "latency_bars");
+  }
+  if (
+    options?.maxDrawdownStop !== undefined &&
+    !hasNumber(options.maxDrawdownStop)
+  ) {
+    throw new CoinAiRequestError(400, "max_drawdown_stop must be a number");
+  }
+  if (hasNumber(options?.maxDrawdownStop)) {
+    assertRange(options.maxDrawdownStop, 0, 1, "max_drawdown_stop");
+  }
+}
+
 // ── API client ────────────────────────────────────────────────────────────────
 
 export const coinAiApi = {
@@ -149,13 +340,16 @@ export const coinAiApi = {
     interval = "1h",
     options?: TrainParams,
   ): Promise<TrainReport> {
-    const algorithm = normalizeAlgorithm(options?.algorithm, "auto");
+    const normalizedSymbol = normalizeSymbol(symbol);
+    const normalizedInterval = normalizeInterval(interval);
+    const algorithm = resolveAlgorithm(options?.algorithm, "auto");
+    validateTrainParams(options);
     return fetchCoinAIData<TrainReport>("/api/coinai/train", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        symbol: symbol.toUpperCase(),
-        interval,
+        symbol: normalizedSymbol,
+        interval: normalizedInterval,
         algorithm,
         limit: options?.limit,
         train_ratio: options?.trainRatio,
@@ -173,14 +367,47 @@ export const coinAiApi = {
 
   /** POST /api/coinai/train/multi */
   trainMulti(req: TrainMultiRequest): Promise<MultiTrainReport> {
-    const algorithm = normalizeAlgorithm(req.algorithm, "auto");
+    const symbols = Array.isArray(req.symbols)
+      ? req.symbols.map((symbol) => normalizeSymbol(symbol))
+      : [];
+    if (symbols.length < 2 || symbols.length > 20) {
+      throw new CoinAiRequestError(400, "symbols must contain 2..20 entries");
+    }
+    if (new Set(symbols).size !== symbols.length) {
+      throw new CoinAiRequestError(
+        400,
+        "symbols must contain unique uppercase values",
+      );
+    }
+    const algorithm = resolveAlgorithm(req.algorithm, "auto");
+    const interval = req.interval ? normalizeInterval(req.interval) : undefined;
+    validateTrainParams(
+      {
+        limit: req.limit,
+        trainRatio: req.train_ratio,
+        valRatio: req.val_ratio,
+        minTrustScore: req.min_trust_score,
+        epochs: req.epochs,
+        longThreshold: req.long_threshold,
+        shortThreshold: req.short_threshold,
+        slippageBps: req.slippage_bps,
+        latencyBars: req.latency_bars,
+        maxDrawdownStop: req.max_drawdown_stop,
+      },
+      {
+        allowLimitZero: true,
+        allowTrainRatioZero: true,
+        allowEpochZero: true,
+      },
+    );
     return fetchCoinAIData<MultiTrainReport>("/api/coinai/train/multi", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...req,
         algorithm,
-        symbols: req.symbols.map((s) => s.toUpperCase()),
+        interval,
+        symbols,
       }),
     });
   },
@@ -195,11 +422,16 @@ export const coinAiApi = {
       throw new Error("Realtime stream is only available in browser");
     }
 
+    const normalizedSymbol = normalizeSymbol(symbol);
+    const algorithm = resolveAlgorithm(options.algorithm, "linear");
+    const interval = options.interval ? normalizeInterval(options.interval) : undefined;
+    validateTrainParams(options);
+
     const params = new URLSearchParams();
-    params.set("symbol", symbol.trim().toUpperCase());
-    params.set("algorithm", normalizeAlgorithm(options.algorithm, "linear"));
-    if (options.interval) params.set("interval", options.interval);
-    if (options.refresh) params.set("refresh", options.refresh);
+    params.set("symbol", normalizedSymbol);
+    params.set("algorithm", algorithm);
+    if (interval) params.set("interval", interval);
+    if (options.refresh) params.set("refresh", validateRefreshDuration(options.refresh));
     if (typeof options.limit === "number") {
       params.set("limit", String(options.limit));
     }
@@ -230,7 +462,7 @@ export const coinAiApi = {
     if (typeof options.maxDrawdownStop === "number") {
       params.set("max_drawdown_stop", String(options.maxDrawdownStop));
     }
-    const maxUpdates = options.maxUpdates ?? 180;
+    const maxUpdates = options.maxUpdates ?? MAX_UPDATES_DEFAULT;
     if (
       !Number.isFinite(maxUpdates) ||
       !Number.isInteger(maxUpdates) ||
@@ -288,8 +520,15 @@ export const coinAiApi = {
     stream.addEventListener("error", (event) => {
       const data = (event as MessageEvent<string>).data;
       if (typeof data === "string" && data.length > 0) {
-        const payload = parseJson<{ message?: string }>(data);
-        handlers.onError?.(payload?.message || data);
+        const payload = parseJson<{ message?: string; status?: number }>(data);
+        const status =
+          typeof payload?.status === "number" && Number.isFinite(payload.status)
+            ? payload.status
+            : undefined;
+        handlers.onError?.(
+          payload?.message || (status ? `HTTP ${status}` : data),
+          status,
+        );
         return;
       }
       handlers.onNetworkError?.();
@@ -312,17 +551,22 @@ export const coinAiApi = {
    * Backend returns { message: "OK" } with no data body.
    */
   async addToWatchlist(req: AddWatchlistRequest): Promise<void> {
+    const symbol = normalizeSymbol(req.symbol);
     await fetchCoinAI<null>("/api/coinai/watchlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: req.symbol.toUpperCase() }),
+      body: JSON.stringify({ symbol }),
     });
   },
 
   /** DELETE /api/coinai/watchlist/:symbol */
   async removeFromWatchlist(symbol: string): Promise<void> {
-    await fetchCoinAI<null>(`/api/coinai/watchlist/${symbol.toUpperCase()}`, {
-      method: "DELETE",
-    });
+    const normalized = normalizeSymbol(symbol);
+    await fetchCoinAI<null>(
+      `/api/coinai/watchlist/${encodeURIComponent(normalized)}`,
+      {
+        method: "DELETE",
+      },
+    );
   },
 };

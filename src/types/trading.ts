@@ -349,6 +349,7 @@ export type ReliabilityComponents = {
 	sharpe_score: number;
 	drawdown_score: number;
 	signal_strength_score: number;
+	trade_support_score: number;
 };
 
 export type SignalReliability = {
@@ -360,14 +361,29 @@ export type SignalReliability = {
 		| "trusted"
 		| "hold_signal"
 		| "score_below_threshold"
-		| "weak_signal_strength";
+		| "weak_signal_strength"
+		| "risk_stop_triggered"
+		| "no_trade_history";
 	components: ReliabilityComponents;
+};
+
+export type ThresholdOptimizationResult = {
+	used: boolean;
+	base_long_threshold: number;
+	base_short_threshold: number;
+	applied_long_threshold: number;
+	applied_short_threshold: number;
+	candidate_pairs: number;
+	score: number;
+	validation_backtest: BacktestResult;
 };
 
 export type TrainReport = {
 	symbol: string;
 	interval: string;
 	model_algorithm: CoinAIAlgorithm;
+	applied_long_threshold: number;
+	applied_short_threshold: number;
 	candles: number;
 	train_samples: number;
 	val_samples: number;
@@ -379,6 +395,7 @@ export type TrainReport = {
 	test_mse: number;
 	test_directional_acc: number; // decimal  e.g. 0.537 = 53.7%
 	backtest: BacktestResult;
+	threshold_optimization?: ThresholdOptimizationResult;
 	next_predicted_return: number; // decimal  e.g. 0.0018 = +0.18%
 	raw_signal: CoinAISignal;
 	signal: CoinAISignal;
@@ -415,12 +432,17 @@ export type TrainMultiRequest = {
 export type MultiSymbolSignal = {
 	symbol: string;
 	next_predicted_return: number;
+	raw_signal: CoinAISignal;
 	signal: CoinAISignal;
+	reliability: SignalReliability;
 };
 
 export type MultiTrainReport = {
 	symbols: string[];
 	interval: string;
+	model_algorithm: CoinAIAlgorithm;
+	applied_long_threshold: number;
+	applied_short_threshold: number;
 	total_candles: number;
 	train_samples: number;
 	val_samples: number;
@@ -432,6 +454,7 @@ export type MultiTrainReport = {
 	test_mse: number;
 	test_directional_acc: number;
 	backtest: BacktestResult;
+	threshold_optimization?: ThresholdOptimizationResult;
 	signals: MultiSymbolSignal[];
 	generated_at: string; // RFC3339 UTC
 };
