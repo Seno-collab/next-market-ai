@@ -120,7 +120,7 @@ export default function LoginPage() {
                 <circle cx="29" cy="13" r="2" fill="currentColor" />
               </svg>
             </div>
-            <span className="tlogin-brand-name">TRADING SENO</span>
+            <span className="tlogin-brand-name">COIN SWING TRADER</span>
             <span className="tlogin-brand-live">
               <span className="tlogin-live-dot" />
               LIVE
@@ -132,7 +132,7 @@ export default function LoginPage() {
             <h1 className="tlogin-title">
               Đăng nhập
               <br />
-              <span className="tlogin-title-accent">Trading Seno</span>
+              <span className="tlogin-title-accent">Coin Swing Trader</span>
             </h1>
             <p className="tlogin-subtitle">
               Truy cập bảng điều khiển giao dịch với xác thực AI bảo mật đa lớp.

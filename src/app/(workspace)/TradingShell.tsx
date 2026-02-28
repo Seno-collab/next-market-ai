@@ -126,7 +126,7 @@ export default function TradingShell({
 				trigger={null}
 			>
 				<div className="admin-logo">
-					<Text className="admin-logo-mark">TRADING SENO</Text>
+					<Text className="admin-logo-mark">COIN SWING TRADER</Text>
 					<Title level={4} className="admin-logo-title">
 						{t("nav.admin")}
 					</Title>

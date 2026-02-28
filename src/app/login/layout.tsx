@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-	title: "Trading Seno | Login",
+	title: "Coin Swing Trader | Login",
 	description:
-		"Sign in to Trading Seno control center. Secure authentication for your trading platform.",
+		"Sign in to Coin Swing Trader control center. Secure authentication for your trading platform.",
 };
 
 type LoginLayoutProps = Readonly<{ children: React.ReactNode }>;

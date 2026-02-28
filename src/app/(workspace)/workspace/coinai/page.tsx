@@ -728,9 +728,9 @@ export default function CoinAIPage() {
 			<div className="ci-header">
 				<div className="ci-header-left">
 					<div className="ci-eyebrow">
-						<RobotOutlined /> COIN AI
+						<RobotOutlined /> COIN SWING
 					</div>
-					<h1 className="ci-title">AI Trading Assistant</h1>
+					<h1 className="ci-title">Coin Swing Trader</h1>
 				</div>
 				<div className="ci-header-right">
 					<Button
@@ -858,7 +858,7 @@ export default function CoinAIPage() {
 
 					{loadingTrain && (
 						<div className="ci-center-spin">
-							<Spin size="large" tip="Training AI model...">
+							<Spin size="large" description="Training AI model...">
 								<div className="ci-spin-tip-anchor" />
 							</Spin>
 						</div>

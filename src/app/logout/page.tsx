@@ -141,7 +141,7 @@ export default function LogoutPage() {
             {/* Brand */}
             <div className="tl2-brand">
               <span className="tl2-brand-dot" />
-              TRADING SENO
+              COIN SWING TRADER
               <span className="tl2-brand-ver">v2.4</span>
             </div>
 
@@ -162,7 +162,7 @@ export default function LogoutPage() {
             <h2 className="tl2-title">
               Đăng xuất
               <br />
-              <span className="tl2-title-accent">Trading Seno</span>
+              <span className="tl2-title-accent">Coin Swing Trader</span>
             </h2>
             <p className="tl2-desc">
               Phiên giao dịch sẽ được khoá an toàn.

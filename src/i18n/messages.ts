@@ -5,7 +5,7 @@ export const defaultLocale: Locale = "vi";
 export const messages = {
   vi: {
     site: {
-      name: "Trading Seno",
+      name: "Coin Swing Trader",
       tagline: "Nền tảng giao dịch thông minh với AI Analytics",
     },
     actions: {
@@ -560,7 +560,7 @@ export const messages = {
     login: {
       tagline: "AI Analytics + Trading",
       eyebrow: "Admin Trading",
-      title: "Đăng nhập quản trị Trading Seno",
+      title: "Đăng nhập quản trị Coin Swing Trader",
       subtitle: "Hệ thống xác thực AI cho nền tảng giao dịch. Chỉ dành cho con người, không phải robot.",
       cta: "Đăng nhập quản trị",
       secondaryHint: "AI bảo mật xác thực mỗi phiên đăng nhập của bạn.",
@@ -700,7 +700,7 @@ export const messages = {
   },
   en: {
     site: {
-      name: "Trading Seno",
+      name: "Coin Swing Trader",
       tagline: "Smart Trading Platform with AI Analytics",
     },
     actions: {
@@ -1253,7 +1253,7 @@ export const messages = {
     login: {
       tagline: "AI-powered trading",
       eyebrow: "Trading Admin",
-      title: "Admin login to Trading Seno",
+      title: "Admin login to Coin Swing Trader",
       subtitle: "AI-powered authentication for your trading platform. For humans only, not robots.",
       cta: "Admin sign in",
       secondaryHint: "AI security verifies every login session.",

@@ -47,8 +47,8 @@ const themeBootstrapScript = `
 
 export const metadata: Metadata = {
 	title: {
-		default: "Trading Seno | Smart Trading Platform with AI Analytics",
-		template: "%s | Trading Seno",
+		default: "Coin Swing Trader | Smart Trading Platform with AI Analytics",
+		template: "%s | Coin Swing Trader",
 	},
 	description:
 		"Smart trading platform with AI-powered analytics, real-time market data, portfolio management, and interactive dashboards. Built for modern traders.",
@@ -63,20 +63,20 @@ export const metadata: Metadata = {
 		"3D visualization",
 		"trading tools",
 	],
-	authors: [{ name: "Trading Seno Team" }],
-	creator: "Trading Seno",
+	authors: [{ name: "Coin Swing Trader Team" }],
+	creator: "Coin Swing Trader",
 	metadataBase: new URL("https://qrlynx.app"),
 	openGraph: {
 		type: "website",
 		locale: "en_US",
-		siteName: "Trading Seno",
-		title: "Trading Seno | Smart Trading Platform with AI Analytics",
+		siteName: "Coin Swing Trader",
+		title: "Coin Swing Trader | Smart Trading Platform with AI Analytics",
 		description:
 			"Smart trading platform with AI-powered analytics, real-time market data, and portfolio management for modern traders.",
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Trading Seno | Smart Trading Platform",
+		title: "Coin Swing Trader | Smart Trading Platform",
 		description: "AI-powered analytics and tools for modern traders.",
 	},
 	robots: {
