@@ -19,7 +19,6 @@ import {
   Input,
   InputNumber,
   Modal,
-  Pagination,
   Popconfirm,
   Radio,
   Select,
@@ -120,6 +119,73 @@ function deltaClass(value: number) {
   return "tx-soft";
 }
 
+function Paginator({
+  page,
+  total,
+  perPage,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  perPage: number;
+  onChange: (p: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  if (totalPages <= 1) return null;
+
+  const pages: (number | "…")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push("…");
+    for (
+      let i = Math.max(2, page - 1);
+      i <= Math.min(totalPages - 1, page + 1);
+      i++
+    )
+      pages.push(i);
+    if (page < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  return (
+    <div className="tx-pagination">
+      <button
+        className="tx-pg-btn tx-pg-arrow"
+        disabled={page === 1}
+        onClick={() => onChange(page - 1)}
+        aria-label="Previous page"
+      >
+        ‹
+      </button>
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span key={`ellipsis-${i}`} className="tx-pg-ellipsis">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            className={`tx-pg-btn${page === p ? " tx-pg-active" : ""}`}
+            onClick={() => onChange(p as number)}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button
+        className="tx-pg-btn tx-pg-arrow"
+        disabled={page === totalPages}
+        onClick={() => onChange(page + 1)}
+        aria-label="Next page"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
 export default function TransactionsPage() {
   const { locale, t } = useLocale();
   const { tokens } = useAuth();
@@ -131,6 +197,7 @@ export default function TransactionsPage() {
   const [creating, setCreating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
   const [form] = Form.useForm<CreateTransactionRequest>();
   const { data, loading, error, refetch } = useTransactionStream({
     token: accessToken,
@@ -146,7 +213,7 @@ export default function TransactionsPage() {
     loading: historyLoading,
     error: historyError,
     refetch: refetchHistory,
-  } = useTransactionHistory(accessToken, 60);
+  } = useTransactionHistory(accessToken, historyPage, 60);
 
   /* ── create ── */
   async function handleCreate(values: CreateTransactionRequest) {
@@ -478,17 +545,17 @@ export default function TransactionsPage() {
         {total > 0 && (
           <div className="tx-footer">
             <span className="tx-footer-count">
-              {total} {t("transactionsPage.footer.totalTransactions")}
+              {Math.min((page - 1) * PER_PAGE + 1, total)}–
+              {Math.min(page * PER_PAGE, total)}{" "}
+              <span className="tx-footer-sep">/</span> {total}{" "}
+              {t("transactionsPage.footer.totalTransactions")}
             </span>
-            {total > PER_PAGE && (
-              <Pagination
-                current={page}
-                total={total}
-                pageSize={PER_PAGE}
-                showSizeChanger={false}
-                onChange={(p) => setPage(p)}
-              />
-            )}
+            <Paginator
+              page={page}
+              total={total}
+              perPage={PER_PAGE}
+              onChange={setPage}
+            />
           </div>
         )}
       </div>
@@ -661,7 +728,11 @@ export default function TransactionsPage() {
       {/* ── History Detail Modal ── */}
       <Modal
         open={historyOpen}
-        onCancel={() => setHistoryOpen(false)}
+        onCancel={() => {
+          setHistoryOpen(false);
+          setHistoryPage(1);
+        }}
+        className="tx-hist-modal"
         title={
           <div className="tx-modal-hd">
             <div className="tx-modal-icon">
@@ -674,6 +745,11 @@ export default function TransactionsPage() {
               <div className="tx-modal-sub">
                 {t("transactionsPage.historyModal.subtitlePrefix")}{" "}
                 {historyData?.interval_seconds ?? 10}s
+                {historyData && historyData.total > 0 && (
+                  <span className="tx-modal-sub-count">
+                    {" "}· {historyData.total} snapshots
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -689,7 +765,10 @@ export default function TransactionsPage() {
           >
             {t("transactionsPage.historyModal.refresh")}
           </Button>,
-          <Button key="close-history" onClick={() => setHistoryOpen(false)}>
+          <Button key="close-history" onClick={() => {
+            setHistoryOpen(false);
+            setHistoryPage(1);
+          }}>
             {t("transactionsPage.historyModal.close")}
           </Button>,
         ]}
@@ -717,53 +796,129 @@ export default function TransactionsPage() {
             </p>
           </div>
         ) : (
-          <div className="tx-table-wrap">
-            <table className="tx-table">
-              <thead>
-                <tr>
-                  <th>{t("transactionsPage.historyModal.columns.time")}</th>
-                  <th>{t("transactionsPage.historyModal.columns.kind")}</th>
-                  <th>{t("transactionsPage.historyModal.columns.deltaValue")}</th>
-                  <th>
-                    {t("transactionsPage.historyModal.columns.deltaUnrealized")}
-                  </th>
-                  <th>
-                    {t("transactionsPage.historyModal.columns.totalCurrentValue")}
-                  </th>
-                  <th>
-                    {t("transactionsPage.historyModal.columns.totalUnrealized")}
-                  </th>
-                  <th>
-                    {t("transactionsPage.historyModal.columns.totalInvested")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyData.items.map((item) => (
-                  <tr key={item.id} className="tx-row">
-                    <td className="tx-soft tx-nowrap">
-                      {fmtDate(item.recorded_at, locale)}
-                    </td>
-                    <td>{historyKindLabel(item.change_kind)}</td>
-                    <td className={`tx-num ${deltaClass(item.delta_current_value)}`}>
-                      {signedNum(item.delta_current_value, locale, 2)}
-                    </td>
-                    <td className={`tx-num ${deltaClass(item.delta_unrealized_pnl)}`}>
-                      {signedNum(item.delta_unrealized_pnl, locale, 2)}
-                    </td>
-                    <td className="tx-num">
-                      {signedNum(item.total_current_value, locale, 2)}
-                    </td>
-                    <td className={`tx-num ${deltaClass(item.total_unrealized_pnl)}`}>
-                      {signedNum(item.total_unrealized_pnl, locale, 2)}
-                    </td>
-                    <td className="tx-num">
-                      {signedNum(item.total_invested, locale, 2)}
-                    </td>
+          <div className="tx-history-wrap">
+            {/* ── Latest snapshot stats ── */}
+            {historyData.items[0] && (
+              <div className="tx-hist-stats">
+                <div className="tx-hist-stat">
+                  <span className="tx-hist-stat-label">Invested</span>
+                  <span className="tx-hist-stat-val">
+                    ${signedNum(historyData.items[0].total_invested, locale, 2)}
+                  </span>
+                </div>
+                <div className="tx-hist-stat-sep" />
+                <div className="tx-hist-stat">
+                  <span className="tx-hist-stat-label">Current Value</span>
+                  <span className="tx-hist-stat-val">
+                    ${signedNum(historyData.items[0].total_current_value, locale, 2)}
+                  </span>
+                </div>
+                <div className="tx-hist-stat-sep" />
+                <div className="tx-hist-stat">
+                  <span className="tx-hist-stat-label">Unrealized P&L</span>
+                  <span className={`tx-hist-stat-val ${deltaClass(historyData.items[0].total_unrealized_pnl)}`}>
+                    {historyData.items[0].total_unrealized_pnl >= 0 ? "▲ " : "▼ "}
+                    ${Math.abs(historyData.items[0].total_unrealized_pnl).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="tx-hist-stat-sep" />
+                <div className="tx-hist-stat">
+                  <span className="tx-hist-stat-label">Snapshots</span>
+                  <span className="tx-hist-stat-val">{historyData.total}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── Table ── */}
+            <div className="tx-table-wrap">
+              <table className="tx-table tx-hist-table">
+                <thead>
+                  <tr className="tx-hist-group-row">
+                    <th colSpan={2} className="tx-hist-group-empty" />
+                    <th colSpan={2} className="tx-hist-group-label tx-hist-group-delta">
+                      Δ Changes
+                    </th>
+                    <th colSpan={3} className="tx-hist-group-label tx-hist-group-total">
+                      Portfolio Totals
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                  <tr>
+                    <th className="tx-hist-th">{t("transactionsPage.historyModal.columns.time")}</th>
+                    <th className="tx-hist-th">Kind</th>
+                    <th className="tx-hist-th tx-right">Δ Value</th>
+                    <th className="tx-hist-th tx-right">Δ Unrealized</th>
+                    <th className="tx-hist-th tx-right">Current Value</th>
+                    <th className="tx-hist-th tx-right">Unrealized P&L</th>
+                    <th className="tx-hist-th tx-right">Invested</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyData.items.map((item) => (
+                    <tr key={item.id} className="tx-row">
+                      <td className="tx-hist-time tx-nowrap">
+                        {fmtDate(item.recorded_at, locale)}
+                      </td>
+                      <td>
+                        <span className={`tx-hist-kind tx-hist-kind-${item.change_kind}`}>
+                          {item.change_kind === "market_tick"
+                            ? "tick"
+                            : item.change_kind === "transaction_changed"
+                              ? "trade"
+                              : "init"}
+                        </span>
+                      </td>
+                      <td className="tx-right">
+                        <span className={`tx-hist-delta ${deltaClass(item.delta_current_value)}`}>
+                          {item.delta_current_value !== 0 && (
+                            <span className="tx-hist-arrow">
+                              {item.delta_current_value > 0 ? "▲" : "▼"}
+                            </span>
+                          )}
+                          ${Math.abs(item.delta_current_value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="tx-right">
+                        <span className={`tx-hist-delta ${deltaClass(item.delta_unrealized_pnl)}`}>
+                          {item.delta_unrealized_pnl !== 0 && (
+                            <span className="tx-hist-arrow">
+                              {item.delta_unrealized_pnl > 0 ? "▲" : "▼"}
+                            </span>
+                          )}
+                          ${Math.abs(item.delta_unrealized_pnl).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="tx-num tx-right">
+                        ${item.total_current_value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                      </td>
+                      <td className={`tx-num tx-right ${deltaClass(item.total_unrealized_pnl)}`}>
+                        {item.total_unrealized_pnl >= 0 ? "+" : ""}
+                        ${item.total_unrealized_pnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="tx-num tx-right tx-soft">
+                        ${item.total_invested.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Pagination ── */}
+            {historyData.total > 60 && (
+              <div className="tx-footer">
+                <span className="tx-footer-count">
+                  {Math.min((historyPage - 1) * 60 + 1, historyData.total)}–
+                  {Math.min(historyPage * 60, historyData.total)}{" "}
+                  <span className="tx-footer-sep">/</span> {historyData.total} snapshots
+                </span>
+                <Paginator
+                  page={historyPage}
+                  total={historyData.total}
+                  perPage={60}
+                  onChange={setHistoryPage}
+                />
+              </div>
+            )}
           </div>
         )}
       </Modal>

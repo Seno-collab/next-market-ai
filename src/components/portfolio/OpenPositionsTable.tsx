@@ -7,32 +7,31 @@ const fmtQty = (n: number) => n.toFixed(8).replace(/\.?0+$/, "");
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
 function PnlBadge({ value, sub }: { value: number; sub?: string }) {
-  const positive = value > 0;
-  const negative = value < 0;
-  const cls = positive
-    ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
-    : negative
-      ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30"
-      : "bg-muted/50 text-muted-foreground";
+  const cls =
+    value > 0
+      ? "pf-pnl-badge pf-pnl-up"
+      : value < 0
+        ? "pf-pnl-badge pf-pnl-dn"
+        : "pf-pnl-badge pf-pnl-neutral";
   return (
-    <span className={`inline-flex flex-col items-end rounded-md px-2.5 py-1 tabular-nums ${cls}`}>
-      <span className="text-xs font-bold">{fmtUsd(value)}</span>
-      {sub && <span className="text-[10px] opacity-80">{sub}</span>}
+    <span className={cls}>
+      <span className="pf-pnl-arrow">{value > 0 ? "▲" : value < 0 ? "▼" : ""}</span>
+      <span className="pf-pnl-main">{fmtUsd(value)}</span>
+      {sub && <span className="pf-pnl-pct">{sub}</span>}
     </span>
   );
 }
 
 function ChangeBadge({ pct }: { pct: number }) {
-  const positive = pct > 0;
-  const negative = pct < 0;
-  const cls = positive
-    ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25"
-    : negative
-      ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/25"
-      : "bg-muted/40 text-muted-foreground";
+  const cls =
+    pct > 0
+      ? "pf-change-badge pf-change-up"
+      : pct < 0
+        ? "pf-change-badge pf-change-dn"
+        : "pf-change-badge pf-change-neutral";
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold tabular-nums ${cls}`}>
-      {positive ? "▲ " : negative ? "▼ " : ""}
+    <span className={cls}>
+      {pct > 0 ? "▲" : pct < 0 ? "▼" : ""}
       {Math.abs(pct).toFixed(2)}%
     </span>
   );
@@ -47,26 +46,22 @@ export function OpenPositionsTable({ positions }: Props) {
   if (positions.length === 0) return null;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex items-center justify-between bg-gradient-to-r from-sky-500/10 to-transparent px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-400" />
+    <section className="pf-table-section">
+      <div className="pf-section-hd pf-open-hd">
+        <div className="pf-section-hd-left">
+          <span className="pf-live-ring">
+            <span className="pf-live-ping" />
+            <span className="pf-live-dot" />
           </span>
-          <h2 className="font-semibold text-foreground">
-            {t("portfolioPage.openPositions")}
-          </h2>
+          <h2 className="pf-section-title">{t("portfolioPage.openPositions")}</h2>
         </div>
-        <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky-400">
-          {positions.length}
-        </span>
+        <span className="pf-count-badge pf-count-sky">{positions.length}</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="pf-table-scroll">
+        <table className="pf-table">
           <thead>
-            <tr className="border-y border-border/60 bg-muted/40">
+            <tr className="pf-thead-row">
               {[
                 { label: t("portfolioPage.table.symbol"), align: "left" },
                 { label: t("portfolioPage.table.netQty"), align: "right" },
@@ -79,40 +74,36 @@ export function OpenPositionsTable({ positions }: Props) {
               ].map((h) => (
                 <th
                   key={h.label}
-                  className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground ${h.align === "right" ? "text-right" : "text-left"}`}
+                  className={`pf-th${h.align === "right" ? " pf-th-r" : ""}`}
                 >
                   {h.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody>
             {positions.map((p) => (
-              <tr key={p.symbol} className="transition-colors hover:bg-muted/30">
-                <td className="px-4 py-3.5">
-                  <span className="inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-bold tracking-wide text-sky-300">
-                    {p.symbol}
-                  </span>
+              <tr key={p.symbol} className="pf-row pf-open-row">
+                <td className="pf-td">
+                  <span className="pf-sym pf-sym-sky">{p.symbol}</span>
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground">
-                  {fmtQty(p.net_qty)}
-                </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground/80">
+                <td className="pf-td pf-td-r pf-num">{fmtQty(p.net_qty)}</td>
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtUsd(p.avg_buy_price)}
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-foreground">
+                <td className="pf-td pf-td-r pf-num pf-bright">
                   {fmtUsd(p.live_price)}
                 </td>
-                <td className="px-4 py-3.5 text-right">
+                <td className="pf-td pf-td-r">
                   <ChangeBadge pct={p.live_change_24h_pct} />
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground/80">
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtUsd(p.total_invested)}
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground">
+                <td className="pf-td pf-td-r pf-num pf-bright">
                   {fmtUsd(p.live_value)}
                 </td>
-                <td className="px-4 py-3.5 text-right">
+                <td className="pf-td pf-td-r">
                   <PnlBadge
                     value={p.live_unrealized_pnl}
                     sub={fmtPct(p.live_unrealized_pnl_pct)}

@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, transactionApi } from "@/lib/transaction-api";
 import type { ListTransactionHistoryResponse } from "@/types/transaction";
 
-export function useTransactionHistory(token: string | null, limit = 120) {
+export function useTransactionHistory(
+  token: string | null,
+  page = 1,
+  perPage = 120,
+) {
   const [data, setData] = useState<ListTransactionHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +21,10 @@ export function useTransactionHistory(token: string | null, limit = 120) {
       return;
     }
     try {
-      const res = await transactionApi.history(token, { limit });
+      const res = await transactionApi.history(token, {
+        page,
+        per_page: perPage,
+      });
       setData(res);
       setError(null);
     } catch (e) {
@@ -31,7 +38,7 @@ export function useTransactionHistory(token: string | null, limit = 120) {
     } finally {
       setLoading(false);
     }
-  }, [token, limit]);
+  }, [token, page, perPage]);
 
   useEffect(() => {
     void fetchHistory();

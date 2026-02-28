@@ -67,10 +67,11 @@ export const transactionApi = {
     );
   },
 
-  /** GET /api/trading/transactions/history?limit= */
-  history(token: string, query?: { limit?: number }) {
+  /** GET /api/trading/transactions/history?page=&per_page= */
+  history(token: string, query?: { page?: number; per_page?: number }) {
     const params = new URLSearchParams();
-    if (query?.limit) params.set("limit", String(query.limit));
+    if (query?.page) params.set("page", String(query.page));
+    if (query?.per_page) params.set("per_page", String(query.per_page));
     const qs = params.toString();
     return fetchAuthed<ListTransactionHistoryResponse>(
       `/api/trading/transactions/history${qs ? `?${qs}` : ""}`,

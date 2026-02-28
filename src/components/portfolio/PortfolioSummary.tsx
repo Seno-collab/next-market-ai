@@ -4,8 +4,8 @@ import type { LivePortfolio } from "@/types/portfolio";
 const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
-const pnlTextColor = (n: number) =>
-  n > 0 ? "text-emerald-300" : n < 0 ? "text-red-400" : "text-muted-foreground";
+const pnlColor = (n: number) =>
+  n > 0 ? "pf-val-up" : n < 0 ? "pf-val-dn" : "pf-val-neutral";
 
 interface Props {
   portfolio: LivePortfolio;
@@ -24,91 +24,91 @@ export function PortfolioSummary({
   const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="pf-summary">
+      <div className="pf-summary-grid">
         <SummaryCard
           label={t("portfolioPage.summary.invested")}
           value={fmtUsd(portfolio.total_invested)}
-          bgClass="from-sky-500/20 to-cyan-500/8"
-          accentBar="from-sky-400 to-sky-500/30"
+          accent="#38bdf8"
+          accentFrom="rgba(56,189,248,0.18)"
+          accentTo="rgba(56,189,248,0.04)"
         />
         <SummaryCard
           label={t("portfolioPage.summary.currentValue")}
           value={fmtUsd(portfolio.total_live_value)}
-          bgClass="from-violet-500/20 to-indigo-500/8"
-          accentBar="from-violet-400 to-violet-500/30"
+          accent="#a78bfa"
+          accentFrom="rgba(167,139,250,0.18)"
+          accentTo="rgba(167,139,250,0.04)"
         />
         <SummaryCard
           label={t("portfolioPage.summary.unrealizedPnl")}
           value={fmtUsd(portfolio.total_live_unrealized_pnl)}
           sub={fmtPct(roiPct)}
-          valueClass={pnlTextColor(portfolio.total_live_unrealized_pnl)}
-          bgClass={
-            portfolio.total_live_unrealized_pnl >= 0
-              ? "from-emerald-500/20 to-teal-500/8"
-              : "from-red-500/20 to-rose-500/8"
-          }
-          accentBar={
-            portfolio.total_live_unrealized_pnl >= 0
-              ? "from-emerald-400 to-emerald-500/30"
-              : "from-red-400 to-red-500/30"
-          }
+          valueColor={pnlColor(portfolio.total_live_unrealized_pnl)}
           trend={portfolio.total_live_unrealized_pnl}
+          accent={portfolio.total_live_unrealized_pnl >= 0 ? "#34d399" : "#f87171"}
+          accentFrom={
+            portfolio.total_live_unrealized_pnl >= 0
+              ? "rgba(52,211,153,0.18)"
+              : "rgba(248,113,113,0.18)"
+          }
+          accentTo={
+            portfolio.total_live_unrealized_pnl >= 0
+              ? "rgba(52,211,153,0.04)"
+              : "rgba(248,113,113,0.04)"
+          }
         />
         <SummaryCard
           label={t("portfolioPage.summary.realizedPnl")}
           value={fmtUsd(portfolio.total_realized_pnl)}
-          valueClass={pnlTextColor(portfolio.total_realized_pnl)}
-          bgClass={
-            portfolio.total_realized_pnl >= 0
-              ? "from-emerald-500/20 to-green-500/8"
-              : "from-red-500/20 to-rose-500/8"
-          }
-          accentBar={
-            portfolio.total_realized_pnl >= 0
-              ? "from-emerald-400 to-emerald-500/30"
-              : "from-red-400 to-red-500/30"
-          }
+          valueColor={pnlColor(portfolio.total_realized_pnl)}
           trend={portfolio.total_realized_pnl}
+          accent={portfolio.total_realized_pnl >= 0 ? "#34d399" : "#f87171"}
+          accentFrom={
+            portfolio.total_realized_pnl >= 0
+              ? "rgba(52,211,153,0.18)"
+              : "rgba(248,113,113,0.18)"
+          }
+          accentTo={
+            portfolio.total_realized_pnl >= 0
+              ? "rgba(52,211,153,0.04)"
+              : "rgba(248,113,113,0.04)"
+          }
         />
         <SummaryCard
           label={t("portfolioPage.summary.totalPnl")}
           value={fmtUsd(totalPnl)}
           sub={`${t("portfolioPage.summary.fees")} ${fmtUsd(portfolio.total_fees)}`}
-          valueClass={pnlTextColor(totalPnl)}
-          bgClass={
-            totalPnl >= 0
-              ? "from-teal-500/20 to-emerald-500/8"
-              : "from-red-500/20 to-amber-500/8"
-          }
-          accentBar={
-            totalPnl >= 0
-              ? "from-teal-400 to-teal-500/30"
-              : "from-red-400 to-red-500/30"
-          }
+          valueColor={pnlColor(totalPnl)}
           trend={totalPnl}
           highlight
+          accent={totalPnl >= 0 ? "#2dd4bf" : "#f87171"}
+          accentFrom={
+            totalPnl >= 0
+              ? "rgba(45,212,191,0.22)"
+              : "rgba(248,113,113,0.22)"
+          }
+          accentTo={
+            totalPnl >= 0
+              ? "rgba(45,212,191,0.04)"
+              : "rgba(248,113,113,0.04)"
+          }
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      <div className="pf-summary-footer">
+        <div className="pf-summary-ts">
+          <span className="pf-live-ring pf-live-ring-sm">
+            <span className="pf-live-ping" />
+            <span className="pf-live-dot" />
           </span>
           <span>
             {t("portfolioPage.summary.updated")}{" "}
-            {new Date(portfolio.generated_at).toLocaleTimeString(dateLocale)} ·{" "}
-            <span className="font-mono text-[10px] text-foreground/60">
-              v{portfolio.watermark.version}
-            </span>
+            {new Date(portfolio.generated_at).toLocaleTimeString(dateLocale)}
           </span>
+          <span className="pf-summary-ver">v{portfolio.watermark.version}</span>
         </div>
-        <button
-          onClick={onRefetch}
-          className="rounded-lg border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-foreground/80 transition-all hover:bg-accent hover:text-foreground"
-        >
+        <button onClick={onRefetch} className="pf-sync-btn">
           ↻ {t("portfolioPage.summary.sync")}
         </button>
       </div>
@@ -120,49 +120,45 @@ function SummaryCard({
   label,
   value,
   sub,
-  valueClass = "",
-  bgClass,
-  accentBar,
+  valueColor = "",
+  accent,
+  accentFrom,
+  accentTo,
   trend,
   highlight = false,
 }: {
   label: string;
   value: string;
   sub?: string;
-  valueClass?: string;
-  bgClass: string;
-  accentBar: string;
+  valueColor?: string;
+  accent: string;
+  accentFrom: string;
+  accentTo: string;
   trend?: number;
   highlight?: boolean;
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-border/80 bg-gradient-to-br ${bgClass} p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${highlight ? "ring-1 ring-border" : ""}`}
+      className={`pf-stat-card${highlight ? " pf-stat-highlight" : ""}`}
+      style={
+        {
+          "--card-accent": accent,
+          "--card-from": accentFrom,
+          "--card-to": accentTo,
+        } as React.CSSProperties
+      }
     >
-      <div
-        className={`absolute left-0 top-0 h-full w-[3px] rounded-l-xl bg-gradient-to-b ${accentBar}`}
-      />
-
-      <p className="pl-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-
-      <div className="mt-2 flex items-baseline gap-1 pl-1">
+      <div className="pf-stat-bar" />
+      <p className="pf-stat-label">{label}</p>
+      <div className="pf-stat-value-row">
         {trend !== undefined && trend !== 0 && (
-          <span className={`text-xs leading-none ${valueClass}`}>
+          <span className={`pf-stat-arrow ${valueColor}`}>
             {trend > 0 ? "▲" : "▼"}
           </span>
         )}
-        <p className={`text-sm font-bold tabular-nums sm:text-base ${valueClass || "text-foreground"}`}>
-          {value}
-        </p>
+        <p className={`pf-stat-value ${valueColor}`}>{value}</p>
       </div>
-
-      {sub && (
-        <p className={`mt-0.5 pl-1 text-[11px] tabular-nums ${valueClass || "text-muted-foreground"}`}>
-          {sub}
-        </p>
-      )}
+      {sub && <p className={`pf-stat-sub ${valueColor || "pf-val-neutral"}`}>{sub}</p>}
     </div>
   );
 }

@@ -6,17 +6,16 @@ const fmtUsd = (n: number) =>
 const fmtQty = (n: number) => n.toFixed(8).replace(/\.?0+$/, "");
 
 function PnlBadge({ value }: { value: number }) {
-  const positive = value > 0;
-  const negative = value < 0;
-  const cls = positive
-    ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
-    : negative
-      ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30"
-      : "bg-muted/50 text-muted-foreground";
+  const cls =
+    value > 0
+      ? "pf-pnl-badge pf-pnl-up"
+      : value < 0
+        ? "pf-pnl-badge pf-pnl-dn"
+        : "pf-pnl-badge pf-pnl-neutral";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold tabular-nums ${cls}`}>
-      {positive ? "▲" : negative ? "▼" : ""}
-      {fmtUsd(value)}
+    <span className={cls}>
+      <span className="pf-pnl-arrow">{value > 0 ? "▲" : value < 0 ? "▼" : ""}</span>
+      <span className="pf-pnl-main">{fmtUsd(value)}</span>
     </span>
   );
 }
@@ -30,23 +29,19 @@ export function ClosedPositionsTable({ positions }: Props) {
   if (positions.length === 0) return null;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-transparent px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <span className="h-2 w-2 rounded-full bg-amber-400" />
-          <h2 className="font-semibold text-foreground">
-            {t("portfolioPage.closedPositions")}
-          </h2>
+    <section className="pf-table-section">
+      <div className="pf-section-hd pf-closed-hd">
+        <div className="pf-section-hd-left">
+          <span className="pf-closed-dot" />
+          <h2 className="pf-section-title">{t("portfolioPage.closedPositions")}</h2>
         </div>
-        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-400">
-          {positions.length}
-        </span>
+        <span className="pf-count-badge pf-count-amber">{positions.length}</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="pf-table-scroll">
+        <table className="pf-table">
           <thead>
-            <tr className="border-y border-border/60 bg-muted/40">
+            <tr className="pf-thead-row">
               {[
                 { label: t("portfolioPage.table.symbol"), align: "left" },
                 { label: t("portfolioPage.table.buyQty"), align: "right" },
@@ -57,34 +52,32 @@ export function ClosedPositionsTable({ positions }: Props) {
               ].map((h) => (
                 <th
                   key={h.label}
-                  className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground ${h.align === "right" ? "text-right" : "text-left"}`}
+                  className={`pf-th${h.align === "right" ? " pf-th-r" : ""}`}
                 >
                   {h.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody>
             {positions.map((p) => (
-              <tr key={p.symbol} className="transition-colors hover:bg-muted/30">
-                <td className="px-4 py-3.5">
-                  <span className="inline-flex items-center rounded-md border border-amber-500/25 bg-amber-500/8 px-2.5 py-1 text-xs font-bold tracking-wide text-amber-400/90">
-                    {p.symbol}
-                  </span>
+              <tr key={p.symbol} className="pf-row pf-closed-row">
+                <td className="pf-td">
+                  <span className="pf-sym pf-sym-amber">{p.symbol}</span>
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground/80">
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtQty(p.total_buy_qty)}
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground/80">
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtQty(p.total_sell_qty)}
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-foreground/80">
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtUsd(p.avg_buy_price)}
                 </td>
-                <td className="px-4 py-3.5 text-right">
+                <td className="pf-td pf-td-r">
                   <PnlBadge value={p.realized_pnl} />
                 </td>
-                <td className="px-4 py-3.5 text-right tabular-nums text-muted-foreground">
+                <td className="pf-td pf-td-r pf-num pf-muted">
                   {fmtUsd(p.total_fees)}
                 </td>
               </tr>

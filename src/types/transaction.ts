@@ -73,6 +73,9 @@ export type TransactionHistoryPoint = {
 export type ListTransactionHistoryResponse = {
   interval_seconds: number; // currently fixed at 10
   items: TransactionHistoryPoint[];
+  total: number;
+  page: number;
+  per_page: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
