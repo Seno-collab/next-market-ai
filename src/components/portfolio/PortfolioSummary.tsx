@@ -1,4 +1,5 @@
 import { useLocale } from "@/hooks/useLocale";
+import { Col, Grid, Row } from "antd";
 import type { LivePortfolio } from "@/types/portfolio";
 
 const fmtUsd = (n: number) =>
@@ -6,6 +7,7 @@ const fmtUsd = (n: number) =>
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 const pnlColor = (n: number) =>
   n > 0 ? "pf-val-up" : n < 0 ? "pf-val-dn" : "pf-val-neutral";
+const { useBreakpoint } = Grid;
 
 interface Props {
   portfolio: LivePortfolio;
@@ -21,79 +23,95 @@ export function PortfolioSummary({
   onRefetch,
 }: Props) {
   const { locale, t } = useLocale();
+  const screens = useBreakpoint();
   const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
 
   return (
     <div className="pf-summary">
       <div className="pf-summary-grid">
-        <SummaryCard
-          label={t("portfolioPage.summary.invested")}
-          value={fmtUsd(portfolio.total_invested)}
-          accent="#38bdf8"
-          accentFrom="rgba(56,189,248,0.18)"
-          accentTo="rgba(56,189,248,0.04)"
-        />
-        <SummaryCard
-          label={t("portfolioPage.summary.currentValue")}
-          value={fmtUsd(portfolio.total_live_value)}
-          accent="#a78bfa"
-          accentFrom="rgba(167,139,250,0.18)"
-          accentTo="rgba(167,139,250,0.04)"
-        />
-        <SummaryCard
-          label={t("portfolioPage.summary.unrealizedPnl")}
-          value={fmtUsd(portfolio.total_live_unrealized_pnl)}
-          sub={fmtPct(roiPct)}
-          valueColor={pnlColor(portfolio.total_live_unrealized_pnl)}
-          trend={portfolio.total_live_unrealized_pnl}
-          accent={portfolio.total_live_unrealized_pnl >= 0 ? "#34d399" : "#f87171"}
-          accentFrom={
-            portfolio.total_live_unrealized_pnl >= 0
-              ? "rgba(52,211,153,0.18)"
-              : "rgba(248,113,113,0.18)"
-          }
-          accentTo={
-            portfolio.total_live_unrealized_pnl >= 0
-              ? "rgba(52,211,153,0.04)"
-              : "rgba(248,113,113,0.04)"
-          }
-        />
-        <SummaryCard
-          label={t("portfolioPage.summary.realizedPnl")}
-          value={fmtUsd(portfolio.total_realized_pnl)}
-          valueColor={pnlColor(portfolio.total_realized_pnl)}
-          trend={portfolio.total_realized_pnl}
-          accent={portfolio.total_realized_pnl >= 0 ? "#34d399" : "#f87171"}
-          accentFrom={
-            portfolio.total_realized_pnl >= 0
-              ? "rgba(52,211,153,0.18)"
-              : "rgba(248,113,113,0.18)"
-          }
-          accentTo={
-            portfolio.total_realized_pnl >= 0
-              ? "rgba(52,211,153,0.04)"
-              : "rgba(248,113,113,0.04)"
-          }
-        />
-        <SummaryCard
-          label={t("portfolioPage.summary.totalPnl")}
-          value={fmtUsd(totalPnl)}
-          sub={`${t("portfolioPage.summary.fees")} ${fmtUsd(portfolio.total_fees)}`}
-          valueColor={pnlColor(totalPnl)}
-          trend={totalPnl}
-          highlight
-          accent={totalPnl >= 0 ? "#2dd4bf" : "#f87171"}
-          accentFrom={
-            totalPnl >= 0
-              ? "rgba(45,212,191,0.22)"
-              : "rgba(248,113,113,0.22)"
-          }
-          accentTo={
-            totalPnl >= 0
-              ? "rgba(45,212,191,0.04)"
-              : "rgba(248,113,113,0.04)"
-          }
-        />
+        <Row
+          gutter={[{ xs: 8, sm: 16, md: 24, lg: 32 }, { xs: 8, sm: 16, md: 24, lg: 32 }]}
+          className="pf-summary-row"
+        >
+          <Col xs={24} sm={12} md={12} lg={12} xl={6} xxl={6}>
+            <SummaryCard
+              label={t("portfolioPage.summary.invested")}
+              value={fmtUsd(portfolio.total_invested)}
+              accent="#38bdf8"
+              accentFrom="rgba(56,189,248,0.18)"
+              accentTo="rgba(56,189,248,0.04)"
+            />
+          </Col>
+          <Col xs={24} sm={12} md={12} lg={12} xl={6} xxl={6}>
+            <SummaryCard
+              label={t("portfolioPage.summary.currentValue")}
+              value={fmtUsd(portfolio.total_live_value)}
+              accent="#a78bfa"
+              accentFrom="rgba(167,139,250,0.18)"
+              accentTo="rgba(167,139,250,0.04)"
+            />
+          </Col>
+          <Col xs={24} sm={12} md={12} lg={12} xl={6} xxl={6}>
+            <SummaryCard
+              label={t("portfolioPage.summary.unrealizedPnl")}
+              value={fmtUsd(portfolio.total_live_unrealized_pnl)}
+              sub={fmtPct(roiPct)}
+              valueColor={pnlColor(portfolio.total_live_unrealized_pnl)}
+              trend={portfolio.total_live_unrealized_pnl}
+              accent={portfolio.total_live_unrealized_pnl >= 0 ? "#34d399" : "#f87171"}
+              accentFrom={
+                portfolio.total_live_unrealized_pnl >= 0
+                  ? "rgba(52,211,153,0.18)"
+                  : "rgba(248,113,113,0.18)"
+              }
+              accentTo={
+                portfolio.total_live_unrealized_pnl >= 0
+                  ? "rgba(52,211,153,0.04)"
+                  : "rgba(248,113,113,0.04)"
+              }
+            />
+          </Col>
+          <Col xs={24} sm={12} md={12} lg={12} xl={6} xxl={6}>
+            <SummaryCard
+              label={t("portfolioPage.summary.realizedPnl")}
+              value={fmtUsd(portfolio.total_realized_pnl)}
+              valueColor={pnlColor(portfolio.total_realized_pnl)}
+              trend={portfolio.total_realized_pnl}
+              accent={portfolio.total_realized_pnl >= 0 ? "#34d399" : "#f87171"}
+              accentFrom={
+                portfolio.total_realized_pnl >= 0
+                  ? "rgba(52,211,153,0.18)"
+                  : "rgba(248,113,113,0.18)"
+              }
+              accentTo={
+                portfolio.total_realized_pnl >= 0
+                  ? "rgba(52,211,153,0.04)"
+                  : "rgba(248,113,113,0.04)"
+              }
+            />
+          </Col>
+          <Col xs={24} sm={24} md={24} lg={24} xl={24} xxl={24}>
+            <SummaryCard
+              label={t("portfolioPage.summary.totalPnl")}
+              value={fmtUsd(totalPnl)}
+              sub={`${t("portfolioPage.summary.fees")} ${fmtUsd(portfolio.total_fees)}`}
+              valueColor={pnlColor(totalPnl)}
+              trend={totalPnl}
+              highlight
+              accent={totalPnl >= 0 ? "#2dd4bf" : "#f87171"}
+              accentFrom={
+                totalPnl >= 0
+                  ? "rgba(45,212,191,0.22)"
+                  : "rgba(248,113,113,0.22)"
+              }
+              accentTo={
+                totalPnl >= 0
+                  ? "rgba(45,212,191,0.04)"
+                  : "rgba(248,113,113,0.04)"
+              }
+            />
+          </Col>
+        </Row>
       </div>
 
       <div className="pf-summary-footer">
@@ -106,7 +124,9 @@ export function PortfolioSummary({
             {t("portfolioPage.summary.updated")}{" "}
             {new Date(portfolio.generated_at).toLocaleTimeString(dateLocale)}
           </span>
-          <span className="pf-summary-ver">v{portfolio.watermark.version}</span>
+          {screens.sm && (
+            <span className="pf-summary-ver">v{portfolio.watermark.version}</span>
+          )}
         </div>
         <button onClick={onRefetch} className="pf-sync-btn">
           ↻ {t("portfolioPage.summary.sync")}

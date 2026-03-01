@@ -1,10 +1,13 @@
 import { useLocale } from "@/hooks/useLocale";
+import { Grid, Table } from "antd";
+import type { TableColumnsType } from "antd";
 import type { LivePositionRow } from "@/types/portfolio";
 
 const fmtUsd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 const fmtQty = (n: number) => n.toFixed(8).replace(/\.?0+$/, "");
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+const { useBreakpoint } = Grid;
 
 function PnlBadge({ value, sub }: { value: number; sub?: string }) {
   const cls =
@@ -41,9 +44,82 @@ interface Props {
   positions: LivePositionRow[];
 }
 
+type OpenPositionTableRow = LivePositionRow & { key: string };
+
 export function OpenPositionsTable({ positions }: Props) {
   const { t } = useLocale();
+  const screens = useBreakpoint();
   if (positions.length === 0) return null;
+
+  const dataSource: OpenPositionTableRow[] = positions.map((position) => ({
+    ...position,
+    key: position.symbol,
+  }));
+  const columns: TableColumnsType<OpenPositionTableRow> = [
+    {
+      title: t("portfolioPage.table.symbol"),
+      dataIndex: "symbol",
+      key: "symbol",
+      render: (symbol: string) => <span className="pf-sym pf-sym-sky">{symbol}</span>,
+    },
+    {
+      title: t("portfolioPage.table.netQty"),
+      dataIndex: "net_qty",
+      key: "net_qty",
+      align: "right",
+      responsive: ["sm"],
+      render: (value: number) => <span className="pf-num">{fmtQty(value)}</span>,
+    },
+    {
+      title: t("portfolioPage.table.avgBuy"),
+      dataIndex: "avg_buy_price",
+      key: "avg_buy_price",
+      align: "right",
+      responsive: ["md"],
+      render: (value: number) => <span className="pf-num pf-muted">{fmtUsd(value)}</span>,
+    },
+    {
+      title: t("portfolioPage.table.livePrice"),
+      dataIndex: "live_price",
+      key: "live_price",
+      align: "right",
+      render: (value: number) => <span className="pf-num pf-bright">{fmtUsd(value)}</span>,
+    },
+    {
+      title: screens.sm ? t("portfolioPage.table.change24h") : "24h",
+      dataIndex: "live_change_24h_pct",
+      key: "live_change_24h_pct",
+      align: "right",
+      render: (value: number) => <ChangeBadge pct={value} />,
+    },
+    {
+      title: t("portfolioPage.table.invested"),
+      dataIndex: "total_invested",
+      key: "total_invested",
+      align: "right",
+      responsive: ["lg"],
+      render: (value: number) => <span className="pf-num pf-muted">{fmtUsd(value)}</span>,
+    },
+    {
+      title: t("portfolioPage.table.liveValue"),
+      dataIndex: "live_value",
+      key: "live_value",
+      align: "right",
+      responsive: ["md"],
+      render: (value: number) => <span className="pf-num pf-bright">{fmtUsd(value)}</span>,
+    },
+    {
+      title: t("portfolioPage.table.unrealizedPnl"),
+      key: "live_unrealized_pnl",
+      align: "right",
+      render: (_, row) => (
+        <PnlBadge
+          value={row.live_unrealized_pnl}
+          sub={fmtPct(row.live_unrealized_pnl_pct)}
+        />
+      ),
+    },
+  ];
 
   return (
     <section className="pf-table-section">
@@ -59,60 +135,15 @@ export function OpenPositionsTable({ positions }: Props) {
       </div>
 
       <div className="pf-table-scroll">
-        <table className="pf-table">
-          <thead>
-            <tr className="pf-thead-row">
-              {[
-                { label: t("portfolioPage.table.symbol"), align: "left" },
-                { label: t("portfolioPage.table.netQty"), align: "right" },
-                { label: t("portfolioPage.table.avgBuy"), align: "right" },
-                { label: t("portfolioPage.table.livePrice"), align: "right" },
-                { label: t("portfolioPage.table.change24h"), align: "right" },
-                { label: t("portfolioPage.table.invested"), align: "right" },
-                { label: t("portfolioPage.table.liveValue"), align: "right" },
-                { label: t("portfolioPage.table.unrealizedPnl"), align: "right" },
-              ].map((h) => (
-                <th
-                  key={h.label}
-                  className={`pf-th${h.align === "right" ? " pf-th-r" : ""}`}
-                >
-                  {h.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {positions.map((p) => (
-              <tr key={p.symbol} className="pf-row pf-open-row">
-                <td className="pf-td">
-                  <span className="pf-sym pf-sym-sky">{p.symbol}</span>
-                </td>
-                <td className="pf-td pf-td-r pf-num">{fmtQty(p.net_qty)}</td>
-                <td className="pf-td pf-td-r pf-num pf-muted">
-                  {fmtUsd(p.avg_buy_price)}
-                </td>
-                <td className="pf-td pf-td-r pf-num pf-bright">
-                  {fmtUsd(p.live_price)}
-                </td>
-                <td className="pf-td pf-td-r">
-                  <ChangeBadge pct={p.live_change_24h_pct} />
-                </td>
-                <td className="pf-td pf-td-r pf-num pf-muted">
-                  {fmtUsd(p.total_invested)}
-                </td>
-                <td className="pf-td pf-td-r pf-num pf-bright">
-                  {fmtUsd(p.live_value)}
-                </td>
-                <td className="pf-td pf-td-r">
-                  <PnlBadge
-                    value={p.live_unrealized_pnl}
-                    sub={fmtPct(p.live_unrealized_pnl_pct)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table<OpenPositionTableRow>
+          columns={columns}
+          dataSource={dataSource}
+          rowKey="key"
+          pagination={false}
+          size="small"
+          scroll={{ x: "max-content" }}
+          className="pf-ant-table pf-ant-open-table"
+        />
       </div>
     </section>
   );

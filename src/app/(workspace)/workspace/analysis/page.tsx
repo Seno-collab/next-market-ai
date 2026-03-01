@@ -16,7 +16,8 @@ import {
 	RiseOutlined,
 	ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Button, Spin, Typography } from "antd";
+import { Button, Grid, Spin, Table, Typography } from "antd";
+import type { TableColumnsType } from "antd";
 import { analysisApi } from "@/lib/api/analysis";
 import SymbolSearch from "@/features/trading/components/SymbolSearch";
 import type {
@@ -51,6 +52,19 @@ const STRENGTH_DOTS: Record<Strength, string> = {
 	WEAK: "●○○",
 };
 const DECISION_MODES: TradeDecisionMode[] = ["hybrid", "analysis", "coinai"];
+const { useBreakpoint } = Grid;
+
+type CandleTableRow = {
+	key: string;
+	time: string;
+	open: string;
+	high: string;
+	low: string;
+	close: string;
+	volume: string;
+	changeText: string;
+	up: boolean;
+};
 
 function getUtcToday() {
 	return new Date().toISOString().slice(0, 10);
@@ -73,6 +87,8 @@ function fmtSignedPercentFromDecimal(v: number, dec = 2) {
 }
 
 export default function AnalysisPage() {
+	const screens = useBreakpoint();
+	const isXs = !!screens.xs && !screens.sm;
 	const [symbol, setSymbol] = useState("BTCUSDT");
 	const [interval, setIv] = useState<Interval>("1h");
 	const [reportDate, setReportDate] = useState<string>(getUtcToday);
@@ -152,6 +168,94 @@ export default function AnalysisPage() {
 				? "#f87171"
 				: "#94a3b8"
 		: "#94a3b8";
+
+	const candleRows: CandleTableRow[] = report
+		? [...report.candles]
+				.reverse()
+				.slice(0, 24)
+				.map((c) => {
+					const pct =
+						((Number(c.close) - Number(c.open)) / Number(c.open)) * 100;
+					const up = pct >= 0;
+					return {
+						key: String(c.open_time),
+						time: new Date(c.open_time).toLocaleTimeString("en-US", {
+							hour: "2-digit",
+							minute: "2-digit",
+							hour12: false,
+						}),
+						open: fmtP(c.open),
+						high: fmtP(c.high),
+						low: fmtP(c.low),
+						close: fmtP(c.close),
+						volume: Number(c.volume).toLocaleString("en-US", {
+							maximumFractionDigits: 1,
+						}),
+						changeText: `${up ? "+" : ""}${pct.toFixed(2)}%`,
+						up,
+					};
+				})
+		: [];
+
+	const candleColumns: TableColumnsType<CandleTableRow> = [
+		{
+			title: "Time",
+			key: "time",
+			dataIndex: "time",
+			width: 98,
+			render: (value: string) => <span className="al-td-dim">{value}</span>,
+		},
+		{
+			title: "Open",
+			key: "open",
+			dataIndex: "open",
+			responsive: ["sm"],
+			align: "right",
+			render: (value: string) => <span className="al-td-num">{value}</span>,
+		},
+		{
+			title: "High",
+			key: "high",
+			dataIndex: "high",
+			responsive: ["md"],
+			align: "right",
+			render: (value: string) => <span className="al-up">{value}</span>,
+		},
+		{
+			title: "Low",
+			key: "low",
+			dataIndex: "low",
+			responsive: ["md"],
+			align: "right",
+			render: (value: string) => <span className="al-dn">{value}</span>,
+		},
+		{
+			title: "Close",
+			key: "close",
+			dataIndex: "close",
+			align: "right",
+			render: (value: string, row) => (
+				<span className={`al-td-num ${row.up ? "al-up" : "al-dn"}`}>{value}</span>
+			),
+		},
+		{
+			title: "Volume",
+			key: "volume",
+			dataIndex: "volume",
+			responsive: ["lg"],
+			align: "right",
+			render: (value: string) => <span className="al-td-dim">{value}</span>,
+		},
+		{
+			title: "Δ%",
+			key: "changeText",
+			dataIndex: "changeText",
+			align: "right",
+			render: (value: string, row) => (
+				<span className={row.up ? "al-up" : "al-dn"}>{value}</span>
+			),
+		},
+	];
 
 	return (
 		<div className="al-shell">
@@ -897,62 +1001,15 @@ export default function AnalysisPage() {
 						{/* Candles table */}
 						{report.candles.length > 0 && (
 							<div className="al-tbl-wrap">
-								<table className="al-tbl">
-									<thead>
-										<tr>
-											<th>Time</th>
-											<th>Open</th>
-											<th>High</th>
-											<th>Low</th>
-											<th>Close</th>
-											<th>Volume</th>
-											<th>Δ%</th>
-										</tr>
-									</thead>
-									<tbody>
-										{[...report.candles]
-											.reverse()
-											.slice(0, 24)
-											.map((c) => {
-												const pct =
-													((Number(c.close) - Number(c.open)) /
-														Number(c.open)) *
-													100;
-												const up = pct >= 0;
-												return (
-													<tr key={c.open_time} className="al-trow">
-														<td className="al-td-dim">
-															{new Date(c.open_time).toLocaleTimeString(
-																"en-US",
-																{
-																	hour: "2-digit",
-																	minute: "2-digit",
-																	hour12: false,
-																},
-															)}
-														</td>
-														<td className="al-td-num">{fmtP(c.open)}</td>
-														<td className="al-up">{fmtP(c.high)}</td>
-														<td className="al-dn">{fmtP(c.low)}</td>
-														<td
-															className={`al-td-num ${up ? "al-up" : "al-dn"}`}
-														>
-															{fmtP(c.close)}
-														</td>
-														<td className="al-td-dim">
-															{Number(c.volume).toLocaleString("en-US", {
-																maximumFractionDigits: 1,
-															})}
-														</td>
-														<td className={up ? "al-up" : "al-dn"}>
-															{up ? "+" : ""}
-															{pct.toFixed(2)}%
-														</td>
-													</tr>
-												);
-											})}
-									</tbody>
-								</table>
+								<Table<CandleTableRow>
+									rowKey="key"
+									dataSource={candleRows}
+									columns={candleColumns}
+									pagination={false}
+									scroll={{ x: "max-content" }}
+									size={isXs ? "small" : "middle"}
+									className="al-ant-table"
+								/>
 							</div>
 						)}
 					</>

@@ -9,7 +9,8 @@ import {
 	SearchOutlined,
 	StarOutlined,
 } from "@ant-design/icons";
-import { Input, Spin, message } from "antd";
+import { Grid, Input, Spin, Table, message } from "antd";
+import type { TableColumnsType } from "antd";
 import { coinAiApi, isCoinAiRequestError } from "@/lib/api/coinai";
 import type { QuoteItem, SymbolItem } from "@/types/trading";
 
@@ -77,8 +78,13 @@ async function fetchSymbols(quote: string): Promise<SymbolItem[]> {
 	}
 }
 
+type SymbolTableRow = SymbolItem & { rowIndex: number };
+const { useBreakpoint } = Grid;
+
 /* ── Page ──────────────────────────────────────────────────────────────────── */
 export default function SymbolsPage() {
+	const screens = useBreakpoint();
+	const isXs = !!screens.xs && !screens.sm;
 	const [quotes, setQuotes] = useState<QuoteItem[]>([]);
 	const [symbols, setSymbols] = useState<SymbolItem[]>([]);
 	const [activeQuote, setActiveQuote] = useState("USDT");
@@ -151,6 +157,108 @@ export default function SymbolsPage() {
 	}
 
 	const visible = filtered.slice(0, 200);
+	const tableRows = useMemo<SymbolTableRow[]>(
+		() =>
+			visible.map((item, index) => ({
+				...item,
+				rowIndex: index + 1,
+			})),
+		[visible],
+	);
+
+	const columns: TableColumnsType<SymbolTableRow> = useMemo(
+		() => [
+			{
+				title: "#",
+				key: "rowIndex",
+				dataIndex: "rowIndex",
+				responsive: ["sm"],
+				width: 64,
+				render: (value: number) => <span className="sb-item-num">{value}</span>,
+			},
+			{
+				title: "Pair",
+				key: "pair",
+				dataIndex: "base_asset",
+				render: (_: string, item) => {
+					const grad = coinGradient(item.base_asset);
+					const tclr = coinTextColor(item.base_asset);
+					return (
+						<div className="sb-pair-cell">
+							<div className="sb-item-avatar" style={{ background: grad }}>
+								{item.base_asset.slice(0, 3)}
+							</div>
+							<div className="sb-item-info">
+								<span className="sb-item-base" style={{ color: tclr }}>
+									{item.base_asset}
+								</span>
+								<span className="sb-item-symbol">{item.symbol}</span>
+							</div>
+						</div>
+					);
+				},
+			},
+			{
+				title: "Quote",
+				key: "quote_asset",
+				dataIndex: "quote_asset",
+				responsive: ["md"],
+				width: 110,
+				render: (value: string, item) => {
+					const tclr = coinTextColor(item.base_asset);
+					return (
+						<span
+							className="sb-item-qtag"
+							style={{
+								color: tclr,
+								background: `${tclr}18`,
+								borderColor: `${tclr}35`,
+							}}
+						>
+							{value}
+						</span>
+					);
+				},
+			},
+			{
+				title: "Actions",
+				key: "actions",
+				align: "right",
+				width: isXs ? 108 : 152,
+				render: (_, item) => {
+					const isAdded = added.has(item.symbol);
+					const isAdding = adding.has(item.symbol);
+					return (
+						<div className="sb-item-actions">
+							<Link
+								href={`/workspace/trading?symbol=${item.symbol}`}
+								className="sb-btn-chart"
+							>
+								<LineChartOutlined />
+								{!isXs && <span className="sb-btn-txt">Chart</span>}
+							</Link>
+							<button
+								className={`sb-btn-star${isAdded ? " sb-btn-star-active" : ""}`}
+								disabled={isAdding || isAdded}
+								onClick={() => void handleWatch(item.symbol)}
+								title={isAdded ? "In watchlist" : "Add to watchlist"}
+							>
+								{isAdding ? (
+									<Spin size="small" />
+								) : isAdded ? (
+									<StarOutlined />
+								) : (
+									<PlusOutlined />
+								)}
+							</button>
+						</div>
+					);
+				},
+			},
+		],
+		[added, adding, isXs],
+	);
+
 	const activeCount =
 		quotes.find((q) => q.quote_asset === activeQuote)?.symbol_count ??
 		symbols.length;
@@ -245,74 +353,15 @@ export default function SymbolsPage() {
 				</div>
 			) : (
 				<div className="sb-list-panel">
-					{/* Sticky column header */}
-					<div className="sb-list-hd">
-						<span className="sb-hd-num">#</span>
-						<span className="sb-hd-name">Pair</span>
-						<span className="sb-hd-quote">Quote</span>
-						<span className="sb-hd-actions">Actions</span>
-					</div>
-
-					{/* Rows */}
-					<div className="sb-list">
-						{visible.map((item, i) => {
-							const grad = coinGradient(item.base_asset);
-							const tclr = coinTextColor(item.base_asset);
-							const isAdded = added.has(item.symbol);
-							const isAdding = adding.has(item.symbol);
-							return (
-								<div key={item.symbol} className="sb-item">
-									<span className="sb-item-num">{i + 1}</span>
-
-									<div className="sb-item-avatar" style={{ background: grad }}>
-										{item.base_asset.slice(0, 3)}
-									</div>
-
-									<div className="sb-item-info">
-										<span className="sb-item-base" style={{ color: tclr }}>
-											{item.base_asset}
-										</span>
-										<span className="sb-item-symbol">{item.symbol}</span>
-									</div>
-
-									<span
-										className="sb-item-qtag"
-										style={{
-											color: tclr,
-											background: `${tclr}18`,
-											borderColor: `${tclr}35`,
-										}}
-									>
-										{item.quote_asset}
-									</span>
-
-									<div className="sb-item-actions">
-										<Link
-											href={`/workspace/trading?symbol=${item.symbol}`}
-											className="sb-btn-chart"
-										>
-											<LineChartOutlined />
-											<span className="sb-btn-txt">Chart</span>
-										</Link>
-										<button
-											className={`sb-btn-star${isAdded ? " sb-btn-star-active" : ""}`}
-											disabled={isAdding || isAdded}
-											onClick={() => void handleWatch(item.symbol)}
-											title={isAdded ? "In watchlist" : "Add to watchlist"}
-										>
-											{isAdding ? (
-												<Spin size="small" />
-											) : isAdded ? (
-												<StarOutlined />
-											) : (
-												<PlusOutlined />
-											)}
-										</button>
-									</div>
-								</div>
-							);
-						})}
-					</div>
+					<Table<SymbolTableRow>
+						rowKey="symbol"
+						dataSource={tableRows}
+						columns={columns}
+						className="sb-ant-table"
+						pagination={false}
+						scroll={{ x: "max-content" }}
+						size={isXs ? "small" : "middle"}
+					/>
 
 					{filtered.length > 200 && (
 						<div className="sb-overflow-hint">

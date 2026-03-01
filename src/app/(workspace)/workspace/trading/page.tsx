@@ -8,7 +8,7 @@ import {
   MinusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { Spin } from "antd";
+import { Grid, Spin } from "antd";
 import { useTheme } from "@/hooks/useTheme";
 import { tradingApi, candleToChart } from "@/lib/api/trading";
 import { useTradingStream } from "@/hooks/useTradingStream";
@@ -54,6 +54,7 @@ const PERIODS = [
 ] as const;
 type Period = (typeof PERIODS)[number];
 const COMPACT_PERIODS: readonly Period[] = ["5m", "15m", "1h", "4h"];
+const { useBreakpoint } = Grid;
 
 type CandleBar = {
   time: number;
@@ -139,6 +140,8 @@ function klineToBar(k: KlineUpdate): CandleBar {
 }
 
 export default function TradingPage() {
+  const screens = useBreakpoint();
+  const isCompactControls = screens.lg === false;
   const { isDark } = useTheme();
   const [symbol, setSymbol] = useState(() => {
     if (typeof window === "undefined") return "BTCUSDT";
@@ -151,7 +154,6 @@ export default function TradingPage() {
   const [candleLoading, setCandleLoading] = useState(true);
   const [candleError, setCandleError] = useState<string | null>(null);
   const [chartHeight, setChartHeight] = useState(460);
-  const [isCompactControls, setIsCompactControls] = useState(false);
   const [showCompactControls, setShowCompactControls] = useState(true);
   const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -186,25 +188,13 @@ export default function TradingPage() {
   const wsConnectedRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const media = window.matchMedia("(max-width: 1024px)");
-    const syncControlsMode = (mobile: boolean) => {
-      setIsCompactControls(mobile);
-      setShowCompactControls(!mobile);
-    };
-
-    syncControlsMode(media.matches);
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      syncControlsMode(event.matches);
-    };
-
-    media.addEventListener("change", handleChange);
-    return () => {
-      media.removeEventListener("change", handleChange);
-    };
-  }, []);
+    if (isCompactControls) {
+      setShowCompactControls(false);
+      setIsPeriodMenuOpen(false);
+      return;
+    }
+    setShowCompactControls(true);
+  }, [isCompactControls]);
 
   useEffect(() => {
     if (!isPeriodMenuOpen) return;

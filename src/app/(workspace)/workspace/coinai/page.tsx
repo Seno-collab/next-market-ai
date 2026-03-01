@@ -14,10 +14,13 @@ import {
 } from "@ant-design/icons";
 import {
 	Button,
+	Col,
 	Form,
+	Grid,
 	Input,
 	InputNumber,
 	Modal,
+	Row,
 	Spin,
 	Tag,
 	Typography,
@@ -65,6 +68,8 @@ const MAX_REFRESH_MS = 10 * 60 * 1000;
 const MIN_REFRESH_MS = 5 * 1000;
 const RATE_LIMIT_COOLDOWN_MS = 5 * 1000;
 const DEFAULT_MIN_TRUST_SCORE = 0.58;
+const { useBreakpoint } = Grid;
+const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
 
 const SIG_CLR: Record<CoinAISignal, string> = {
 	BUY: "#34d399",
@@ -238,6 +243,7 @@ function AlgorithmPicker({
 }
 
 export default function CoinAIPage() {
+	const screens = useBreakpoint();
 	const [watchlist, setWatchlist] = useState<string[]>([]);
 	const [loadingWL, setLoadingWL] = useState(false);
 	const [errorWL, setErrorWL] = useState<string | null>(null);
@@ -738,14 +744,14 @@ export default function CoinAIPage() {
 						onClick={() => void loadWatchlist()}
 						disabled={loadingWL}
 					>
-						Refresh
+						{screens.sm ? "Refresh" : "Sync"}
 					</Button>
 					<Button
 						type="primary"
 						icon={<PlusOutlined />}
 						onClick={() => setAddOpen(true)}
 					>
-						Add Symbol
+						{screens.sm ? "Add Symbol" : "Add"}
 					</Button>
 				</div>
 			</div>
@@ -758,93 +764,99 @@ export default function CoinAIPage() {
 			)}
 
 			<div className="ci-layout">
-				<div className="ci-panel ci-watchlist-panel">
-					<div className="ci-panel-hd">
-						<span className="ci-panel-title">
-							<EyeOutlined /> Watchlist
-						</span>
-						<Tag>{safeWatchlist.length} symbols</Tag>
-					</div>
-					<div className="ci-ctrl">
-						<span className="ci-ctrl-label">Single Train Algorithm</span>
-						<AlgorithmPicker value={trainAlgorithm} onChange={setTrainAlgorithm} />
-					</div>
-					<div className="ci-ctrl">
-						<span className="ci-ctrl-label">Min Trust Score</span>
-						<InputNumber
-							min={0}
-							max={1}
-							step={0.01}
-							value={trainMinTrustScore}
-							onChange={(value) =>
-								setTrainMinTrustScore(
-									typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
-								)
-							}
-						/>
-					</div>
-
-					{loadingWL && (
-						<div className="ci-center-spin">
-							<Spin size="small" />
-						</div>
-					)}
-					{errorWL && (
-						<div className="ci-err-banner">
-							<Typography.Text type="danger">{errorWL}</Typography.Text>
-						</div>
-					)}
-
-					{!loadingWL && !errorWL && safeWatchlist.length === 0 && (
-						<div className="ci-empty">
-							<RobotOutlined className="ci-empty-icon" />
-							<p>No symbols in watchlist</p>
-							<Button
-								size="small"
-								icon={<PlusOutlined />}
-								onClick={() => setAddOpen(true)}
-							>
-								Add first symbol
-							</Button>
-						</div>
-					)}
-
-					<div className="ci-wl-list">
-						{safeWatchlist.map((sym) => (
-							<div
-								key={sym}
-								className={`ci-wl-row${activeSymbol === sym ? " ci-wl-row-active" : ""}`}
-							>
-								<div className="ci-wl-info">
-									<span className="ci-wl-symbol">{sym}</span>
-								</div>
-								<div className="ci-wl-actions">
-									<Button
-										size="small"
-										type="primary"
-										ghost
-										icon={<RobotOutlined />}
-										loading={loadingTrain && activeSymbol === sym}
-										disabled={isTrainCoolingDown}
-										onClick={() => void runTrain(sym, "1h")}
-									>
-										Analyze
-									</Button>
-									<Button
-										size="small"
-										danger
-										ghost
-										icon={<DeleteOutlined />}
-										className="ci-del-btn"
-										onClick={() => void handleRemove(sym)}
-									/>
-								</div>
+				<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+					<Col xs={24} sm={24} md={24} lg={8} xl={7} xxl={6}>
+						<div className="ci-panel ci-watchlist-panel">
+							<div className="ci-panel-hd">
+								<span className="ci-panel-title">
+									<EyeOutlined /> Watchlist
+								</span>
+								<Tag>{safeWatchlist.length} symbols</Tag>
 							</div>
-						))}
-					</div>
-				</div>
+							<div className="ci-ctrl">
+								<span className="ci-ctrl-label">Single Train Algorithm</span>
+								<AlgorithmPicker value={trainAlgorithm} onChange={setTrainAlgorithm} />
+							</div>
+							<div className="ci-ctrl">
+								<span className="ci-ctrl-label">Min Trust Score</span>
+								<InputNumber
+									min={0}
+									max={1}
+									step={0.01}
+									value={trainMinTrustScore}
+									onChange={(value) =>
+										setTrainMinTrustScore(
+											typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
+										)
+									}
+								/>
+							</div>
 
-				<div className="ci-panel ci-result-panel">
+							{loadingWL && (
+								<div className="ci-center-spin">
+									<Spin size="small" />
+								</div>
+							)}
+							{errorWL && (
+								<div className="ci-err-banner">
+									<Typography.Text type="danger">{errorWL}</Typography.Text>
+								</div>
+							)}
+
+							{!loadingWL && !errorWL && safeWatchlist.length === 0 && (
+								<div className="ci-empty">
+									<RobotOutlined className="ci-empty-icon" />
+									<p>No symbols in watchlist</p>
+									<Button
+										size="small"
+										icon={<PlusOutlined />}
+										onClick={() => setAddOpen(true)}
+									>
+										Add first symbol
+									</Button>
+								</div>
+							)}
+
+							<div className="ci-wl-list">
+								{safeWatchlist.map((sym) => (
+									<div
+										key={sym}
+										className={`ci-wl-row${activeSymbol === sym ? " ci-wl-row-active" : ""}`}
+									>
+										<div className="ci-wl-info">
+											<span className="ci-wl-symbol">{sym}</span>
+										</div>
+										<div className="ci-wl-actions">
+											<Button
+												size="small"
+												type="primary"
+												ghost
+												icon={<RobotOutlined />}
+												loading={loadingTrain && activeSymbol === sym}
+												disabled={isTrainCoolingDown}
+												onClick={() => void runTrain(sym, "1h")}
+												aria-label={`Analyze ${sym}`}
+											>
+												{screens.sm ? "Analyze" : null}
+											</Button>
+											<Button
+												size="small"
+												danger
+												ghost
+												icon={<DeleteOutlined />}
+												className="ci-del-btn"
+												onClick={() => void handleRemove(sym)}
+												aria-label={`Remove ${sym}`}
+											/>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					</Col>
+
+					<Col xs={24} sm={24} md={24} lg={16} xl={17} xxl={18}>
+						<div className="ci-panel ci-result-panel">
 					{!report && !loadingTrain && !errorTrain && (
 						<div className="ci-result-placeholder">
 							<BulbOutlined className="ci-ph-icon" />
@@ -973,28 +985,38 @@ export default function CoinAIPage() {
 							</div>
 
 							<div className="ci-kpi-row">
-								<StatCard
-									label="Predicted Return"
-									value={fmtSignedPercent(report.next_predicted_return)}
-									accent={
-										report.next_predicted_return >= 0 ? "#34d399" : "#f87171"
-									}
-								/>
-								<StatCard
-									label="Win Rate"
-									value={`${(report.backtest.win_rate * 100).toFixed(1)}%`}
-									accent="#7dd3fc"
-								/>
-								<StatCard
-									label="Sharpe Ratio"
-									value={report.backtest.sharpe.toFixed(2)}
-									accent="#a78bfa"
-								/>
-								<StatCard
-									label="Max Drawdown"
-									value={fmtSignedPercent(report.backtest.max_drawdown)}
-									accent="#f87171"
-								/>
+								<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Predicted Return"
+											value={fmtSignedPercent(report.next_predicted_return)}
+											accent={
+												report.next_predicted_return >= 0 ? "#34d399" : "#f87171"
+											}
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Win Rate"
+											value={`${(report.backtest.win_rate * 100).toFixed(1)}%`}
+											accent="#7dd3fc"
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Sharpe Ratio"
+											value={report.backtest.sharpe.toFixed(2)}
+											accent="#a78bfa"
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Max Drawdown"
+											value={fmtSignedPercent(report.backtest.max_drawdown)}
+											accent="#f87171"
+										/>
+									</Col>
+								</Row>
 							</div>
 
 							<div className="ci-bt-panel">
@@ -1042,11 +1064,15 @@ export default function CoinAIPage() {
 							</div>
 						</>
 					)}
-				</div>
+						</div>
+					</Col>
+				</Row>
 			</div>
 
 			<div className="ci-extra-grid">
-				<div className="ci-panel ci-stream-panel">
+				<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+					<Col xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
+						<div className="ci-panel ci-stream-panel">
 					<div className="ci-panel-hd">
 						<span className="ci-panel-title">
 							<LineChartOutlined /> Realtime Train Stream
@@ -1057,69 +1083,83 @@ export default function CoinAIPage() {
 					</div>
 
 					<div className="ci-ctrl-grid">
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Symbol</span>
-							<SymbolSearch
-								value={realtimeSymbol}
-								onChangeAction={setRealtimeSymbol}
-							/>
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Interval</span>
-							<IntervalPicker value={realtimeInterval} onChange={setRealtimeInterval} />
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Algorithm</span>
-							<AlgorithmPicker value={realtimeAlgorithm} onChange={setRealtimeAlgorithm} />
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Min Trust Score</span>
-							<InputNumber
-								min={0}
-								max={1}
-								step={0.01}
-								value={realtimeMinTrustScore}
-								onChange={(value) =>
-									setRealtimeMinTrustScore(
-										typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
-									)
-								}
-							/>
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Refresh</span>
-							<Input
-								value={realtimeRefresh}
-								onChange={(event) => setRealtimeRefresh(event.target.value)}
-								placeholder="20s"
-							/>
-						</div>
-						<div className="ci-ctrl ci-ctrl-row">
-							<div className="ci-ctrl-inline">
-								<span className="ci-ctrl-label">Limit</span>
-								<InputNumber
-									min={50}
-									max={1000}
-									value={realtimeLimit}
-									onChange={(value) =>
-										setRealtimeLimit(typeof value === "number" ? value : 500)
-									}
-								/>
-							</div>
-							<div className="ci-ctrl-inline">
-								<span className="ci-ctrl-label">Max Updates</span>
-								<InputNumber
-									min={1}
-									max={1000}
-									value={realtimeMaxUpdates}
-									onChange={(value) =>
-										setRealtimeMaxUpdates(
-											typeof value === "number" ? value : 180,
-										)
-									}
-								/>
-							</div>
-						</div>
+						<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Symbol</span>
+									<SymbolSearch
+										value={realtimeSymbol}
+										onChangeAction={setRealtimeSymbol}
+									/>
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Interval</span>
+									<IntervalPicker value={realtimeInterval} onChange={setRealtimeInterval} />
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Algorithm</span>
+									<AlgorithmPicker value={realtimeAlgorithm} onChange={setRealtimeAlgorithm} />
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Min Trust Score</span>
+									<InputNumber
+										min={0}
+										max={1}
+										step={0.01}
+										value={realtimeMinTrustScore}
+										onChange={(value) =>
+											setRealtimeMinTrustScore(
+												typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
+											)
+										}
+									/>
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Refresh</span>
+									<Input
+										value={realtimeRefresh}
+										onChange={(event) => setRealtimeRefresh(event.target.value)}
+										placeholder="20s"
+									/>
+								</div>
+							</Col>
+							<Col xs={24} sm={24} md={24} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl ci-ctrl-row">
+									<div className="ci-ctrl-inline">
+										<span className="ci-ctrl-label">Limit</span>
+										<InputNumber
+											min={50}
+											max={1000}
+											value={realtimeLimit}
+											onChange={(value) =>
+												setRealtimeLimit(typeof value === "number" ? value : 500)
+											}
+										/>
+									</div>
+									<div className="ci-ctrl-inline">
+										<span className="ci-ctrl-label">Max Updates</span>
+										<InputNumber
+											min={1}
+											max={1000}
+											value={realtimeMaxUpdates}
+											onChange={(value) =>
+												setRealtimeMaxUpdates(
+													typeof value === "number" ? value : 180,
+												)
+											}
+										/>
+									</div>
+								</div>
+							</Col>
+						</Row>
 					</div>
 
 					<div className="ci-row-actions">
@@ -1234,9 +1274,11 @@ export default function CoinAIPage() {
 							</div>
 						</div>
 					)}
-				</div>
+						</div>
+					</Col>
 
-				<div className="ci-panel ci-multi-panel">
+					<Col xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
+						<div className="ci-panel ci-multi-panel">
 					<div className="ci-panel-hd">
 						<span className="ci-panel-title">
 							<RobotOutlined /> Multi-symbol Train
@@ -1245,72 +1287,86 @@ export default function CoinAIPage() {
 					</div>
 
 					<div className="ci-ctrl-grid">
-						<div className="ci-ctrl ci-ctrl-full">
-							<span className="ci-ctrl-label">Symbols (comma separated)</span>
-							<Input
-								value={multiSymbols}
-								onChange={(event) => setMultiSymbols(event.target.value.toUpperCase())}
-								placeholder="BTCUSDT,ETHUSDT,SOLUSDT"
-							/>
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Interval</span>
-							<IntervalPicker value={multiInterval} onChange={setMultiInterval} />
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Algorithm</span>
-							<AlgorithmPicker value={multiAlgorithm} onChange={setMultiAlgorithm} />
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Min Trust Score</span>
-							<InputNumber
-								min={0}
-								max={1}
-								step={0.01}
-								value={multiMinTrustScore}
-								onChange={(value) =>
-									setMultiMinTrustScore(
-										typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
-									)
-								}
-							/>
-						</div>
-						<div className="ci-ctrl ci-ctrl-row">
-							<div className="ci-ctrl-inline">
-								<span className="ci-ctrl-label">Limit</span>
-								<InputNumber
-									min={0}
-									max={1000}
-									value={multiLimit}
-									onChange={(value) =>
-										setMultiLimit(typeof value === "number" ? value : 300)
-									}
-								/>
-							</div>
-							<div className="ci-ctrl-inline">
-								<span className="ci-ctrl-label">Train Ratio</span>
-								<InputNumber
-									min={0}
-									max={0.99}
-									step={0.01}
-									value={multiTrainRatio}
-									onChange={(value) =>
-										setMultiTrainRatio(typeof value === "number" ? value : 0.7)
-									}
-								/>
-							</div>
-						</div>
-						<div className="ci-ctrl">
-							<span className="ci-ctrl-label">Epochs</span>
-							<InputNumber
-								min={0}
-								max={3000}
-								value={multiEpochs}
-								onChange={(value) =>
-									setMultiEpochs(typeof value === "number" ? value : 800)
-								}
-							/>
-						</div>
+						<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+							<Col xs={24} sm={24} md={24} lg={24} xl={24} xxl={24}>
+								<div className="ci-ctrl ci-ctrl-full">
+									<span className="ci-ctrl-label">Symbols (comma separated)</span>
+									<Input
+										value={multiSymbols}
+										onChange={(event) => setMultiSymbols(event.target.value.toUpperCase())}
+										placeholder="BTCUSDT,ETHUSDT,SOLUSDT"
+									/>
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Interval</span>
+									<IntervalPicker value={multiInterval} onChange={setMultiInterval} />
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Algorithm</span>
+									<AlgorithmPicker value={multiAlgorithm} onChange={setMultiAlgorithm} />
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={8}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Min Trust Score</span>
+									<InputNumber
+										min={0}
+										max={1}
+										step={0.01}
+										value={multiMinTrustScore}
+										onChange={(value) =>
+											setMultiMinTrustScore(
+												typeof value === "number" ? value : DEFAULT_MIN_TRUST_SCORE,
+											)
+										}
+									/>
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={12} xl={12} xxl={12}>
+								<div className="ci-ctrl ci-ctrl-row">
+									<div className="ci-ctrl-inline">
+										<span className="ci-ctrl-label">Limit</span>
+										<InputNumber
+											min={0}
+											max={1000}
+											value={multiLimit}
+											onChange={(value) =>
+												setMultiLimit(typeof value === "number" ? value : 300)
+											}
+										/>
+									</div>
+									<div className="ci-ctrl-inline">
+										<span className="ci-ctrl-label">Train Ratio</span>
+										<InputNumber
+											min={0}
+											max={0.99}
+											step={0.01}
+											value={multiTrainRatio}
+											onChange={(value) =>
+												setMultiTrainRatio(typeof value === "number" ? value : 0.7)
+											}
+										/>
+									</div>
+								</div>
+							</Col>
+							<Col xs={24} sm={12} md={12} lg={12} xl={12} xxl={12}>
+								<div className="ci-ctrl">
+									<span className="ci-ctrl-label">Epochs</span>
+									<InputNumber
+										min={0}
+										max={3000}
+										value={multiEpochs}
+										onChange={(value) =>
+											setMultiEpochs(typeof value === "number" ? value : 800)
+										}
+									/>
+								</div>
+							</Col>
+						</Row>
 					</div>
 
 					<div className="ci-row-actions">
@@ -1383,34 +1439,46 @@ export default function CoinAIPage() {
 							</div>
 
 							<div className="ci-kpi-row">
-								<StatCard
-									label="Directional Acc"
-									value={`${(multiReport.test_directional_acc * 100).toFixed(1)}%`}
-									accent="#7dd3fc"
-								/>
-								<StatCard
-									label="Sharpe Ratio"
-									value={multiReport.backtest.sharpe.toFixed(2)}
-									accent="#a78bfa"
-								/>
-								<StatCard
-									label="Return (OOS)"
-									value={fmtSignedPercent(multiReport.backtest.total_return)}
-									accent={
-										multiReport.backtest.total_return >= 0
-											? "#34d399"
-											: "#f87171"
-									}
-								/>
-								<StatCard
-									label="Trades"
-									value={multiReport.backtest.trades}
-									accent="#f59e0b"
-								/>
+								<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Directional Acc"
+											value={`${(multiReport.test_directional_acc * 100).toFixed(1)}%`}
+											accent="#7dd3fc"
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Sharpe Ratio"
+											value={multiReport.backtest.sharpe.toFixed(2)}
+											accent="#a78bfa"
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Return (OOS)"
+											value={fmtSignedPercent(multiReport.backtest.total_return)}
+											accent={
+												multiReport.backtest.total_return >= 0
+													? "#34d399"
+													: "#f87171"
+											}
+										/>
+									</Col>
+									<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+										<StatCard
+											label="Trades"
+											value={multiReport.backtest.trades}
+											accent="#f59e0b"
+										/>
+									</Col>
+								</Row>
 							</div>
 						</div>
 					)}
-				</div>
+						</div>
+					</Col>
+				</Row>
 			</div>
 
 			<Modal

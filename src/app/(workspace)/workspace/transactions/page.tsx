@@ -15,16 +15,21 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
+  Col,
   Form,
+  Grid,
   Input,
   InputNumber,
   Modal,
   Popconfirm,
   Radio,
+  Row,
   Select,
   Spin,
+  Table,
   Typography,
 } from "antd";
+import type { TableColumnsType } from "antd";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocale } from "@/hooks/useLocale";
 import { useTransactionHistory } from "@/hooks/useTransactionHistory";
@@ -35,11 +40,18 @@ import {
   notifySuccess,
 } from "@/lib/api/client";
 import { transactionApi } from "@/lib/transaction-api";
-import type { CreateTransactionRequest, Transaction } from "@/types/transaction";
+import type {
+  CreateTransactionRequest,
+  Transaction,
+  TransactionHistoryPoint,
+} from "@/types/transaction";
 
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const PER_PAGE = 20;
+const HISTORY_PER_PAGE = 60;
+const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
 
 const SYMBOL_OPTIONS = [
   "BTCUSDT",
@@ -143,8 +155,9 @@ function Paginator({
       let i = Math.max(2, page - 1);
       i <= Math.min(totalPages - 1, page + 1);
       i++
-    )
+    ) {
       pages.push(i);
+    }
     if (page < totalPages - 2) pages.push("…");
     pages.push(totalPages);
   }
@@ -189,6 +202,9 @@ function Paginator({
 export default function TransactionsPage() {
   const { locale, t } = useLocale();
   const { tokens } = useAuth();
+  const screens = useBreakpoint();
+  const isXs = !!screens.xs && !screens.sm;
+
   const accessToken =
     tokens?.accessToken ?? getStoredAuthTokens()?.accessToken ?? null;
 
@@ -199,6 +215,7 @@ export default function TransactionsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [form] = Form.useForm<CreateTransactionRequest>();
+
   const { data, loading, error, refetch } = useTransactionStream({
     token: accessToken,
     symbol,
@@ -208,19 +225,20 @@ export default function TransactionsPage() {
   });
   const rows = data?.transactions ?? [];
   const total = data?.total ?? 0;
+
   const {
     data: historyData,
     loading: historyLoading,
     error: historyError,
     refetch: refetchHistory,
-  } = useTransactionHistory(accessToken, historyPage, 60);
+  } = useTransactionHistory(accessToken, historyPage, HISTORY_PER_PAGE);
 
-  /* ── create ── */
   async function handleCreate(values: CreateTransactionRequest) {
     if (!accessToken) {
       notifyError(t("transactionsPage.notifications.unauthorized"));
       return;
     }
+
     setCreating(true);
     try {
       await transactionApi.create(accessToken, {
@@ -244,12 +262,12 @@ export default function TransactionsPage() {
     }
   }
 
-  /* ── delete ── */
   async function handleDelete(id: string) {
     if (!accessToken) {
       notifyError(t("transactionsPage.notifications.unauthorized"));
       return;
     }
+
     try {
       await transactionApi.remove(accessToken, id);
       notifySuccess(t("transactionsPage.notifications.deleted"));
@@ -267,13 +285,13 @@ export default function TransactionsPage() {
     }
   }
 
-  /* ── filter ── */
   function handleSymbolChange(val?: string) {
     setSymbol(val ?? undefined);
     setPage(1);
   }
 
   const safeRows = Array.isArray(rows) ? rows : [];
+
   const historyKindLabel = (kind: string) => {
     switch (kind) {
       case "initial":
@@ -287,13 +305,11 @@ export default function TransactionsPage() {
     }
   };
 
-  /* ── KPI aggregates ── */
   const kpi = useMemo(() => {
     const buy = safeRows.filter((r) => r.side === "BUY");
     const sell = safeRows.filter((r) => r.side === "SELL");
-    const totalPnl = buy.reduce((s, r) => {
-      return s + numOrZero(r.pnl);
-    }, 0);
+    const totalPnl = buy.reduce((s, r) => s + numOrZero(r.pnl), 0);
+
     return {
       buyVol: buy.reduce((s, r) => s + numOrZero(r.total), 0),
       sellVol: sell.reduce((s, r) => s + numOrZero(r.total), 0),
@@ -304,97 +320,326 @@ export default function TransactionsPage() {
     };
   }, [safeRows]);
 
+  const transactionColumns: TableColumnsType<Transaction> = [
+    {
+      title: t("transactionsPage.table.date"),
+      key: "created_at",
+      dataIndex: "created_at",
+      responsive: ["sm"],
+      render: (value: string) => (
+        <span className="tx-soft tx-nowrap">{fmtDate(value, locale)}</span>
+      ),
+    },
+    {
+      title: t("transactionsPage.table.symbol"),
+      key: "symbol",
+      dataIndex: "symbol",
+      render: (value: string, tx) => (
+        <div className="tx-symbol-cell">
+          <span className="tx-sym">{value.replace("USDT", "/USDT")}</span>
+          {isXs && (
+            <div className="tx-symbol-meta">
+              <span className={`tx-side ${tx.side === "BUY" ? "buy" : "sell"}`}>
+                {tx.side === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+                {tx.side}
+              </span>
+              <span className="tx-soft">{fmtDate(tx.created_at, locale)}</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: t("transactionsPage.table.side"),
+      key: "side",
+      dataIndex: "side",
+      responsive: ["md"],
+      render: (value: Transaction["side"]) => (
+        <span className={`tx-side ${value === "BUY" ? "buy" : "sell"}`}>
+          {value === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {value}
+        </span>
+      ),
+    },
+    {
+      title: t("transactionsPage.table.qty"),
+      key: "quantity",
+      dataIndex: "quantity",
+      responsive: ["md"],
+      align: "right",
+      render: (value: string) => <span className="tx-num">{fmtNum(value, locale, 6)}</span>,
+    },
+    {
+      title: t("transactionsPage.table.entryPrice"),
+      key: "price",
+      dataIndex: "price",
+      responsive: ["md"],
+      align: "right",
+      render: (value: string) => <span className="tx-num">${fmtNum(value, locale, 2)}</span>,
+    },
+    {
+      title: t("transactionsPage.table.current"),
+      key: "current_price",
+      dataIndex: "current_price",
+      responsive: ["lg"],
+      align: "right",
+      render: (value: string) =>
+        value ? (
+          <span className="tx-num tx-live">${fmtNum(value, locale, 2)}</span>
+        ) : (
+          <span className="tx-soft">—</span>
+        ),
+    },
+    {
+      title: t("transactionsPage.table.total"),
+      key: "total",
+      dataIndex: "total",
+      responsive: ["md"],
+      align: "right",
+      render: (value: string, tx) => (
+        <span
+          className={`tx-num tx-total ${tx.side === "BUY" ? "buy-col" : "sell-col"}`}
+        >
+          ${fmtNum(value, locale, 2)}
+        </span>
+      ),
+    },
+    {
+      title: t("transactionsPage.table.pnl"),
+      key: "pnl",
+      responsive: ["lg"],
+      align: "right",
+      render: (_, tx) => {
+        const hasLive = tx.current_price !== "" && tx.current_price !== undefined;
+        return (
+          <span
+            className={`tx-num tx-pnl-cell ${tx.side === "BUY" && hasLive ? pnlColor(tx.pnl) : "tx-soft"}`}
+          >
+            {fmtPnl(tx, locale)}
+          </span>
+        );
+      },
+    },
+    {
+      title: t("transactionsPage.table.fee"),
+      key: "fee",
+      dataIndex: "fee",
+      responsive: ["xl"],
+      align: "right",
+      render: (value: string) => <span className="tx-soft">{fmtNum(value, locale, 4)}</span>,
+    },
+    {
+      title: t("transactionsPage.table.note"),
+      key: "note",
+      dataIndex: "note",
+      responsive: ["xl"],
+      render: (value: string) => <span className="tx-soft tx-note">{value || "—"}</span>,
+    },
+    {
+      title: "",
+      key: "actions",
+      align: "right",
+      render: (_, tx) => (
+        <Popconfirm
+          title={t("transactionsPage.deleteConfirm.title")}
+          onConfirm={() => void handleDelete(tx.id)}
+          okText={t("transactionsPage.deleteConfirm.ok")}
+          cancelText={t("transactionsPage.deleteConfirm.cancel")}
+          okButtonProps={{ danger: true }}
+        >
+          <button className="tx-del-btn tx-del-btn-static" aria-label="Delete">
+            <DeleteOutlined />
+          </button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  const historyColumns: TableColumnsType<TransactionHistoryPoint> = [
+    {
+      title: t("transactionsPage.historyModal.columns.time"),
+      key: "recorded_at",
+      dataIndex: "recorded_at",
+      render: (value: string) => (
+        <span className="tx-hist-time tx-nowrap">{fmtDate(value, locale)}</span>
+      ),
+    },
+    {
+      title: "Kind",
+      key: "change_kind",
+      dataIndex: "change_kind",
+      render: (value: TransactionHistoryPoint["change_kind"]) => (
+        <span className={`tx-hist-kind tx-hist-kind-${value}`}>
+          {historyKindLabel(value)}
+        </span>
+      ),
+    },
+    {
+      title: "Δ Value",
+      key: "delta_current_value",
+      dataIndex: "delta_current_value",
+      responsive: ["md"],
+      align: "right",
+      render: (value: number) => (
+        <span className={`tx-hist-delta ${deltaClass(value)}`}>
+          {value !== 0 && (
+            <span className="tx-hist-arrow">{value > 0 ? "▲" : "▼"}</span>
+          )}
+          ${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: "Δ Unrealized",
+      key: "delta_unrealized_pnl",
+      dataIndex: "delta_unrealized_pnl",
+      responsive: ["lg"],
+      align: "right",
+      render: (value: number) => (
+        <span className={`tx-hist-delta ${deltaClass(value)}`}>
+          {value !== 0 && (
+            <span className="tx-hist-arrow">{value > 0 ? "▲" : "▼"}</span>
+          )}
+          ${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: "Current Value",
+      key: "total_current_value",
+      dataIndex: "total_current_value",
+      responsive: ["md"],
+      align: "right",
+      render: (value: number) => (
+        <span className="tx-num tx-right">
+          ${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: "Unrealized P&L",
+      key: "total_unrealized_pnl",
+      dataIndex: "total_unrealized_pnl",
+      responsive: ["md"],
+      align: "right",
+      render: (value: number) => (
+        <span className={`tx-num tx-right ${deltaClass(value)}`}>
+          {value >= 0 ? "+" : ""}${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      title: "Invested",
+      key: "total_invested",
+      dataIndex: "total_invested",
+      responsive: ["lg"],
+      align: "right",
+      render: (value: number) => (
+        <span className="tx-num tx-right tx-soft">
+          ${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div className="tx-shell">
-      {/* ── Header ── */}
-      <div className="tx-header">
-        <div>
-          <div className="tx-eyebrow">
-            <SwapOutlined /> {t("transactionsPage.eyebrow")}
+      <Row
+        gutter={[GRID_GUTTER, GRID_GUTTER]}
+        align="middle"
+        className="tx-header-grid"
+      >
+        <Col xs={24} sm={24} md={16} lg={18} xl={18} xxl={18}>
+          <div className="tx-header">
+            <div className="tx-eyebrow">
+              <SwapOutlined /> {t("transactionsPage.eyebrow")}
+            </div>
+            <h1 className="tx-title">{t("transactionsPage.title")}</h1>
+            <p className="tx-subtitle">{t("transactionsPage.subtitle")}</p>
           </div>
-          <h1 className="tx-title">{t("transactionsPage.title")}</h1>
-          <p className="tx-subtitle">
-            {t("transactionsPage.subtitle")}
-          </p>
-        </div>
-      </div>
-
-      {/* ── KPI row ── */}
-      <div className="tx-kpi-row">
-        <div className="tx-kpi-card tx-kpi-blue">
-          <div className="tx-kpi-top">
-            <span className="tx-kpi-label">
-              {t("transactionsPage.kpi.totalTrades")}
-            </span>
-            <FundOutlined className="tx-kpi-icon" />
-          </div>
-          <div className="tx-kpi-val">{total}</div>
-          <div className="tx-kpi-sub">
-            {kpi.buys} BUY · {kpi.sells} SELL
-          </div>
-        </div>
-
-        <div className="tx-kpi-card tx-kpi-green">
-          <div className="tx-kpi-top">
-            <span className="tx-kpi-label">
-              {t("transactionsPage.kpi.buyVolume")}
-            </span>
-            <ArrowUpOutlined className="tx-kpi-icon" />
-          </div>
-          <div className="tx-kpi-val">
-            ${kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-          </div>
-          <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
-        </div>
-
-        <div className="tx-kpi-card tx-kpi-red">
-          <div className="tx-kpi-top">
-            <span className="tx-kpi-label">
-              {t("transactionsPage.kpi.sellVolume")}
-            </span>
-            <ArrowDownOutlined className="tx-kpi-icon" />
-          </div>
-          <div className="tx-kpi-val">
-            ${kpi.sellVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-          </div>
-          <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
-        </div>
-
-        <div
-          className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}
-        >
-          <div className="tx-kpi-top">
-            <span className="tx-kpi-label">
-              {t("transactionsPage.kpi.unrealizedPnl")}
-            </span>
-            <DollarOutlined className="tx-kpi-icon" />
-          </div>
-          <div
-            className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}
+        </Col>
+        <Col xs={24} sm={24} md={8} lg={6} xl={6} xxl={6}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setModalOpen(true)}
+            className="tx-add-btn tx-quick-add"
+            block
           >
-            {kpi.totalPnl >= 0 ? "+" : ""}
-            {kpi.totalPnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-          </div>
-          <div className="tx-kpi-sub">
-            {t("transactionsPage.kpi.buyPositionsOnPage")}
-          </div>
-        </div>
+            {t("transactionsPage.toolbar.newTrade")}
+          </Button>
+        </Col>
+      </Row>
 
-        <div className="tx-kpi-card tx-kpi-amber">
-          <div className="tx-kpi-top">
-            <span className="tx-kpi-label">
-              {t("transactionsPage.kpi.feesPaid")}
-            </span>
-            <WalletOutlined className="tx-kpi-icon" />
+      <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+          <div className="tx-kpi-card tx-kpi-blue">
+            <div className="tx-kpi-top">
+              <span className="tx-kpi-label">{t("transactionsPage.kpi.totalTrades")}</span>
+              <FundOutlined className="tx-kpi-icon" />
+            </div>
+            <div className="tx-kpi-val">{total}</div>
+            <div className="tx-kpi-sub">
+              {kpi.buys} BUY · {kpi.sells} SELL
+            </div>
           </div>
-          <div className="tx-kpi-val">
-            ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
-          </div>
-          <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
-        </div>
-      </div>
+        </Col>
 
-      {/* ── Error banner ── */}
+        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+          <div className="tx-kpi-card tx-kpi-green">
+            <div className="tx-kpi-top">
+              <span className="tx-kpi-label">{t("transactionsPage.kpi.buyVolume")}</span>
+              <ArrowUpOutlined className="tx-kpi-icon" />
+            </div>
+            <div className="tx-kpi-val">
+              ${kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            </div>
+            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+          </div>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+          <div className="tx-kpi-card tx-kpi-red">
+            <div className="tx-kpi-top">
+              <span className="tx-kpi-label">{t("transactionsPage.kpi.sellVolume")}</span>
+              <ArrowDownOutlined className="tx-kpi-icon" />
+            </div>
+            <div className="tx-kpi-val">
+              ${kpi.sellVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            </div>
+            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+          </div>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+          <div
+            className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}
+          >
+            <div className="tx-kpi-top">
+              <span className="tx-kpi-label">{t("transactionsPage.kpi.unrealizedPnl")}</span>
+              <DollarOutlined className="tx-kpi-icon" />
+            </div>
+            <div className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}>
+              {kpi.totalPnl >= 0 ? "+" : ""}
+              {kpi.totalPnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            </div>
+            <div className="tx-kpi-sub">{t("transactionsPage.kpi.buyPositionsOnPage")}</div>
+          </div>
+        </Col>
+
+        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+          <div className="tx-kpi-card tx-kpi-amber">
+            <div className="tx-kpi-top">
+              <span className="tx-kpi-label">{t("transactionsPage.kpi.feesPaid")}</span>
+              <WalletOutlined className="tx-kpi-icon" />
+            </div>
+            <div className="tx-kpi-val">
+              ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
+            </div>
+            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+          </div>
+        </Col>
+      </Row>
+
       {error && (
         <div className="tx-error">
           <Text type="danger">
@@ -403,51 +648,55 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── Main panel ── */}
       <div className="tx-panel">
-        {/* Toolbar */}
-        <div className="tx-toolbar">
-          <div className="tx-toolbar-left">
-            <Select
-              allowClear
-              placeholder={t("transactionsPage.toolbar.allSymbols")}
-              options={SYMBOL_OPTIONS}
-              value={symbol ?? null}
-              onChange={handleSymbolChange}
-              className="tx-symbol-select"
-              style={{ width: 160 }}
-            />
-            {loading && <Spin size="small" />}
-          </div>
-          <div className="tx-toolbar-right">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => refetch()}
-              loading={loading}
-            >
-              {t("transactionsPage.toolbar.refresh")}
-            </Button>
-            <Button
-              icon={<LineChartOutlined />}
-              onClick={() => {
-                setHistoryOpen(true);
-                void refetchHistory();
-              }}
-            >
-              {t("transactionsPage.toolbar.viewDetail")}
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setModalOpen(true)}
-              className="tx-add-btn"
-            >
-              {t("transactionsPage.toolbar.newTrade")}
-            </Button>
-          </div>
-        </div>
+        <Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="tx-toolbar-grid">
+          <Col xs={24} sm={24} md={12} lg={8} xl={8} xxl={8}>
+            <div className="tx-toolbar-left">
+              <Select
+                allowClear
+                placeholder={t("transactionsPage.toolbar.allSymbols")}
+                options={SYMBOL_OPTIONS}
+                value={symbol ?? null}
+                onChange={handleSymbolChange}
+                className="tx-symbol-select"
+              />
+              {loading && <Spin size="small" />}
+            </div>
+          </Col>
+          <Col xs={24} sm={24} md={12} lg={16} xl={16} xxl={16}>
+            <div className="tx-toolbar-right">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => refetch()}
+                loading={loading}
+                block={isXs}
+              >
+                {!isXs && t("transactionsPage.toolbar.refresh")}
+              </Button>
+              <Button
+                icon={<LineChartOutlined />}
+                onClick={() => {
+                  setHistoryOpen(true);
+                  void refetchHistory();
+                }}
+                block={isXs}
+              >
+                {!isXs && t("transactionsPage.toolbar.viewDetail")}
+              </Button>
+              {!isXs && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setModalOpen(true)}
+                  className="tx-add-btn"
+                >
+                  {t("transactionsPage.toolbar.newTrade")}
+                </Button>
+              )}
+            </div>
+          </Col>
+        </Row>
 
-        {/* Table */}
         <div className="tx-table-wrap">
           {loading && safeRows.length === 0 ? (
             <div className="tx-loading">
@@ -462,105 +711,30 @@ export default function TransactionsPage() {
               <p className="tx-empty-hint">{t("transactionsPage.empty.hint")}</p>
             </div>
           ) : (
-            <table className="tx-table">
-              <thead>
-                <tr>
-                  <th>{t("transactionsPage.table.date")}</th>
-                  <th>{t("transactionsPage.table.symbol")}</th>
-                  <th>{t("transactionsPage.table.side")}</th>
-                  <th>{t("transactionsPage.table.qty")}</th>
-                  <th>{t("transactionsPage.table.entryPrice")}</th>
-                  <th>{t("transactionsPage.table.current")}</th>
-                  <th>{t("transactionsPage.table.total")}</th>
-                  <th>{t("transactionsPage.table.pnl")}</th>
-                  <th>{t("transactionsPage.table.fee")}</th>
-                  <th>{t("transactionsPage.table.note")}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {safeRows.map((tx) => {
-                  const isBuy = tx.side === "BUY";
-                  const hasLive =
-                    tx.current_price !== "" && tx.current_price !== undefined;
-                  return (
-                    <tr key={tx.id} className="tx-row">
-                      <td className="tx-soft tx-nowrap">
-                        {fmtDate(tx.created_at, locale)}
-                      </td>
-                      <td>
-                        <span className="tx-sym">
-                          {tx.symbol.replace("USDT", "/USDT")}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`tx-side ${isBuy ? "buy" : "sell"}`}>
-                          {isBuy ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
-                          {tx.side}
-                        </span>
-                      </td>
-                      <td className="tx-num">{fmtNum(tx.quantity, locale, 6)}</td>
-                      <td className="tx-num">${fmtNum(tx.price, locale, 2)}</td>
-                      <td className="tx-num tx-live">
-                        {hasLive ? (
-                          `$${fmtNum(tx.current_price, locale, 2)}`
-                        ) : (
-                          <span className="tx-soft">—</span>
-                        )}
-                      </td>
-                      <td
-                        className={`tx-num tx-total ${isBuy ? "buy-col" : "sell-col"}`}
-                      >
-                        ${fmtNum(tx.total, locale, 2)}
-                      </td>
-                      <td
-                        className={`tx-num tx-pnl-cell ${isBuy && hasLive ? pnlColor(tx.pnl) : "tx-soft"}`}
-                      >
-                        {fmtPnl(tx, locale)}
-                      </td>
-                      <td className="tx-soft">{fmtNum(tx.fee, locale, 4)}</td>
-                      <td className="tx-soft tx-note">{tx.note || "—"}</td>
-                      <td>
-                        <Popconfirm
-                          title={t("transactionsPage.deleteConfirm.title")}
-                          onConfirm={() => void handleDelete(tx.id)}
-                          okText={t("transactionsPage.deleteConfirm.ok")}
-                          cancelText={t("transactionsPage.deleteConfirm.cancel")}
-                          okButtonProps={{ danger: true }}
-                        >
-                          <button className="tx-del-btn" aria-label="Delete">
-                            <DeleteOutlined />
-                          </button>
-                        </Popconfirm>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <Table<Transaction>
+              rowKey="id"
+              columns={transactionColumns}
+              dataSource={safeRows}
+              className="tx-ant-table"
+              pagination={false}
+              scroll={{ x: "max-content" }}
+              size={isXs ? "small" : "middle"}
+            />
           )}
         </div>
 
-        {/* Footer */}
         {total > 0 && (
           <div className="tx-footer">
             <span className="tx-footer-count">
               {Math.min((page - 1) * PER_PAGE + 1, total)}–
-              {Math.min(page * PER_PAGE, total)}{" "}
-              <span className="tx-footer-sep">/</span> {total}{" "}
-              {t("transactionsPage.footer.totalTransactions")}
+              {Math.min(page * PER_PAGE, total)} <span className="tx-footer-sep">/</span>{" "}
+              {total} {t("transactionsPage.footer.totalTransactions")}
             </span>
-            <Paginator
-              page={page}
-              total={total}
-              perPage={PER_PAGE}
-              onChange={setPage}
-            />
+            <Paginator page={page} total={total} perPage={PER_PAGE} onChange={setPage} />
           </div>
         )}
       </div>
 
-      {/* ── Create Modal ── */}
       <Modal
         open={modalOpen}
         onCancel={() => {
@@ -573,12 +747,8 @@ export default function TransactionsPage() {
               <DollarOutlined />
             </div>
             <div>
-              <div className="tx-modal-title">
-                {t("transactionsPage.createModal.title")}
-              </div>
-              <div className="tx-modal-sub">
-                {t("transactionsPage.createModal.subtitle")}
-              </div>
+              <div className="tx-modal-title">{t("transactionsPage.createModal.title")}</div>
+              <div className="tx-modal-sub">{t("transactionsPage.createModal.subtitle")}</div>
             </div>
           </div>
         }
@@ -609,9 +779,7 @@ export default function TransactionsPage() {
               placeholder={t("transactionsPage.createModal.symbolPlaceholder")}
               options={SYMBOL_OPTIONS}
               filterOption={(input, opt) =>
-                (opt?.value as string)
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+                (opt?.value as string).toLowerCase().includes(input.toLowerCase())
               }
             />
           </Form.Item>
@@ -631,78 +799,81 @@ export default function TransactionsPage() {
             </Radio.Group>
           </Form.Item>
 
-          <div className="tx-form-row">
-            <Form.Item
-              name="quantity"
-              label={t("transactionsPage.createModal.quantity")}
-              rules={[
-                {
-                  required: true,
-                  message: t("transactionsPage.createModal.required"),
-                },
-                {
-                  type: "number",
-                  min: 0.000001,
-                  message: t("transactionsPage.createModal.mustPositive"),
-                },
-              ]}
-            >
-              <InputNumber
-                min={0}
-                step={0.0001}
-                precision={6}
-                style={{ width: "100%" }}
-                placeholder="0.000000"
-              />
-            </Form.Item>
+          <Row gutter={[GRID_GUTTER, 0]}>
+            <Col xs={24} sm={24} md={12}>
+              <Form.Item
+                name="quantity"
+                label={t("transactionsPage.createModal.quantity")}
+                rules={[
+                  {
+                    required: true,
+                    message: t("transactionsPage.createModal.required"),
+                  },
+                  {
+                    type: "number",
+                    min: 0.000001,
+                    message: t("transactionsPage.createModal.mustPositive"),
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={0}
+                  step={0.0001}
+                  precision={6}
+                  style={{ width: "100%" }}
+                  placeholder="0.000000"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={24} md={12}>
+              <Form.Item
+                name="price"
+                label={t("transactionsPage.createModal.priceUsd")}
+                rules={[
+                  {
+                    required: true,
+                    message: t("transactionsPage.createModal.required"),
+                  },
+                  {
+                    type: "number",
+                    min: 0.000001,
+                    message: t("transactionsPage.createModal.mustPositive"),
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={0}
+                  step={0.01}
+                  precision={2}
+                  style={{ width: "100%" }}
+                  placeholder="0.00"
+                  prefix="$"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <Form.Item
-              name="price"
-              label={t("transactionsPage.createModal.priceUsd")}
-              rules={[
-                {
-                  required: true,
-                  message: t("transactionsPage.createModal.required"),
-                },
-                {
-                  type: "number",
-                  min: 0.000001,
-                  message: t("transactionsPage.createModal.mustPositive"),
-                },
-              ]}
-            >
-              <InputNumber
-                min={0}
-                step={0.01}
-                precision={2}
-                style={{ width: "100%" }}
-                placeholder="0.00"
-                prefix="$"
-              />
-            </Form.Item>
-          </div>
-
-          <div className="tx-form-row">
-            <Form.Item
-              name="fee"
-              label={t("transactionsPage.createModal.feeUsd")}
-            >
-              <InputNumber
-                min={0}
-                step={0.01}
-                precision={4}
-                style={{ width: "100%" }}
-                placeholder="0.0000"
-              />
-            </Form.Item>
-
-            <Form.Item name="note" label={t("transactionsPage.createModal.note")}>
-              <Input
-                placeholder={t("transactionsPage.createModal.notePlaceholder")}
-                maxLength={120}
-              />
-            </Form.Item>
-          </div>
+          <Row gutter={[GRID_GUTTER, 0]}>
+            <Col xs={24} sm={24} md={12}>
+              <Form.Item name="fee" label={t("transactionsPage.createModal.feeUsd")}>
+                <InputNumber
+                  min={0}
+                  step={0.01}
+                  precision={4}
+                  style={{ width: "100%" }}
+                  placeholder="0.0000"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={24} md={12}>
+              <Form.Item name="note" label={t("transactionsPage.createModal.note")}>
+                <Input
+                  placeholder={t("transactionsPage.createModal.notePlaceholder")}
+                  maxLength={120}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <div className="tx-form-actions">
             <Button
@@ -725,7 +896,6 @@ export default function TransactionsPage() {
         </Form>
       </Modal>
 
-      {/* ── History Detail Modal ── */}
       <Modal
         open={historyOpen}
         onCancel={() => {
@@ -739,16 +909,12 @@ export default function TransactionsPage() {
               <LineChartOutlined />
             </div>
             <div>
-              <div className="tx-modal-title">
-                {t("transactionsPage.historyModal.title")}
-              </div>
+              <div className="tx-modal-title">{t("transactionsPage.historyModal.title")}</div>
               <div className="tx-modal-sub">
                 {t("transactionsPage.historyModal.subtitlePrefix")}{" "}
                 {historyData?.interval_seconds ?? 10}s
                 {historyData && historyData.total > 0 && (
-                  <span className="tx-modal-sub-count">
-                    {" "}· {historyData.total} snapshots
-                  </span>
+                  <span className="tx-modal-sub-count"> · {historyData.total} snapshots</span>
                 )}
               </div>
             </div>
@@ -765,10 +931,13 @@ export default function TransactionsPage() {
           >
             {t("transactionsPage.historyModal.refresh")}
           </Button>,
-          <Button key="close-history" onClick={() => {
-            setHistoryOpen(false);
-            setHistoryPage(1);
-          }}>
+          <Button
+            key="close-history"
+            onClick={() => {
+              setHistoryOpen(false);
+              setHistoryPage(1);
+            }}
+          >
             {t("transactionsPage.historyModal.close")}
           </Button>,
         ]}
@@ -788,133 +957,80 @@ export default function TransactionsPage() {
             <div className="tx-empty-icon-wrap">
               <LineChartOutlined />
             </div>
-            <p className="tx-empty-title">
-              {t("transactionsPage.historyModal.emptyTitle")}
-            </p>
-            <p className="tx-empty-hint">
-              {t("transactionsPage.historyModal.emptyHint")}
-            </p>
+            <p className="tx-empty-title">{t("transactionsPage.historyModal.emptyTitle")}</p>
+            <p className="tx-empty-hint">{t("transactionsPage.historyModal.emptyHint")}</p>
           </div>
         ) : (
           <div className="tx-history-wrap">
-            {/* ── Latest snapshot stats ── */}
             {historyData.items[0] && (
-              <div className="tx-hist-stats">
-                <div className="tx-hist-stat">
-                  <span className="tx-hist-stat-label">Invested</span>
-                  <span className="tx-hist-stat-val">
-                    ${signedNum(historyData.items[0].total_invested, locale, 2)}
-                  </span>
-                </div>
-                <div className="tx-hist-stat-sep" />
-                <div className="tx-hist-stat">
-                  <span className="tx-hist-stat-label">Current Value</span>
-                  <span className="tx-hist-stat-val">
-                    ${signedNum(historyData.items[0].total_current_value, locale, 2)}
-                  </span>
-                </div>
-                <div className="tx-hist-stat-sep" />
-                <div className="tx-hist-stat">
-                  <span className="tx-hist-stat-label">Unrealized P&L</span>
-                  <span className={`tx-hist-stat-val ${deltaClass(historyData.items[0].total_unrealized_pnl)}`}>
-                    {historyData.items[0].total_unrealized_pnl >= 0 ? "▲ " : "▼ "}
-                    ${Math.abs(historyData.items[0].total_unrealized_pnl).toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="tx-hist-stat-sep" />
-                <div className="tx-hist-stat">
-                  <span className="tx-hist-stat-label">Snapshots</span>
-                  <span className="tx-hist-stat-val">{historyData.total}</span>
-                </div>
-              </div>
+              <Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="tx-hist-stats-grid">
+                <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+                  <div className="tx-hist-stat">
+                    <span className="tx-hist-stat-label">Invested</span>
+                    <span className="tx-hist-stat-val">
+                      ${signedNum(historyData.items[0].total_invested, locale, 2)}
+                    </span>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+                  <div className="tx-hist-stat">
+                    <span className="tx-hist-stat-label">Current Value</span>
+                    <span className="tx-hist-stat-val">
+                      $
+                      {signedNum(
+                        historyData.items[0].total_current_value,
+                        locale,
+                        2,
+                      )}
+                    </span>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+                  <div className="tx-hist-stat">
+                    <span className="tx-hist-stat-label">Unrealized P&L</span>
+                    <span
+                      className={`tx-hist-stat-val ${deltaClass(historyData.items[0].total_unrealized_pnl)}`}
+                    >
+                      {historyData.items[0].total_unrealized_pnl >= 0 ? "▲ " : "▼ "}
+                      $
+                      {Math.abs(
+                        historyData.items[0].total_unrealized_pnl,
+                      ).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+                  <div className="tx-hist-stat">
+                    <span className="tx-hist-stat-label">Snapshots</span>
+                    <span className="tx-hist-stat-val">{historyData.total}</span>
+                  </div>
+                </Col>
+              </Row>
             )}
 
-            {/* ── Table ── */}
             <div className="tx-table-wrap">
-              <table className="tx-table tx-hist-table">
-                <thead>
-                  <tr className="tx-hist-group-row">
-                    <th colSpan={2} className="tx-hist-group-empty" />
-                    <th colSpan={2} className="tx-hist-group-label tx-hist-group-delta">
-                      Δ Changes
-                    </th>
-                    <th colSpan={3} className="tx-hist-group-label tx-hist-group-total">
-                      Portfolio Totals
-                    </th>
-                  </tr>
-                  <tr>
-                    <th className="tx-hist-th">{t("transactionsPage.historyModal.columns.time")}</th>
-                    <th className="tx-hist-th">Kind</th>
-                    <th className="tx-hist-th tx-right">Δ Value</th>
-                    <th className="tx-hist-th tx-right">Δ Unrealized</th>
-                    <th className="tx-hist-th tx-right">Current Value</th>
-                    <th className="tx-hist-th tx-right">Unrealized P&L</th>
-                    <th className="tx-hist-th tx-right">Invested</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historyData.items.map((item) => (
-                    <tr key={item.id} className="tx-row">
-                      <td className="tx-hist-time tx-nowrap">
-                        {fmtDate(item.recorded_at, locale)}
-                      </td>
-                      <td>
-                        <span className={`tx-hist-kind tx-hist-kind-${item.change_kind}`}>
-                          {item.change_kind === "market_tick"
-                            ? "tick"
-                            : item.change_kind === "transaction_changed"
-                              ? "trade"
-                              : "init"}
-                        </span>
-                      </td>
-                      <td className="tx-right">
-                        <span className={`tx-hist-delta ${deltaClass(item.delta_current_value)}`}>
-                          {item.delta_current_value !== 0 && (
-                            <span className="tx-hist-arrow">
-                              {item.delta_current_value > 0 ? "▲" : "▼"}
-                            </span>
-                          )}
-                          ${Math.abs(item.delta_current_value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="tx-right">
-                        <span className={`tx-hist-delta ${deltaClass(item.delta_unrealized_pnl)}`}>
-                          {item.delta_unrealized_pnl !== 0 && (
-                            <span className="tx-hist-arrow">
-                              {item.delta_unrealized_pnl > 0 ? "▲" : "▼"}
-                            </span>
-                          )}
-                          ${Math.abs(item.delta_unrealized_pnl).toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="tx-num tx-right">
-                        ${item.total_current_value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                      </td>
-                      <td className={`tx-num tx-right ${deltaClass(item.total_unrealized_pnl)}`}>
-                        {item.total_unrealized_pnl >= 0 ? "+" : ""}
-                        ${item.total_unrealized_pnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="tx-num tx-right tx-soft">
-                        ${item.total_invested.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Table<TransactionHistoryPoint>
+                rowKey="id"
+                columns={historyColumns}
+                dataSource={historyData.items}
+                className="tx-ant-table tx-ant-table-history"
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                size={isXs ? "small" : "middle"}
+              />
             </div>
 
-            {/* ── Pagination ── */}
-            {historyData.total > 60 && (
+            {historyData.total > HISTORY_PER_PAGE && (
               <div className="tx-footer">
                 <span className="tx-footer-count">
-                  {Math.min((historyPage - 1) * 60 + 1, historyData.total)}–
-                  {Math.min(historyPage * 60, historyData.total)}{" "}
+                  {Math.min((historyPage - 1) * HISTORY_PER_PAGE + 1, historyData.total)}–
+                  {Math.min(historyPage * HISTORY_PER_PAGE, historyData.total)}{" "}
                   <span className="tx-footer-sep">/</span> {historyData.total} snapshots
                 </span>
                 <Paginator
                   page={historyPage}
                   total={historyData.total}
-                  perPage={60}
+                  perPage={HISTORY_PER_PAGE}
                   onChange={setHistoryPage}
                 />
               </div>

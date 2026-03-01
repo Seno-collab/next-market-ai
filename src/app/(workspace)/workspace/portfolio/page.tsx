@@ -1,5 +1,6 @@
 "use client";
 
+import { Col, Grid, Row } from "antd";
 import { ClosedPositionsTable } from "@/components/portfolio/ClosedPositionsTable";
 import { OpenPositionsTable } from "@/components/portfolio/OpenPositionsTable";
 import { PortfolioSummary } from "@/components/portfolio/PortfolioSummary";
@@ -8,7 +9,11 @@ import { useLocale } from "@/hooks/useLocale";
 import { usePortfolioStream } from "@/hooks/usePortfolioStream";
 import { getStoredAuthTokens } from "@/lib/api/client";
 
+const { useBreakpoint } = Grid;
+const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
+
 export default function PortfolioPage() {
+  const screens = useBreakpoint();
   const { t } = useLocale();
   const { tokens } = useAuth();
   const accessToken =
@@ -24,15 +29,20 @@ export default function PortfolioPage() {
     error,
     refetch,
   } = usePortfolioStream(accessToken);
+  const skeletonCount = screens.lg ? 5 : screens.sm ? 4 : 3;
 
   if (loading && !portfolio) {
     return (
       <div className="pf-shell">
         <div className="pf-skeleton-header" />
         <div className="pf-skeleton-grid">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="pf-skeleton-card" />
-          ))}
+          <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+            {Array.from({ length: skeletonCount }).map((_, i) => (
+              <Col key={i} xs={24} sm={12} md={12} lg={8} xl={4} xxl={4}>
+                <div className="pf-skeleton-card" />
+              </Col>
+            ))}
+          </Row>
         </div>
         <div className="pf-skeleton-table" />
       </div>

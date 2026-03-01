@@ -13,11 +13,14 @@ import {
 	TrophyOutlined,
 	UserOutlined,
 } from "@ant-design/icons";
-import { Button, Form, Input, Spin } from "antd";
+import { Button, Col, Form, Grid, Input, Row, Spin } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJson, notifyError } from "@/lib/api/client";
 import { useLocale } from "@/hooks/useLocale";
 import type { AuthPublicUser } from "@/features/auth/types";
+
+const { useBreakpoint } = Grid;
+const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
 
 const ProfileIdentityScene = dynamic(
 	() => import("@/features/workspace/components/ProfileIdentityScene"),
@@ -68,6 +71,7 @@ const TRADER_STATS = [
 
 export default function ProfilePage() {
 	const { t } = useLocale();
+	const screens = useBreakpoint();
 	const [profileForm] = Form.useForm<ProfileFormValues>();
 	const [passwordForm] = Form.useForm<PasswordFormValues>();
 
@@ -244,77 +248,97 @@ export default function ProfilePage() {
 			<div className="tp-body">
 				{/* ── Hero: avatar panel + stats ── */}
 				<div className="tp-hero-grid">
-					{/* Avatar card */}
-					<div className="tp-avatar-panel">
-						{profileLoading ? (
-							<div className="tp-avatar-loading">
-								<Spin />
-							</div>
-						) : (
-							<>
-								<div className="tp-avatar-wrap">
-									<div className="tp-avatar-ring" />
-									{profileAvatarSrc ? (
-										// eslint-disable-next-line @next/next/no-img-element
-										<img
-											src={profileAvatarSrc}
-											alt="avatar"
-											className="tp-avatar-img"
-										/>
-									) : (
-										<div className="tp-avatar-fallback">{profileInitial}</div>
-									)}
-									<button
-										className="tp-avatar-cam"
-										onClick={handlePickFile}
-										title="Change photo"
-									>
-										<CameraOutlined />
-									</button>
-								</div>
+					<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+						<Col xs={24} sm={24} md={24} lg={8} xl={7} xxl={6}>
+							{/* Avatar card */}
+							<div className="tp-avatar-panel">
+								{profileLoading ? (
+									<div className="tp-avatar-loading">
+										<Spin />
+									</div>
+								) : (
+									<>
+										<div className="tp-avatar-wrap">
+											<div className="tp-avatar-ring" />
+											{profileAvatarSrc ? (
+												// eslint-disable-next-line @next/next/no-img-element
+												<img
+													src={profileAvatarSrc}
+													alt="avatar"
+													className="tp-avatar-img"
+												/>
+											) : (
+												<div className="tp-avatar-fallback">{profileInitial}</div>
+											)}
+											<button
+												className="tp-avatar-cam"
+												onClick={handlePickFile}
+												title="Change photo"
+											>
+												<CameraOutlined />
+											</button>
+										</div>
 
-								<div className="tp-trader-info">
-									<div className="tp-trader-name">
-										{profileUser?.name || "Trader"}
-									</div>
-									<div className="tp-trader-email">
-										{profileUser?.email || ""}
-									</div>
-									<div className="tp-trader-badges">
-										<span className="tp-tier-badge">
-											<ThunderboltOutlined /> PRO
-										</span>
-										<span className="tp-online-badge">
-											<span className="tp-online-dot" /> Online
-										</span>
-									</div>
-								</div>
-							</>
-						)}
-					</div>
-
-					{/* Stat cards */}
-					<div className="tp-stats-row">
-						{TRADER_STATS.map((s) => (
-							<div
-								key={s.label}
-								className="tp-stat-card"
-								style={{ "--tp-accent": s.color } as React.CSSProperties}
-							>
-								<div className="tp-stat-icon" style={{ color: s.color }}>
-									{s.icon}
-								</div>
-								<div className="tp-stat-val" style={{ color: s.color }}>
-									{s.value}
-								</div>
-								<div className="tp-stat-label">{s.label}</div>
+										<div className="tp-trader-info">
+											<div className="tp-trader-name">
+												{profileUser?.name || "Trader"}
+											</div>
+											<div className="tp-trader-email">
+												{profileUser?.email || ""}
+											</div>
+											<div className="tp-trader-badges">
+												<span className="tp-tier-badge">
+													<ThunderboltOutlined /> PRO
+												</span>
+												<span className="tp-online-badge">
+													<span className="tp-online-dot" />{" "}
+													{screens.md ? "Online" : "Live"}
+												</span>
+											</div>
+										</div>
+									</>
+								)}
 							</div>
-						))}
-					</div>
+						</Col>
+
+						{/* Stat cards */}
+						<Col xs={24} sm={24} md={24} lg={16} xl={17} xxl={18}>
+							<div className="tp-stats-row">
+								<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+									{TRADER_STATS.map((s) => (
+										<Col
+											key={s.label}
+											xs={24}
+											sm={12}
+											md={12}
+											lg={12}
+											xl={6}
+											xxl={6}
+										>
+											<div
+												className="tp-stat-card"
+												style={{ "--tp-accent": s.color } as React.CSSProperties}
+											>
+												<div className="tp-stat-icon" style={{ color: s.color }}>
+													{s.icon}
+												</div>
+												<div className="tp-stat-val" style={{ color: s.color }}>
+													{s.value}
+												</div>
+												<div className="tp-stat-label">{s.label}</div>
+											</div>
+										</Col>
+									))}
+								</Row>
+							</div>
+						</Col>
+					</Row>
 				</div>
 
 				{/* ── Forms ── */}
 				<div className="tp-form-grid">
+					<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+						<Col xs={24} sm={24} md={12} lg={12} xl={12} xxl={12}>
 					{/* Profile info */}
 					<div className="tp-panel">
 						<div className="tp-panel-hd">
@@ -386,8 +410,10 @@ export default function ProfilePage() {
 							<div className="tp-feedback tp-feedback-err">{profileError}</div>
 						)}
 					</div>
+						</Col>
 
 					{/* Password */}
+						<Col xs={24} sm={24} md={12} lg={12} xl={12} xxl={12}>
 					<div className="tp-panel">
 						<div className="tp-panel-hd">
 							<KeyOutlined className="tp-panel-icon" />
@@ -479,22 +505,35 @@ export default function ProfilePage() {
 							<div className="tp-feedback tp-feedback-err">{passwordError}</div>
 						)}
 					</div>
+						</Col>
+					</Row>
 				</div>
 
 				{/* ── Security strip ── */}
 				<div className="tp-security-strip">
-					<div className="tp-sec-item">
-						<SafetyOutlined /> End-to-end encrypted session
-					</div>
-					<div className="tp-sec-item">
-						<LockOutlined /> 2FA ready
-					</div>
-					<div className="tp-sec-item">
-						<CheckCircleOutlined /> Account verified
-					</div>
-					<div className="tp-sec-item">
-						<ThunderboltOutlined /> PRO tier active
-					</div>
+					<Row gutter={[GRID_GUTTER, GRID_GUTTER]} style={{ width: "100%" }}>
+						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+							<div className="tp-sec-item">
+								<SafetyOutlined />{" "}
+								{screens.md ? "End-to-end encrypted session" : "Encrypted session"}
+							</div>
+						</Col>
+						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+							<div className="tp-sec-item">
+								<LockOutlined /> 2FA ready
+							</div>
+						</Col>
+						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+							<div className="tp-sec-item">
+								<CheckCircleOutlined /> Account verified
+							</div>
+						</Col>
+						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
+							<div className="tp-sec-item">
+								<ThunderboltOutlined /> PRO tier active
+							</div>
+						</Col>
+					</Row>
 				</div>
 			</div>
 		</div>

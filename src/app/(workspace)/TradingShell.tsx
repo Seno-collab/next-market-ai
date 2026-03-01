@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
@@ -21,6 +21,8 @@ import {
 } from "@ant-design/icons";
 import {
 	Button,
+	Drawer,
+	Grid,
 	Layout,
 	Menu,
 	Segmented,
@@ -34,6 +36,7 @@ import { useHeartbeat } from "@/features/auth/hooks/useHeartbeat";
 
 const { Sider, Header, Content } = Layout;
 const { Text, Title } = Typography;
+const { useBreakpoint } = Grid;
 
 // Dynamic import for Three.js component (no SSR)
 const HeaderScene = dynamic(() => import("@/components/layout/HeaderScene"), {
@@ -97,8 +100,17 @@ export default function TradingShell({
 	const pathname = usePathname();
 	const { t, locale, setLocale } = useLocale();
 	const { isDark, setMode } = useTheme();
-	const [collapsed, setCollapsed] = useState(false);
+	const screens = useBreakpoint();
+	const isMobile = screens.lg === false;
+	const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+	const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 	useHeartbeat(true);
+
+	useEffect(() => {
+		if (!isMobile) {
+			setMobileDrawerOpen(false);
+		}
+	}, [isMobile]);
 
 	const selectedKey =
 		navItems.find((item) => pathname.startsWith(item.key))?.key ??
@@ -106,43 +118,37 @@ export default function TradingShell({
 
 	return (
 		<Layout className="admin-layout">
-			{/* Mobile overlay — tap to close sidebar */}
-			{!collapsed && (
-				<div
-					className="admin-mobile-overlay"
-					onClick={() => setCollapsed(true)}
-					aria-hidden="true"
-				/>
+			{!isMobile && (
+				<Sider
+					width={240}
+					className={`admin-sider${desktopCollapsed ? " is-collapsed" : ""}`}
+					breakpoint="lg"
+					collapsedWidth={0}
+					collapsible
+					collapsed={desktopCollapsed}
+					onCollapse={(value) => setDesktopCollapsed(value)}
+					onBreakpoint={(broken) => setDesktopCollapsed(broken)}
+					trigger={null}
+				>
+					<div className="admin-logo">
+						<Text className="admin-logo-mark">COIN SWING TRADER</Text>
+						<Title level={4} className="admin-logo-title">
+							{t("nav.admin")}
+						</Title>
+					</div>
+					<Menu
+						mode="inline"
+						theme={isDark ? "dark" : "light"}
+						selectedKeys={[selectedKey]}
+						inlineCollapsed={desktopCollapsed}
+						items={navItems.map((item) => ({
+							key: item.key,
+							icon: item.icon,
+							label: <Link href={item.key}>{t(item.labelKey)}</Link>,
+						}))}
+					/>
+				</Sider>
 			)}
-			<Sider
-				width={240}
-				className={`admin-sider${collapsed ? " is-collapsed" : ""}`}
-				breakpoint="lg"
-				collapsedWidth={80}
-				collapsible
-				collapsed={collapsed}
-				onCollapse={(value) => setCollapsed(value)}
-				onBreakpoint={(broken) => setCollapsed(broken)}
-				trigger={null}
-			>
-				<div className="admin-logo">
-					<Text className="admin-logo-mark">COIN SWING TRADER</Text>
-					<Title level={4} className="admin-logo-title">
-						{t("nav.admin")}
-					</Title>
-				</div>
-				<Menu
-					mode="inline"
-					theme={isDark ? "dark" : "light"}
-					selectedKeys={[selectedKey]}
-					inlineCollapsed={collapsed}
-					items={navItems.map((item) => ({
-						key: item.key,
-						icon: item.icon,
-						label: <Link href={item.key}>{t(item.labelKey)}</Link>,
-					}))}
-				/>
-			</Sider>
 			<Layout>
 				<Header className="admin-header app-header-3d">
 					{/* Three.js Background */}
@@ -155,8 +161,22 @@ export default function TradingShell({
 						<Button
 							type="text"
 							className="admin-sider-toggle"
-							icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-							onClick={() => setCollapsed((prev) => !prev)}
+							icon={
+								isMobile
+									? mobileDrawerOpen
+										? <MenuFoldOutlined />
+										: <MenuUnfoldOutlined />
+									: desktopCollapsed
+										? <MenuUnfoldOutlined />
+										: <MenuFoldOutlined />
+							}
+							onClick={() => {
+								if (isMobile) {
+									setMobileDrawerOpen((prev) => !prev);
+									return;
+								}
+								setDesktopCollapsed((prev) => !prev);
+							}}
 							aria-label="Toggle menu"
 						/>
 						<Text
@@ -195,6 +215,31 @@ export default function TradingShell({
 				</Header>
 				<Content className="admin-content">{children}</Content>
 			</Layout>
+			<Drawer
+				placement="left"
+				open={isMobile && mobileDrawerOpen}
+				onClose={() => setMobileDrawerOpen(false)}
+				size="80vw"
+				className="admin-mobile-drawer"
+			>
+				<div className="admin-logo admin-mobile-logo">
+					<Text className="admin-logo-mark">COIN SWING TRADER</Text>
+					<Title level={4} className="admin-logo-title">
+						{t("nav.admin")}
+					</Title>
+				</div>
+				<Menu
+					mode="inline"
+					theme={isDark ? "dark" : "light"}
+					selectedKeys={[selectedKey]}
+					items={navItems.map((item) => ({
+						key: item.key,
+						icon: item.icon,
+						label: <Link href={item.key}>{t(item.labelKey)}</Link>,
+					}))}
+					onClick={() => setMobileDrawerOpen(false)}
+				/>
+			</Drawer>
 		</Layout>
 	);
 }
