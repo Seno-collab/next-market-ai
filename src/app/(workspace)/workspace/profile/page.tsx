@@ -27,7 +27,7 @@ const ProfileIdentityScene = dynamic(
 	{
 		ssr: false,
 		loading: () => (
-			<div className="tp-scene-loading">
+			<div className="tpr-scene-loading">
 				<Spin size="large" />
 			</div>
 		),
@@ -228,50 +228,50 @@ export default function ProfilePage() {
 			: undefined);
 
 	return (
-		<div className="tp-shell">
+		<div className="tpr-shell">
 			{/* ── 3D header ── */}
-			<div className="tp-3d-header">
+			<div className="tpr-3d-header">
 				<ProfileIdentityScene />
-				<div className="tp-header-overlay">
-					<div className="tp-header-content">
-						<div className="tp-eyebrow">
+				<div className="tpr-header-overlay">
+					<div className="tpr-header-content">
+						<div className="tpr-eyebrow">
 							<UserOutlined /> TRADER PROFILE
 						</div>
-						<h1 className="tp-title">Account Overview</h1>
-						<p className="tp-subtitle">
+						<h1 className="tpr-title">Account Overview</h1>
+						<p className="tpr-subtitle">
 							Manage your trading identity, credentials and performance stats.
 						</p>
 					</div>
 				</div>
 			</div>
 
-			<div className="tp-body">
+			<div className="tpr-body">
 				{/* ── Hero: avatar panel + stats ── */}
-				<div className="tp-hero-grid">
+				<div className="tpr-hero-grid">
 					<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
 						<Col xs={24} sm={24} md={24} lg={8} xl={7} xxl={6}>
 							{/* Avatar card */}
-							<div className="tp-avatar-panel">
+							<div className="tpr-avatar-panel">
 								{profileLoading ? (
-									<div className="tp-avatar-loading">
+									<div className="tpr-avatar-loading">
 										<Spin />
 									</div>
 								) : (
 									<>
-										<div className="tp-avatar-wrap">
-											<div className="tp-avatar-ring" />
+										<div className="tpr-avatar-wrap">
+											<div className="tpr-avatar-ring" />
 											{profileAvatarSrc ? (
 												// eslint-disable-next-line @next/next/no-img-element
 												<img
 													src={profileAvatarSrc}
 													alt="avatar"
-													className="tp-avatar-img"
+													className="tpr-avatar-img"
 												/>
 											) : (
-												<div className="tp-avatar-fallback">{profileInitial}</div>
+												<div className="tpr-avatar-fallback">{profileInitial}</div>
 											)}
 											<button
-												className="tp-avatar-cam"
+												className="tpr-avatar-cam"
 												onClick={handlePickFile}
 												title="Change photo"
 											>
@@ -279,19 +279,19 @@ export default function ProfilePage() {
 											</button>
 										</div>
 
-										<div className="tp-trader-info">
-											<div className="tp-trader-name">
+										<div className="tpr-trader-info">
+											<div className="tpr-trader-name">
 												{profileUser?.name || "Trader"}
 											</div>
-											<div className="tp-trader-email">
+											<div className="tpr-trader-email">
 												{profileUser?.email || ""}
 											</div>
-											<div className="tp-trader-badges">
-												<span className="tp-tier-badge">
+											<div className="tpr-trader-badges">
+												<span className="tpr-tier-badge">
 													<ThunderboltOutlined /> PRO
 												</span>
-												<span className="tp-online-badge">
-													<span className="tp-online-dot" />{" "}
+												<span className="tpr-online-badge">
+													<span className="tpr-online-dot" />{" "}
 													{screens.md ? "Online" : "Live"}
 												</span>
 											</div>
@@ -303,7 +303,7 @@ export default function ProfilePage() {
 
 						{/* Stat cards */}
 						<Col xs={24} sm={24} md={24} lg={16} xl={17} xxl={18}>
-							<div className="tp-stats-row">
+							<div className="tpr-stats-row">
 								<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
 									{TRADER_STATS.map((s) => (
 										<Col
@@ -316,16 +316,16 @@ export default function ProfilePage() {
 											xxl={6}
 										>
 											<div
-												className="tp-stat-card"
-												style={{ "--tp-accent": s.color } as React.CSSProperties}
+												className="tpr-stat-card"
+												style={{ "--tpr-accent": s.color } as React.CSSProperties}
 											>
-												<div className="tp-stat-icon" style={{ color: s.color }}>
+												<div className="tpr-stat-icon" style={{ color: s.color }}>
 													{s.icon}
 												</div>
-												<div className="tp-stat-val" style={{ color: s.color }}>
+												<div className="tpr-stat-val" style={{ color: s.color }}>
 													{s.value}
 												</div>
-												<div className="tp-stat-label">{s.label}</div>
+												<div className="tpr-stat-label">{s.label}</div>
 											</div>
 										</Col>
 									))}
@@ -336,16 +336,16 @@ export default function ProfilePage() {
 				</div>
 
 				{/* ── Forms ── */}
-				<div className="tp-form-grid">
+				<div className="tpr-form-grid">
 					<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
 						<Col xs={24} sm={24} md={12} lg={12} xl={12} xxl={12}>
 					{/* Profile info */}
-					<div className="tp-panel">
-						<div className="tp-panel-hd">
-							<UserOutlined className="tp-panel-icon" />
+					<div className="tpr-panel">
+						<div className="tpr-panel-hd">
+							<UserOutlined className="tpr-panel-icon" />
 							<div>
-								<div className="tp-panel-title">{t("profile.infoTitle")}</div>
-								<div className="tp-panel-sub">{t("profile.infoSubtitle")}</div>
+								<div className="tpr-panel-title">{t("profile.infoTitle")}</div>
+								<div className="tpr-panel-sub">{t("profile.infoSubtitle")}</div>
 							</div>
 						</div>
 
@@ -353,29 +353,29 @@ export default function ProfilePage() {
 							form={profileForm}
 							layout="vertical"
 							onFinish={handleProfileSubmit}
-							className="tp-form"
+							className="tpr-form"
 						>
 							<Form.Item
 								label={t("auth.nameLabel")}
 								name="name"
 								rules={[{ required: true, message: t("auth.nameLabel") }]}
-								className="tp-form-item"
+								className="tpr-form-item"
 							>
 								<Input
 									prefix={<UserOutlined />}
 									placeholder={t("auth.namePlaceholder")}
-									className="tp-input"
+									className="tpr-input"
 								/>
 							</Form.Item>
 							<Form.Item
 								label={t("auth.emailLabel")}
 								name="email"
-								className="tp-form-item"
+								className="tpr-form-item"
 							>
-								<Input disabled className="tp-input" />
+								<Input disabled className="tpr-input" />
 							</Form.Item>
 
-							<div className="tp-actions">
+							<div className="tpr-actions">
 								<input
 									ref={fileInputRef}
 									type="file"
@@ -386,7 +386,7 @@ export default function ProfilePage() {
 								<Button
 									onClick={handlePickFile}
 									loading={uploadingAvatar}
-									className="tp-btn-secondary"
+									className="tpr-btn-secondary"
 								>
 									<CameraOutlined /> {t("menu.actions.upload")}
 								</Button>
@@ -394,7 +394,7 @@ export default function ProfilePage() {
 									type="primary"
 									htmlType="submit"
 									loading={profileSaving || uploadingAvatar}
-									className="tp-btn-primary"
+									className="tpr-btn-primary"
 								>
 									<CheckCircleOutlined /> {t("profile.save")}
 								</Button>
@@ -402,26 +402,26 @@ export default function ProfilePage() {
 						</Form>
 
 						{profileSuccess && (
-							<div className="tp-feedback tp-feedback-ok">
+							<div className="tpr-feedback tpr-feedback-ok">
 								<SafetyOutlined /> {profileSuccess}
 							</div>
 						)}
 						{profileError && (
-							<div className="tp-feedback tp-feedback-err">{profileError}</div>
+							<div className="tpr-feedback tpr-feedback-err">{profileError}</div>
 						)}
 					</div>
 						</Col>
 
 					{/* Password */}
 						<Col xs={24} sm={24} md={12} lg={12} xl={12} xxl={12}>
-					<div className="tp-panel">
-						<div className="tp-panel-hd">
-							<KeyOutlined className="tp-panel-icon" />
+					<div className="tpr-panel">
+						<div className="tpr-panel-hd">
+							<KeyOutlined className="tpr-panel-icon" />
 							<div>
-								<div className="tp-panel-title">
+								<div className="tpr-panel-title">
 									{t("profile.passwordTitle")}
 								</div>
-								<div className="tp-panel-sub">
+								<div className="tpr-panel-sub">
 									{t("profile.passwordSubtitle")}
 								</div>
 							</div>
@@ -431,7 +431,7 @@ export default function ProfilePage() {
 							form={passwordForm}
 							layout="vertical"
 							onFinish={handlePasswordSubmit}
-							className="tp-form"
+							className="tpr-form"
 						>
 							<Form.Item
 								label={t("profile.currentPassword")}
@@ -439,24 +439,24 @@ export default function ProfilePage() {
 								rules={[
 									{ required: true, message: t("profile.currentPassword") },
 								]}
-								className="tp-form-item"
+								className="tpr-form-item"
 							>
 								<Input.Password
 									prefix={<LockOutlined />}
 									placeholder={t("auth.currentPasswordPlaceholder")}
-									className="tp-input"
+									className="tpr-input"
 								/>
 							</Form.Item>
 							<Form.Item
 								label={t("profile.newPassword")}
 								name="newPassword"
 								rules={[{ required: true, message: t("profile.newPassword") }]}
-								className="tp-form-item"
+								className="tpr-form-item"
 							>
 								<Input.Password
 									prefix={<LockOutlined />}
 									placeholder={t("auth.newPasswordPlaceholder")}
-									className="tp-input"
+									className="tpr-input"
 								/>
 							</Form.Item>
 							<Form.Item
@@ -475,21 +475,21 @@ export default function ProfilePage() {
 										},
 									}),
 								]}
-								className="tp-form-item"
+								className="tpr-form-item"
 							>
 								<Input.Password
 									prefix={<LockOutlined />}
 									placeholder={t("auth.newPasswordPlaceholder")}
-									className="tp-input"
+									className="tpr-input"
 								/>
 							</Form.Item>
 
-							<div className="tp-actions">
+							<div className="tpr-actions">
 								<Button
 									type="primary"
 									htmlType="submit"
 									loading={passwordSaving}
-									className="tp-btn-primary"
+									className="tpr-btn-primary"
 								>
 									<KeyOutlined /> {t("profile.updatePassword")}
 								</Button>
@@ -497,12 +497,12 @@ export default function ProfilePage() {
 						</Form>
 
 						{passwordSuccess && (
-							<div className="tp-feedback tp-feedback-ok">
+							<div className="tpr-feedback tpr-feedback-ok">
 								<SafetyOutlined /> {passwordSuccess}
 							</div>
 						)}
 						{passwordError && (
-							<div className="tp-feedback tp-feedback-err">{passwordError}</div>
+							<div className="tpr-feedback tpr-feedback-err">{passwordError}</div>
 						)}
 					</div>
 						</Col>
@@ -510,26 +510,26 @@ export default function ProfilePage() {
 				</div>
 
 				{/* ── Security strip ── */}
-				<div className="tp-security-strip">
+				<div className="tpr-security-strip">
 					<Row gutter={[GRID_GUTTER, GRID_GUTTER]} style={{ width: "100%" }}>
 						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
-							<div className="tp-sec-item">
+							<div className="tpr-sec-item">
 								<SafetyOutlined />{" "}
 								{screens.md ? "End-to-end encrypted session" : "Encrypted session"}
 							</div>
 						</Col>
 						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
-							<div className="tp-sec-item">
+							<div className="tpr-sec-item">
 								<LockOutlined /> 2FA ready
 							</div>
 						</Col>
 						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
-							<div className="tp-sec-item">
+							<div className="tpr-sec-item">
 								<CheckCircleOutlined /> Account verified
 							</div>
 						</Col>
 						<Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
-							<div className="tp-sec-item">
+							<div className="tpr-sec-item">
 								<ThunderboltOutlined /> PRO tier active
 							</div>
 						</Col>

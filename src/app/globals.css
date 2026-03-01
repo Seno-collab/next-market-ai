@@ -16535,21 +16535,21 @@ button {
 }
 
 /* ==========================================================================
-   TRADING PROFILE  (tp-*)
+   TRADING PROFILE  (tpr-*)
    ========================================================================== */
 
-.tp-shell {
+.tpr-shell {
   min-height: 100vh;
   background: #0a0b10;
 }
 
-.tp-3d-header {
+.tpr-3d-header {
   position: relative;
   height: 340px;
   overflow: hidden;
 }
 
-.tp-scene-loading {
+.tpr-scene-loading {
   position: absolute;
   inset: 0;
   display: flex;
@@ -16558,7 +16558,7 @@ button {
   background: linear-gradient(135deg, #0a0b10 0%, #0f172a 100%);
 }
 
-.tp-header-overlay {
+.tpr-header-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -16573,13 +16573,13 @@ button {
   );
 }
 
-.tp-header-content {
+.tpr-header-content {
   text-align: center;
   max-width: 640px;
   padding: 0 24px;
 }
 
-.tp-eyebrow {
+.tpr-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -16595,7 +16595,7 @@ button {
   margin-bottom: 18px;
 }
 
-.tp-title {
+.tpr-title {
   font-size: clamp(1.8rem, 4vw, 3rem);
   font-weight: 700;
   margin: 0 0 12px;
@@ -16605,14 +16605,14 @@ button {
   background-clip: text;
 }
 
-.tp-subtitle {
+.tpr-subtitle {
   font-size: 1rem;
   color: rgba(255,255,255,0.6);
   margin: 0;
 }
 
 /* ── Body ── */
-.tp-body {
+.tpr-body {
   position: relative;
   z-index: 2;
   margin: -60px auto 0;
@@ -16621,13 +16621,14 @@ button {
 }
 
 /* ── Hero grid ── */
-.tp-hero-grid {
+.tpr-hero-grid {
   display: block;
   margin-bottom: 20px;
+  overflow: hidden;
 }
 
 /* Avatar panel */
-.tp-avatar-panel {
+.tpr-avatar-panel {
   background: rgba(15,18,30,0.88);
   border: 1px solid rgba(34,211,238,0.15);
   border-radius: 16px;
@@ -16640,20 +16641,20 @@ button {
   text-align: center;
 }
 
-.tp-avatar-loading {
+.tpr-avatar-loading {
   min-height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.tp-avatar-wrap {
+.tpr-avatar-wrap {
   position: relative;
   width: 96px;
   height: 96px;
 }
 
-.tp-avatar-ring {
+.tpr-avatar-ring {
   position: absolute;
   inset: -5px;
   border-radius: 50%;
@@ -16663,14 +16664,14 @@ button {
   mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: destination-out;
   mask-composite: exclude;
-  animation: tp-ring-spin 5s linear infinite;
+  animation: tpr-ring-spin 5s linear infinite;
 }
 
-@keyframes tp-ring-spin {
+@keyframes tpr-ring-spin {
   to { transform: rotate(360deg); }
 }
 
-.tp-avatar-img {
+.tpr-avatar-img {
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -16678,7 +16679,7 @@ button {
   border: 2px solid rgba(34,211,238,0.4);
 }
 
-.tp-avatar-fallback {
+.tpr-avatar-fallback {
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -16692,7 +16693,7 @@ button {
   color: #22d3ee;
 }
 
-.tp-avatar-cam {
+.tpr-avatar-cam {
   position: absolute;
   bottom: 2px;
   right: 2px;
@@ -16710,32 +16711,32 @@ button {
   transition: transform 0.2s;
 }
 
-.tp-avatar-cam:hover { transform: scale(1.15); }
+.tpr-avatar-cam:hover { transform: scale(1.15); }
 
-.tp-trader-info { width: 100%; }
+.tpr-trader-info { width: 100%; }
 
-.tp-trader-name {
+.tpr-trader-name {
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   margin-bottom: 4px;
 }
 
-.tp-trader-email {
+.tpr-trader-email {
   font-size: 0.78rem;
   color: rgba(255,255,255,0.4);
   margin-bottom: 12px;
   word-break: break-all;
 }
 
-.tp-trader-badges {
+.tpr-trader-badges {
   display: flex;
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.tp-tier-badge {
+.tpr-tier-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -16749,7 +16750,7 @@ button {
   letter-spacing: 1px;
 }
 
-.tp-online-badge {
+.tpr-online-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -16762,7 +16763,7 @@ button {
   color: #34d399;
 }
 
-.tp-online-dot {
+.tpr-online-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -16771,14 +16772,14 @@ button {
 }
 
 /* Stat cards row */
-.tp-stats-row {
+.tpr-stats-row {
   display: block;
 }
 
-.tp-stat-card {
+.tpr-stat-card {
   background: rgba(15,18,30,0.88);
   border: 1px solid rgba(255,255,255,0.06);
-  border-top: 2px solid var(--tp-accent, #22d3ee);
+  border-top: 2px solid var(--tpr-accent, #22d3ee);
   border-radius: 14px;
   backdrop-filter: blur(20px);
   padding: 20px 16px;
@@ -16786,24 +16787,24 @@ button {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.tp-stat-card:hover {
+.tpr-stat-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 32px rgba(0,0,0,0.35);
 }
 
-.tp-stat-icon {
+.tpr-stat-icon {
   font-size: 1.4rem;
   margin-bottom: 8px;
 }
 
-.tp-stat-val {
+.tpr-stat-val {
   font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   margin-bottom: 4px;
 }
 
-.tp-stat-label {
+.tpr-stat-label {
   font-size: 0.72rem;
   color: rgba(255,255,255,0.4);
   text-transform: uppercase;
@@ -16811,12 +16812,13 @@ button {
 }
 
 /* ── Form grid ── */
-.tp-form-grid {
+.tpr-form-grid {
   display: block;
   margin-bottom: 20px;
+  overflow: hidden;
 }
 
-.tp-panel {
+.tpr-panel {
   background: rgba(15,18,30,0.88);
   border: 1px solid rgba(34,211,238,0.12);
   border-radius: 16px;
@@ -16825,9 +16827,9 @@ button {
   transition: border-color 0.3s;
 }
 
-.tp-panel:hover { border-color: rgba(34,211,238,0.26); }
+.tpr-panel:hover { border-color: rgba(34,211,238,0.26); }
 
-.tp-panel-hd {
+.tpr-panel-hd {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -16836,74 +16838,74 @@ button {
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.tp-panel-icon {
+.tpr-panel-icon {
   font-size: 1.35rem;
   color: #22d3ee;
   margin-top: 2px;
 }
 
-.tp-panel-title {
+.tpr-panel-title {
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
   margin-bottom: 3px;
 }
 
-.tp-panel-sub {
+.tpr-panel-sub {
   font-size: 0.78rem;
   color: rgba(255,255,255,0.4);
 }
 
 /* Form element styling */
-.tp-form .ant-form-item-label > label {
+.tpr-form .ant-form-item-label > label {
   color: rgba(255,255,255,0.6) !important;
   font-size: 0.82rem;
 }
 
-.tp-form .ant-input,
-.tp-form .ant-input-affix-wrapper {
+.tpr-form .ant-input,
+.tpr-form .ant-input-affix-wrapper {
   background: rgba(34,211,238,0.05) !important;
   border-color: rgba(34,211,238,0.2) !important;
   color: #fff !important;
   border-radius: 8px;
 }
 
-.tp-form .ant-input:hover,
-.tp-form .ant-input-affix-wrapper:hover {
+.tpr-form .ant-input:hover,
+.tpr-form .ant-input-affix-wrapper:hover {
   border-color: rgba(34,211,238,0.4) !important;
 }
 
-.tp-form .ant-input:focus,
-.tp-form .ant-input-affix-wrapper-focused {
+.tpr-form .ant-input:focus,
+.tpr-form .ant-input-affix-wrapper-focused {
   border-color: #22d3ee !important;
   box-shadow: 0 0 0 2px rgba(34,211,238,0.14) !important;
 }
 
-.tp-form .ant-input[disabled] {
+.tpr-form .ant-input[disabled] {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.tp-form .ant-input-affix-wrapper .ant-input {
+.tpr-form .ant-input-affix-wrapper .ant-input {
   background: transparent !important;
 }
 
-.tp-form .ant-input-prefix {
+.tpr-form .ant-input-prefix {
   color: rgba(34,211,238,0.6);
   margin-right: 8px;
 }
 
-.tp-form .ant-input-password-icon {
+.tpr-form .ant-input-password-icon {
   color: rgba(255,255,255,0.35);
 }
 
-.tp-actions {
+.tpr-actions {
   display: flex;
   gap: 10px;
   margin-top: 6px;
 }
 
-.tp-btn-primary.ant-btn-primary {
+.tpr-btn-primary.ant-btn-primary {
   background: linear-gradient(135deg, #0891b2, #0e7490) !important;
   border: none !important;
   border-radius: 8px !important;
@@ -16911,12 +16913,12 @@ button {
   box-shadow: 0 4px 15px rgba(34,211,238,0.22) !important;
 }
 
-.tp-btn-primary.ant-btn-primary:hover {
+.tpr-btn-primary.ant-btn-primary:hover {
   background: linear-gradient(135deg, #22d3ee, #0891b2) !important;
   box-shadow: 0 6px 22px rgba(34,211,238,0.38) !important;
 }
 
-.tp-btn-secondary.ant-btn-default {
+.tpr-btn-secondary.ant-btn-default {
   background: rgba(34,211,238,0.07) !important;
   border-color: rgba(34,211,238,0.25) !important;
   color: #22d3ee !important;
@@ -16924,12 +16926,12 @@ button {
   font-weight: 600;
 }
 
-.tp-btn-secondary.ant-btn-default:hover {
+.tpr-btn-secondary.ant-btn-default:hover {
   background: rgba(34,211,238,0.15) !important;
   border-color: rgba(34,211,238,0.45) !important;
 }
 
-.tp-feedback {
+.tpr-feedback {
   margin-top: 14px;
   padding: 10px 14px;
   border-radius: 8px;
@@ -16939,20 +16941,20 @@ button {
   gap: 8px;
 }
 
-.tp-feedback-ok {
+.tpr-feedback-ok {
   background: rgba(52,211,153,0.1);
   border: 1px solid rgba(52,211,153,0.25);
   color: #34d399;
 }
 
-.tp-feedback-err {
+.tpr-feedback-err {
   background: rgba(248,113,113,0.1);
   border: 1px solid rgba(248,113,113,0.25);
   color: #f87171;
 }
 
 /* Security strip */
-.tp-security-strip {
+.tpr-security-strip {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
@@ -16961,9 +16963,10 @@ button {
   background: rgba(15,18,30,0.6);
   border: 1px solid rgba(34,211,238,0.08);
   border-radius: 12px;
+  overflow: hidden;
 }
 
-.tp-sec-item {
+.tpr-sec-item {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -16971,21 +16974,21 @@ button {
   color: rgba(255,255,255,0.4);
 }
 
-.tp-sec-item .anticon { color: #22d3ee; }
+.tpr-sec-item .anticon { color: #22d3ee; }
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .tp-hero-grid { grid-template-columns: 1fr; }
-  .tp-stats-row { grid-template-columns: repeat(2, 1fr); }
+  .tpr-hero-grid { grid-template-columns: 1fr; }
+  .tpr-stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
-  .tp-3d-header { height: 280px; }
-  .tp-body { padding: 0 16px 32px; margin-top: -40px; }
-  .tp-form-grid { grid-template-columns: 1fr; }
-  .tp-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .tp-avatar-panel { flex-direction: row; text-align: left; gap: 20px; }
-  .tp-trader-badges { justify-content: flex-start; }
+  .tpr-3d-header { height: 280px; }
+  .tpr-body { padding: 0 16px 32px; margin-top: -40px; }
+  .tpr-form-grid { grid-template-columns: 1fr; }
+  .tpr-stats-row { grid-template-columns: repeat(2, 1fr); }
+  .tpr-avatar-panel { flex-direction: row; text-align: left; gap: 20px; }
+  .tpr-trader-badges { justify-content: flex-start; }
 }
 
 /* ==========================================================================

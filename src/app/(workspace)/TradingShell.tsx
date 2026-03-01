@@ -6,11 +6,9 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import {
 	AppstoreOutlined,
-	BulbOutlined,
 	LineChartOutlined,
 	MenuFoldOutlined,
 	MenuUnfoldOutlined,
-	MoonOutlined,
 	LogoutOutlined,
 	RobotOutlined,
 	SettingOutlined,
@@ -27,11 +25,9 @@ import {
 	Menu,
 	Segmented,
 	Space,
-	Switch,
 	Typography,
 } from "antd";
 import { useLocale } from "@/hooks/useLocale";
-import { useTheme } from "@/hooks/useTheme";
 import { useHeartbeat } from "@/features/auth/hooks/useHeartbeat";
 
 const { Sider, Header, Content } = Layout;
@@ -99,7 +95,6 @@ export default function TradingShell({
 }) {
 	const pathname = usePathname();
 	const { t, locale, setLocale } = useLocale();
-	const { isDark, setMode } = useTheme();
 	const screens = useBreakpoint();
 	const isMobile = screens.lg === false;
 	const [desktopCollapsed, setDesktopCollapsed] = useState(false);
@@ -138,7 +133,7 @@ export default function TradingShell({
 					</div>
 					<Menu
 						mode="inline"
-						theme={isDark ? "dark" : "light"}
+						theme="dark"
 						selectedKeys={[selectedKey]}
 						inlineCollapsed={desktopCollapsed}
 						items={navItems.map((item) => ({
@@ -191,15 +186,6 @@ export default function TradingShell({
 						className="admin-header-actions"
 						style={{ position: "relative", zIndex: 2 }}
 					>
-						<Space size="small">
-							<BulbOutlined />
-							<Switch
-								checked={isDark}
-								checkedChildren={<MoonOutlined />}
-								unCheckedChildren={<BulbOutlined />}
-								onChange={(checked) => setMode(checked ? "dark" : "light")}
-							/>
-						</Space>
 						<Segmented
 							size="middle"
 							className="admin-locale-toggle"
@@ -230,7 +216,7 @@ export default function TradingShell({
 				</div>
 				<Menu
 					mode="inline"
-					theme={isDark ? "dark" : "light"}
+					theme="dark"
 					selectedKeys={[selectedKey]}
 					items={navItems.map((item) => ({
 						key: item.key,

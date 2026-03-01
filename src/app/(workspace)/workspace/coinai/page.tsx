@@ -764,7 +764,7 @@ export default function CoinAIPage() {
 			)}
 
 			<div className="ci-layout">
-				<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+				<Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="ci-grid-row">
 					<Col xs={24} sm={24} md={24} lg={8} xl={7} xxl={6}>
 						<div className="ci-panel ci-watchlist-panel">
 							<div className="ci-panel-hd">
@@ -1070,8 +1070,8 @@ export default function CoinAIPage() {
 			</div>
 
 			<div className="ci-extra-grid">
-				<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-					<Col xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
+				<Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="ci-grid-row">
+					<Col xs={24} sm={24} md={24} lg={24} xl={12} xxl={12}>
 						<div className="ci-panel ci-stream-panel">
 					<div className="ci-panel-hd">
 						<span className="ci-panel-title">
@@ -1082,9 +1082,9 @@ export default function CoinAIPage() {
 						</Tag>
 					</div>
 
-					<div className="ci-ctrl-grid">
-						<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+						<div className="ci-ctrl-grid">
+							<Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="ci-grid-row">
+								<Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl">
 									<span className="ci-ctrl-label">Symbol</span>
 									<SymbolSearch
@@ -1093,19 +1093,19 @@ export default function CoinAIPage() {
 									/>
 								</div>
 							</Col>
-							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl">
 									<span className="ci-ctrl-label">Interval</span>
 									<IntervalPicker value={realtimeInterval} onChange={setRealtimeInterval} />
 								</div>
 							</Col>
-							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl">
 									<span className="ci-ctrl-label">Algorithm</span>
 									<AlgorithmPicker value={realtimeAlgorithm} onChange={setRealtimeAlgorithm} />
 								</div>
 							</Col>
-							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl">
 									<span className="ci-ctrl-label">Min Trust Score</span>
 									<InputNumber
@@ -1121,7 +1121,7 @@ export default function CoinAIPage() {
 									/>
 								</div>
 							</Col>
-							<Col xs={24} sm={12} md={12} lg={8} xl={8} xxl={8}>
+								<Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl">
 									<span className="ci-ctrl-label">Refresh</span>
 									<Input
@@ -1131,7 +1131,7 @@ export default function CoinAIPage() {
 									/>
 								</div>
 							</Col>
-							<Col xs={24} sm={24} md={24} lg={8} xl={8} xxl={8}>
+								<Col xs={24} sm={24} md={24} lg={12} xl={8} xxl={8}>
 								<div className="ci-ctrl ci-ctrl-row">
 									<div className="ci-ctrl-inline">
 										<span className="ci-ctrl-label">Limit</span>
@@ -1277,7 +1277,7 @@ export default function CoinAIPage() {
 						</div>
 					</Col>
 
-					<Col xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
+					<Col xs={24} sm={24} md={24} lg={24} xl={12} xxl={12}>
 						<div className="ci-panel ci-multi-panel">
 					<div className="ci-panel-hd">
 						<span className="ci-panel-title">
@@ -1286,8 +1286,8 @@ export default function CoinAIPage() {
 						<Tag>{multiReport?.symbols.length ?? 0} symbols</Tag>
 					</div>
 
-					<div className="ci-ctrl-grid">
-						<Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
+						<div className="ci-ctrl-grid">
+							<Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="ci-grid-row">
 							<Col xs={24} sm={24} md={24} lg={24} xl={24} xxl={24}>
 								<div className="ci-ctrl ci-ctrl-full">
 									<span className="ci-ctrl-label">Symbols (comma separated)</span>

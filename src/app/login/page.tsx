@@ -4,11 +4,9 @@ import dynamic from "next/dynamic";
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
-  BulbOutlined,
   GlobalOutlined,
   LockOutlined,
   LoginOutlined,
-  MoonOutlined,
   SafetyOutlined,
   UserOutlined,
   ThunderboltOutlined,
@@ -17,7 +15,6 @@ import { Button, Form, Input, Spin } from "antd";
 import { useState } from "react";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useLocale } from "@/hooks/useLocale";
-import { useTheme } from "@/hooks/useTheme";
 import Sparkline from "@/components/ui/Sparkline";
 
 const LoginPortalScene = dynamic(
@@ -90,9 +87,8 @@ export default function LoginPage() {
       </div>
       <div className="tlogin-overlay" />
 
-      {/* Controls: theme + locale */}
+      {/* Controls: locale */}
       <div className="tlogin-controls">
-        <ThemeSwitch />
         <LocaleSwitch />
       </div>
 
@@ -289,30 +285,6 @@ function LocaleSwitch() {
           {l.toUpperCase()}
         </button>
       ))}
-    </div>
-  );
-}
-
-function ThemeSwitch() {
-  const { mode, setMode } = useTheme();
-  return (
-    <div className="tlogin-ctrl-group">
-      <button
-        className={`tlogin-ctrl-btn${mode === "light" ? " active" : ""}`}
-        onClick={() => setMode("light")}
-        aria-label="Light"
-        aria-pressed={mode === "light"}
-      >
-        <BulbOutlined />
-      </button>
-      <button
-        className={`tlogin-ctrl-btn${mode === "dark" ? " active" : ""}`}
-        onClick={() => setMode("dark")}
-        aria-label="Dark"
-        aria-pressed={mode === "dark"}
-      >
-        <MoonOutlined />
-      </button>
     </div>
   );
 }

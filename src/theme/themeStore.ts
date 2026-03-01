@@ -31,18 +31,7 @@ function initializeFromStorage() {
 		return;
 	}
 	initialized = true;
-	try {
-		const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-		if (stored === "dark" || stored === "light") {
-			currentMode = stored;
-		} else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-			currentMode = "dark";
-		} else {
-			currentMode = "light";
-		}
-	} catch {
-		// Ignore storage errors; keep default mode.
-	}
+	currentMode = DEFAULT_THEME_MODE;
 	applyMode(currentMode);
 }
 
@@ -51,39 +40,7 @@ function bindListeners() {
 		return;
 	}
 	listenersBound = true;
-
 	initializeFromStorage();
-
-	const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-	const handleMediaChange = (event: MediaQueryListEvent) => {
-		try {
-			const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-			if (stored === "dark" || stored === "light") {
-				return;
-			}
-		} catch {
-			// Ignore storage errors and fall back to media query.
-		}
-		currentMode = event.matches ? "dark" : "light";
-		applyMode(currentMode);
-		notify();
-	};
-
-	const handleStorage = (event: StorageEvent) => {
-		if (event.key !== THEME_STORAGE_KEY) {
-			return;
-		}
-		const value = event.newValue;
-		if (value !== "dark" && value !== "light") {
-			return;
-		}
-		currentMode = value;
-		applyMode(currentMode);
-		notify();
-	};
-
-	mediaQuery.addEventListener("change", handleMediaChange);
-	window.addEventListener("storage", handleStorage);
 }
 
 export function subscribeTheme(listener: () => void) {
@@ -105,10 +62,11 @@ export function getServerSnapshot(): ThemeMode {
 }
 
 export function updateThemeMode(mode: ThemeMode) {
-	if (mode === currentMode) {
+	const nextMode: ThemeMode = mode === "dark" ? "dark" : DEFAULT_THEME_MODE;
+	if (nextMode === currentMode) {
 		return;
 	}
-	currentMode = mode;
-	applyMode(mode);
+	currentMode = nextMode;
+	applyMode(nextMode);
 	notify();
 }

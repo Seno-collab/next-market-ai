@@ -30,18 +30,13 @@ const jetbrainsMono = JetBrains_Mono({
 
 const themeBootstrapScript = `
   (function () {
+    const mode = ${JSON.stringify(DEFAULT_THEME_MODE)};
     try {
-      const stored = localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      document.documentElement.dataset.theme =
-        stored === "dark" || stored === "light"
-          ? stored
-          : prefersDark
-            ? "dark"
-            : "light";
+      localStorage.setItem(${JSON.stringify(THEME_STORAGE_KEY)}, mode);
     } catch {
-      document.documentElement.dataset.theme = ${JSON.stringify(DEFAULT_THEME_MODE)};
+      // Ignore storage errors.
     }
+    document.documentElement.dataset.theme = mode;
   })();
 `;
 
