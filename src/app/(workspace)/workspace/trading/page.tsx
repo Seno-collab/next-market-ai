@@ -55,6 +55,8 @@ const PERIODS = [
 type Period = (typeof PERIODS)[number];
 const COMPACT_PERIODS: readonly Period[] = ["5m", "15m", "1h", "4h"];
 const { useBreakpoint } = Grid;
+const WS_FRESH_MS = 1_500;
+const REST_FALLBACK_POLL_MS = 900;
 
 type CandleBar = {
   time: number;
@@ -176,6 +178,7 @@ export default function TradingPage() {
   /* ── REST fallback: keep ticker fresh if WS lags ── */
   const [restTicker, setRestTicker] = useState<Ticker | null>(null);
   const wsTickerUpdateAtRef = useRef(0);
+  const restTickerUpdateAtRef = useRef(0);
   const hasWsTickerRef = useRef(false);
 
   /* ── REST bootstrap: recent trades fallback until WS trade_snapshot arrives ── */
@@ -189,7 +192,7 @@ export default function TradingPage() {
 
   useEffect(() => {
     if (isCompactControls) {
-      setShowCompactControls(false);
+      setShowCompactControls(true);
       setIsPeriodMenuOpen(false);
       return;
     }
@@ -292,6 +295,7 @@ export default function TradingPage() {
           controller.signal,
         );
         if (!disposed) {
+          restTickerUpdateAtRef.current = Date.now();
           setRestTicker(nextTicker);
         }
       } catch {
@@ -310,11 +314,11 @@ export default function TradingPage() {
     const interval = setInterval(() => {
       const wsAgeMs = Date.now() - wsTickerUpdateAtRef.current;
       const wsTickerFresh =
-        hasWsTickerRef.current && wsConnectedRef.current && wsAgeMs <= 2_500;
+        hasWsTickerRef.current && wsConnectedRef.current && wsAgeMs <= WS_FRESH_MS;
       if (!wsTickerFresh) {
         void fetchRestTicker();
       }
-    }, 1_500);
+    }, REST_FALLBACK_POLL_MS);
 
     return () => {
       disposed = true;
@@ -378,11 +382,11 @@ export default function TradingPage() {
     const interval = setInterval(() => {
       const wsAgeMs = Date.now() - wsBookUpdateAtRef.current;
       const wsBookFresh =
-        hasWsBookRef.current && wsConnectedRef.current && wsAgeMs <= 2_500;
+        hasWsBookRef.current && wsConnectedRef.current && wsAgeMs <= WS_FRESH_MS;
       if (!wsBookFresh) {
         void fetchRestBook();
       }
-    }, 1_500);
+    }, REST_FALLBACK_POLL_MS);
 
     return () => {
       disposed = true;
@@ -408,13 +412,21 @@ export default function TradingPage() {
     ticker !== null &&
     hasWsTickerRef.current &&
     connected &&
-    wsTickerAgeMs <= 2_500;
+    wsTickerAgeMs <= WS_FRESH_MS;
   // tickerSnapshot: one-time initial data from WS.
   // ticker: live updates (~1/s) from WS.
   // restTicker: REST fallback when WS ticker is stale.
-  const displayTicker = wsTickerFresh
-    ? ticker
-    : (restTicker ?? ticker ?? tickerSnapshot);
+  const displayTicker = (() => {
+    if (wsTickerFresh && ticker) {
+      return ticker;
+    }
+    if (ticker && restTicker) {
+      return wsTickerUpdateAtRef.current >= restTickerUpdateAtRef.current
+        ? ticker
+        : restTicker;
+    }
+    return restTicker ?? ticker ?? tickerSnapshot;
+  })();
   const displayTrades = trades.length > 0 ? trades : restTrades;
 
   // Prefer the freshest snapshot between WS and REST fallback.

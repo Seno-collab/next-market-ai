@@ -20,6 +20,7 @@ import {
   SyncOutlined,
 } from "@ant-design/icons";
 import {
+  AutoComplete,
   Badge,
   Button,
   Card,
@@ -90,11 +91,38 @@ const MAX_REFRESH_MS = 10 * 60 * 1000;
 const MIN_REFRESH_MS = 5 * 1000;
 const RATE_LIMIT_COOLDOWN_MS = 5 * 1000;
 const DEFAULT_MIN_TRUST_SCORE = 0.58;
+const SYMBOL_SEARCH_DEBOUNCE_MS = 250;
+const DEFAULT_QUOTE_ASSETS = ["USDT", "BTC", "ETH", "BNB"];
+const KNOWN_QUOTES = ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"];
+const FALLBACK_SYMBOLS = [
+  "BTCUSDT",
+  "ETHUSDT",
+  "BNBUSDT",
+  "SOLUSDT",
+  "XRPUSDT",
+  "ADAUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "LINKUSDT",
+  "DOTUSDT",
+];
 
 const SIG_CLR: Record<CoinAISignal, string> = {
   BUY: "#15803d",
   SELL: "#b91c1c",
   HOLD: "#475569",
+};
+
+type SymbolOption = { label: string; value: string };
+type QuotesApiBody = {
+  data?: { quotes?: Array<{ quote_asset?: string | null }> };
+};
+type SymbolsApiBody = {
+  data?: {
+    symbols?: Array<{
+      symbol?: string | null;
+    }>;
+  };
 };
 
 function fmtSignedPercent(value: number, digits = 2) {
@@ -171,11 +199,149 @@ function realtimeBadgeStatus(
   return "default";
 }
 
+function formatSymbolLabel(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase();
+  for (const quote of KNOWN_QUOTES) {
+    if (normalized.endsWith(quote) && normalized.length > quote.length) {
+      return `${normalized.slice(0, -quote.length)}/${quote}`;
+    }
+  }
+  return normalized;
+}
+
+function toSymbolOption(symbol: string): SymbolOption {
+  const normalized = symbol.trim().toUpperCase();
+  return {
+    label: formatSymbolLabel(normalized),
+    value: normalized,
+  };
+}
+
+function normalizeSymbolSearchQuery(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function uniqueSymbolOptions(symbols: string[]): SymbolOption[] {
+  const seen = new Set<string>();
+  const out: SymbolOption[] = [];
+  for (const symbol of symbols) {
+    const normalized = symbol.trim().toUpperCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(toSymbolOption(normalized));
+  }
+  return out;
+}
+
+const FALLBACK_SYMBOL_OPTIONS = uniqueSymbolOptions(FALLBACK_SYMBOLS);
+
+async function fetchQuoteAssets(signal?: AbortSignal): Promise<string[]> {
+  try {
+    const res = await fetch("/api/trading/quotes", {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return DEFAULT_QUOTE_ASSETS;
+    }
+    const body = (await res.json()) as QuotesApiBody;
+    const quotes = (body.data?.quotes ?? [])
+      .map((item) => String(item.quote_asset ?? "").trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 8);
+    return quotes.length > 0 ? quotes : DEFAULT_QUOTE_ASSETS;
+  } catch {
+    return DEFAULT_QUOTE_ASSETS;
+  }
+}
+
+async function fetchSymbolsByQuery(
+  query: string,
+  quotes: string[],
+  signal?: AbortSignal,
+): Promise<SymbolOption[]> {
+  const normalizedQuery = normalizeSymbolSearchQuery(query);
+  const quotePool = quotes.length > 0 ? quotes : DEFAULT_QUOTE_ASSETS;
+
+  if (!normalizedQuery) {
+    const primaryQuote = quotePool[0] ?? "USDT";
+    const params = new URLSearchParams({ quote: primaryQuote });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return FALLBACK_SYMBOL_OPTIONS;
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    const symbols = (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 200);
+    const options = uniqueSymbolOptions(symbols);
+    return options.length > 0 ? options : FALLBACK_SYMBOL_OPTIONS;
+  }
+
+  const quoteRequests = quotePool.slice(0, 8).map(async (quote) => {
+    const params = new URLSearchParams({
+      quote,
+      search: normalizedQuery,
+    });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return [];
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    return (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean);
+  });
+
+  const settled = await Promise.allSettled(quoteRequests);
+  const merged: string[] = [];
+  for (const item of settled) {
+    if (item.status === "fulfilled") {
+      merged.push(...item.value);
+    }
+  }
+
+  const options = uniqueSymbolOptions(merged).slice(0, 300);
+  if (options.length > 0) {
+    return options;
+  }
+
+  try {
+    const params = new URLSearchParams({ search: normalizedQuery });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return FALLBACK_SYMBOL_OPTIONS;
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    const singleSymbols = (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean);
+    const singleOptions = uniqueSymbolOptions(singleSymbols).slice(0, 300);
+    return singleOptions.length > 0 ? singleOptions : FALLBACK_SYMBOL_OPTIONS;
+  } catch {
+    return FALLBACK_SYMBOL_OPTIONS;
+  }
+}
+
 export default function CoinAIPage() {
   const screens = useBreakpoint();
   const [siderCollapsed, setSiderCollapsed] = useState(false);
   const [watchlistQuery, setWatchlistQuery] = useState("");
   const [addValue, setAddValue] = useState("BTCUSDT");
+  const [addSymbolOptions, setAddSymbolOptions] = useState<SymbolOption[]>(
+    FALLBACK_SYMBOL_OPTIONS,
+  );
+  const [addSymbolSearching, setAddSymbolSearching] = useState(false);
 
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [loadingWL, setLoadingWL] = useState(false);
@@ -232,6 +398,15 @@ export default function CoinAIPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const realtimeStopRef = useRef<(() => void) | null>(null);
   const loginRedirectingRef = useRef(false);
+  const quoteAssetsRef = useRef<string[]>(DEFAULT_QUOTE_ASSETS);
+  const addSymbolSearchCacheRef = useRef<Map<string, SymbolOption[]>>(
+    new Map(),
+  );
+  const addSymbolDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const addSymbolAbortRef = useRef<AbortController | null>(null);
+  const addSymbolSeqRef = useRef(0);
   const safeWatchlist = Array.isArray(watchlist) ? watchlist : [];
   const selectedAnalysisSymbol = activeSymbol ?? safeWatchlist[0] ?? null;
   const deferredWatchlistQuery = useDeferredValue(watchlistQuery);
@@ -334,6 +509,84 @@ export default function CoinAIPage() {
   useEffect(() => {
     void loadWatchlist();
   }, [loadWatchlist]);
+
+  const runAddSymbolSearch = useCallback(async (query: string) => {
+    const normalizedQuery = normalizeSymbolSearchQuery(query);
+    const cacheKey = normalizedQuery || "__default__";
+    const cached = addSymbolSearchCacheRef.current.get(cacheKey);
+    if (cached) {
+      setAddSymbolOptions(cached);
+      return;
+    }
+
+    addSymbolAbortRef.current?.abort();
+    const controller = new AbortController();
+    addSymbolAbortRef.current = controller;
+
+    const requestId = addSymbolSeqRef.current + 1;
+    addSymbolSeqRef.current = requestId;
+    setAddSymbolSearching(true);
+
+    try {
+      const nextOptions = await fetchSymbolsByQuery(
+        normalizedQuery,
+        quoteAssetsRef.current,
+        controller.signal,
+      );
+      if (requestId !== addSymbolSeqRef.current || controller.signal.aborted) {
+        return;
+      }
+      addSymbolSearchCacheRef.current.set(cacheKey, nextOptions);
+      setAddSymbolOptions(nextOptions);
+    } catch {
+      if (requestId !== addSymbolSeqRef.current || controller.signal.aborted) {
+        return;
+      }
+      setAddSymbolOptions(FALLBACK_SYMBOL_OPTIONS);
+    } finally {
+      if (requestId === addSymbolSeqRef.current) {
+        setAddSymbolSearching(false);
+      }
+      if (addSymbolAbortRef.current === controller) {
+        addSymbolAbortRef.current = null;
+      }
+    }
+  }, []);
+
+  const handleAddSymbolSearch = useCallback(
+    (nextQuery: string) => {
+      if (addSymbolDebounceRef.current) {
+        clearTimeout(addSymbolDebounceRef.current);
+      }
+      addSymbolDebounceRef.current = setTimeout(() => {
+        void runAddSymbolSearch(nextQuery);
+      }, SYMBOL_SEARCH_DEBOUNCE_MS);
+    },
+    [runAddSymbolSearch],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
+    const loadInitialSymbols = async () => {
+      const quotes = await fetchQuoteAssets(controller.signal);
+      if (!mounted) return;
+      quoteAssetsRef.current = quotes;
+      await runAddSymbolSearch("");
+    };
+
+    void loadInitialSymbols();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+      if (addSymbolDebounceRef.current) {
+        clearTimeout(addSymbolDebounceRef.current);
+      }
+      addSymbolAbortRef.current?.abort();
+    };
+  }, [runAddSymbolSearch]);
 
   const runTrain = useCallback(
     async (symbol: string, interval: Interval) => {
@@ -686,6 +939,17 @@ export default function CoinAIPage() {
     return safeWatchlist.filter((symbol) => symbol.includes(keyword));
   }, [deferredWatchlistQuery, safeWatchlist]);
 
+  const mergedAddSymbolOptions = useMemo(() => {
+    const optionsByValue = new Map(
+      addSymbolOptions.map((option) => [option.value, option]),
+    );
+    const normalizedAddValue = normalizeSymbolSearchQuery(addValue);
+    if (normalizedAddValue && !optionsByValue.has(normalizedAddValue)) {
+      optionsByValue.set(normalizedAddValue, toSymbolOption(normalizedAddValue));
+    }
+    return Array.from(optionsByValue.values());
+  }, [addSymbolOptions, addValue]);
+
   const symbolOptions = useMemo(
     () =>
       safeWatchlist.map((symbol) => ({
@@ -1036,19 +1300,25 @@ export default function CoinAIPage() {
               size="large"
               className={styles.searchInput}
             />
-            <Input.Search
+            <AutoComplete
               value={addValue}
-              onChange={(event) =>
-                setAddValue(event.target.value.toUpperCase())
-              }
-              onSearch={(value) => {
-                void handleQuickAdd(value);
-              }}
-              enterButton="Add"
-              loading={addLoading}
-              placeholder="Add symbol (e.g. BTCUSDT)"
+              options={mergedAddSymbolOptions}
+              filterOption={false}
+              onSearch={handleAddSymbolSearch}
+              onChange={(value) => setAddValue(normalizeSymbolSearchQuery(value))}
+              onSelect={(value) => setAddValue(value.toUpperCase())}
+              notFoundContent={addSymbolSearching ? <Spin size="small" /> : null}
               className={styles.searchInput}
-            />
+            >
+              <Input.Search
+                onSearch={(value) => {
+                  void handleQuickAdd(value);
+                }}
+                enterButton="Add"
+                loading={addLoading}
+                placeholder="Add symbol (e.g. BTCUSDT)"
+              />
+            </AutoComplete>
           </Space>
 
           {errorWL && (

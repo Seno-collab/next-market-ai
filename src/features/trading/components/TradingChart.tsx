@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, ColorType } from "lightweight-charts";
 import type {
 	IChartApi,
@@ -59,6 +59,8 @@ export default function TradingChart({
 	const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
 	// Track latest liveBar via ref so the candles-effect can re-apply it after setData.
 	const liveBarRef = useRef<CandleBar | null>(null);
+	// Bump when chart/series is recreated (theme/height change) to re-apply data.
+	const [chartVersion, setChartVersion] = useState(0);
 
 	// ── Create / recreate chart when theme or height changes ──────────────────
 	useEffect(() => {
@@ -100,6 +102,7 @@ export default function TradingChart({
 
 		chartRef.current = chart;
 		seriesRef.current = series;
+		setChartVersion((v) => v + 1);
 
 		const observer = new ResizeObserver(() => {
 			chart.applyOptions({ width: container.clientWidth });
@@ -117,7 +120,11 @@ export default function TradingChart({
 
 	// ── Load historical candles (setData) — only on symbol/period change ──────
 	useEffect(() => {
-		if (!seriesRef.current || candles.length === 0) return;
+		if (!seriesRef.current) return;
+		if (candles.length === 0) {
+			seriesRef.current.setData([]);
+			return;
+		}
 
 		const chartData = candles.map(toChartBar);
 		seriesRef.current.setData(chartData);
@@ -133,7 +140,7 @@ export default function TradingChart({
 		}
 
 		chartRef.current?.timeScale().fitContent();
-	}, [candles]);
+	}, [candles, chartVersion]);
 
 	// ── Live candle tick — series.update() only, no full reload ───────────────
 	useEffect(() => {

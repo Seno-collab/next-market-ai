@@ -15,12 +15,14 @@ import type {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-// Exponential backoff: 1s → 2s → 4s → … → 30s cap, ±20% jitter.
-const RECONNECT_BASE_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
-const MAX_RECONNECT_ATTEMPTS = 20;
-// Force-reconnect if the server goes silent for this long.
-const HEARTBEAT_TIMEOUT_MS = 45_000;
+// Exponential backoff tuned for low-latency monitoring:
+// 0.5s → 1s → 2s → … → 10s cap, ±20% jitter.
+const RECONNECT_BASE_MS = 500;
+const RECONNECT_MAX_MS = 10_000;
+// Keep trying until connection is restored.
+const MAX_RECONNECT_ATTEMPTS = Number.POSITIVE_INFINITY;
+// Force-reconnect faster if the stream goes silent.
+const HEARTBEAT_TIMEOUT_MS = 18_000;
 // How long to keep ▲▼ change indicators visible after a delta arrives.
 const BOOK_CHANGE_TTL_MS = 600;
 // Max trades to keep in memory.
@@ -792,6 +794,26 @@ export function useTradingStream(symbol: string): TradingStreamReturn {
 			closeSocket(true);
 		};
 	}, [closeSocket, connect, clearHeartbeat, clearChangeReset]);
+
+	// Retry immediately when network comes back.
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		const handleOnline = () => {
+			if (wsRef.current) {
+				return;
+			}
+			reconnectAttempts.current = 0;
+			connect();
+		};
+
+		window.addEventListener("online", handleOnline);
+		return () => {
+			window.removeEventListener("online", handleOnline);
+		};
+	}, [connect]);
 
 	return { ...state, reconnect };
 }

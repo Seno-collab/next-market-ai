@@ -17488,8 +17488,10 @@ button {
   gap: 12px;
   padding: 16px 20px 24px;
   min-height: 100%;
-  max-width: 1800px;
+  width: 100%;
+  max-width: 1600px;
   margin-inline: auto;
+  overflow-x: clip;
 }
 
 /* ── Shared color tokens ─────────────────────────────────────────────────── */
@@ -17522,6 +17524,21 @@ button {
   padding: 10px 16px;
   border-right: 1px solid rgba(255,255,255,0.10);
   flex-shrink: 0;
+  min-width: 0;
+}
+
+.tp-symbol-block > button {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.tp-symbol-block > button > span:first-child {
+  font-size: clamp(18px, 3.4vw, 22px) !important;
+}
+
+.tp-symbol-block > button > span:nth-child(2) {
+  font-size: clamp(12px, 2.8vw, 14px) !important;
 }
 
 /* Stats strip */
@@ -17532,6 +17549,13 @@ button {
   padding: 10px 16px;
   flex: 1;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tp-stats-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .tp-price-block {
@@ -17571,7 +17595,7 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .tp-stat-value {
@@ -17961,9 +17985,10 @@ button {
 /* ── Main grid ──────────────────────────────────────────────────────────── */
 .tp-main-grid {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+  gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 /* ── Chart card ─────────────────────────────────────────────────────────── */
@@ -17973,6 +17998,8 @@ button {
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(14,18,32,0.98);
   box-shadow: 0 4px 28px rgba(0,0,0,0.35);
+  min-height: 320px;
+  width: 100%;
 }
 
 .tp-chart-spin {
@@ -17987,19 +18014,22 @@ button {
 .tp-right-col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
 /* ── Shared card style ──────────────────────────────────────────────────── */
 .tp-book-card,
 .tp-trades-card {
+  display: flex;
+  flex-direction: column;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(16,20,38,0.92);
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05);
   transition: opacity 0.45s ease, filter 0.45s ease;
+  min-width: 0;
 }
 
 /* ── Stale state ─────────────────────────────────────────────────────────── */
@@ -18379,16 +18409,16 @@ button {
 .tp-trades-list {
   display: flex;
   flex-direction: column;
-  max-height: 300px;
+  max-height: 340px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.10) transparent;
+  scrollbar-color: rgba(100,116,139,0.75) transparent;
 }
 
-.tp-trades-list::-webkit-scrollbar { width: 3px; }
+.tp-trades-list::-webkit-scrollbar { width: 6px; }
 .tp-trades-list::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
-  border-radius: 2px;
+  background: rgba(100,116,139,0.75);
+  border-radius: 999px;
 }
 
 .tp-trade-row {
@@ -18489,14 +18519,14 @@ button {
 /* ── 1280px – large laptop ────────────────────────────────────────────────── */
 @media (max-width: 1280px) {
   .tp-main-grid {
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   }
 }
 
 /* ── 1100px – small laptop / laptop with sidebar ─────────────────────────── */
 @media (max-width: 1100px) {
   .tp-main-grid {
-    grid-template-columns: 1fr 230px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
   }
   .tp-stat-item { gap: 1px; }
   .tp-stat-value { font-size: 12px; }
@@ -18535,16 +18565,25 @@ button {
     padding: 7px 10px;
     gap: 5px;
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 
   .tp-controls-main {
     flex: 1 1 0%;
     min-width: 0;
+    width: 100%;
+    order: 2;
   }
 
   .tp-controls-toggle {
     display: inline-flex;
     flex-shrink: 0;
+    order: 1;
+  }
+
+  .tp-controls-block .tp-ws-dot {
+    order: 3;
+    margin-left: auto;
   }
 
   .tp-controls-block.tp-controls-collapsed {
@@ -18559,6 +18598,11 @@ button {
     flex: 1 1 0%;
     min-width: 0;
   }
+
+  .tp-book-header,
+  .tp-trades-header {
+    padding: 9px 10px 8px;
+  }
 }
 
 /* ── 960px – iPad landscape / small laptop ───────────────────────────────── */
@@ -18568,12 +18612,12 @@ button {
   }
   .tp-right-col {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 10px;
   }
-  /* Trades list shorter — it's now side-by-side with order book */
+  /* Keep scroll manageable on tablets */
   .tp-trades-list {
-    max-height: 220px;
+    max-height: 260px;
   }
 }
 
@@ -18626,16 +18670,25 @@ button {
     padding: 7px 10px;
     gap: 5px;
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 
   .tp-controls-main {
     flex: 1 1 0%;
     min-width: 0;
+    width: 100%;
+    order: 2;
   }
 
   .tp-controls-toggle {
     display: inline-flex;
     flex-shrink: 0;
+    order: 1;
+  }
+
+  .tp-controls-block .tp-ws-dot {
+    order: 3;
+    margin-left: auto;
   }
 
   .tp-controls-block.tp-controls-collapsed {
@@ -18712,7 +18765,10 @@ button {
   }
 
   .tp-period-dropdown {
-    width: 180px;
+    left: 0;
+    right: auto;
+    width: min(220px, calc(100vw - 28px));
+    max-width: calc(100vw - 28px);
     grid-template-columns: repeat(3, 1fr);
   }
 
@@ -18735,11 +18791,31 @@ button {
   .tp-book-row  { padding: 3px 10px; font-size: 11px; }
   .tp-trade-row { padding: 4px 10px; font-size: 11px; }
 
-  .tp-mid-row { padding: 6px 10px; }
+  .tp-book-total,
+  .tp-book-cols span:nth-child(3),
+  .tp-trade-time,
+  .tp-trades-cols span:nth-child(3) {
+    display: none;
+  }
+
+  .tp-book-size,
+  .tp-book-cols span:nth-child(2),
+  .tp-trade-qty,
+  .tp-trades-cols span:nth-child(2) {
+    width: 64px;
+  }
+
+  .tp-mid-row {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
   .tp-mid-price { font-size: 13px; }
+  .tp-mid-spread { align-items: flex-start; }
 
   .tp-pressure { padding: 6px 10px 8px; }
   .tp-trades-ratio { padding: 6px 10px 8px; }
+  .tp-trades-list { max-height: 180px; }
 }
 
 /* ── Dashboard: positions table horizontal scroll ── */

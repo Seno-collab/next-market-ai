@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
@@ -52,8 +52,11 @@ const { useBreakpoint } = Grid;
 const PER_PAGE = 20;
 const HISTORY_PER_PAGE = 60;
 const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
+const SYMBOL_SEARCH_DEBOUNCE_MS = 250;
+const DEFAULT_QUOTE_ASSETS = ["USDT", "BTC", "ETH", "BNB"];
+const KNOWN_QUOTES = ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"];
 
-const SYMBOL_OPTIONS = [
+const FALLBACK_SYMBOLS = [
   "BTCUSDT",
   "ETHUSDT",
   "BNBUSDT",
@@ -64,7 +67,156 @@ const SYMBOL_OPTIONS = [
   "AVAXUSDT",
   "LINKUSDT",
   "DOTUSDT",
-].map((s) => ({ label: s.replace("USDT", "/USDT"), value: s }));
+];
+
+type SymbolOption = { label: string; value: string };
+type QuotesApiBody = {
+  data?: { quotes?: Array<{ quote_asset?: string | null }> };
+};
+type SymbolsApiBody = {
+  data?: {
+    symbols?: Array<{
+      symbol?: string | null;
+      base_asset?: string | null;
+      quote_asset?: string | null;
+    }>;
+  };
+};
+
+function formatSymbolLabel(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase();
+  for (const quote of KNOWN_QUOTES) {
+    if (normalized.endsWith(quote) && normalized.length > quote.length) {
+      return `${normalized.slice(0, -quote.length)}/${quote}`;
+    }
+  }
+  return normalized;
+}
+
+function toSymbolOption(symbol: string): SymbolOption {
+  const normalized = symbol.trim().toUpperCase();
+  return {
+    label: formatSymbolLabel(normalized),
+    value: normalized,
+  };
+}
+
+function normalizeSymbolSearchQuery(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function uniqueSymbolOptions(symbols: string[]): SymbolOption[] {
+  const seen = new Set<string>();
+  const out: SymbolOption[] = [];
+  for (const symbol of symbols) {
+    const normalized = symbol.trim().toUpperCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(toSymbolOption(normalized));
+  }
+  return out;
+}
+
+const FALLBACK_SYMBOL_OPTIONS = uniqueSymbolOptions(FALLBACK_SYMBOLS);
+
+async function fetchQuoteAssets(signal?: AbortSignal): Promise<string[]> {
+  try {
+    const res = await fetch("/api/trading/quotes", {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return DEFAULT_QUOTE_ASSETS;
+    }
+    const body = (await res.json()) as QuotesApiBody;
+    const quotes = (body.data?.quotes ?? [])
+      .map((item) => String(item.quote_asset ?? "").trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 8);
+    return quotes.length > 0 ? quotes : DEFAULT_QUOTE_ASSETS;
+  } catch {
+    return DEFAULT_QUOTE_ASSETS;
+  }
+}
+
+async function fetchSymbolsByQuery(
+  query: string,
+  quotes: string[],
+  signal?: AbortSignal,
+): Promise<SymbolOption[]> {
+  const normalizedQuery = normalizeSymbolSearchQuery(query);
+  const quotePool = quotes.length > 0 ? quotes : DEFAULT_QUOTE_ASSETS;
+
+  if (!normalizedQuery) {
+    const primaryQuote = quotePool[0] ?? "USDT";
+    const params = new URLSearchParams({ quote: primaryQuote });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return FALLBACK_SYMBOL_OPTIONS;
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    const symbols = (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 200);
+    const options = uniqueSymbolOptions(symbols);
+    return options.length > 0 ? options : FALLBACK_SYMBOL_OPTIONS;
+  }
+
+  const quoteRequests = quotePool.slice(0, 8).map(async (quote) => {
+    const params = new URLSearchParams({
+      quote,
+      search: normalizedQuery,
+    });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return [];
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    return (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean);
+  });
+
+  const settled = await Promise.allSettled(quoteRequests);
+  const merged: string[] = [];
+  for (const item of settled) {
+    if (item.status === "fulfilled") {
+      merged.push(...item.value);
+    }
+  }
+
+  const options = uniqueSymbolOptions(merged).slice(0, 300);
+  if (options.length > 0) {
+    return options;
+  }
+
+  // Fallback single endpoint search (some backends support search without quote).
+  try {
+    const params = new URLSearchParams({ search: normalizedQuery });
+    const res = await fetch(`/api/trading/symbols?${params.toString()}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) {
+      return FALLBACK_SYMBOL_OPTIONS;
+    }
+    const body = (await res.json()) as SymbolsApiBody;
+    const singleSymbols = (body.data?.symbols ?? [])
+      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .filter(Boolean);
+    const singleOptions = uniqueSymbolOptions(singleSymbols).slice(0, 300);
+    return singleOptions.length > 0 ? singleOptions : FALLBACK_SYMBOL_OPTIONS;
+  } catch {
+    return FALLBACK_SYMBOL_OPTIONS;
+  }
+}
 
 function readNumber(value: string | number) {
   const n = Number(value);
@@ -215,6 +367,18 @@ export default function TransactionsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [form] = Form.useForm<CreateTransactionRequest>();
+  const modalSymbolValue = Form.useWatch("symbol", form);
+  const [symbolOptions, setSymbolOptions] = useState<SymbolOption[]>(
+    FALLBACK_SYMBOL_OPTIONS,
+  );
+  const [symbolOptionsLoading, setSymbolOptionsLoading] = useState(false);
+  const quoteAssetsRef = useRef<string[]>(DEFAULT_QUOTE_ASSETS);
+  const symbolSearchCacheRef = useRef<Map<string, SymbolOption[]>>(new Map());
+  const symbolSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const symbolSearchAbortRef = useRef<AbortController | null>(null);
+  const symbolSearchSeqRef = useRef(0);
 
   const { data, loading, error, refetch } = useTransactionStream({
     token: accessToken,
@@ -293,6 +457,108 @@ export default function TransactionsPage() {
   }
 
   const safeRows = Array.isArray(rows) ? rows : [];
+  const mergedSymbolOptions = useMemo(() => {
+    const optionsByValue = new Map(
+      symbolOptions.map((option) => [option.value, option]),
+    );
+
+    if (symbol && !optionsByValue.has(symbol)) {
+      optionsByValue.set(symbol, toSymbolOption(symbol));
+    }
+    if (modalSymbolValue && !optionsByValue.has(modalSymbolValue)) {
+      optionsByValue.set(modalSymbolValue, toSymbolOption(modalSymbolValue));
+    }
+
+    return Array.from(optionsByValue.values());
+  }, [modalSymbolValue, symbol, symbolOptions]);
+
+  const runSymbolSearch = useCallback(async (query: string) => {
+    const normalizedQuery = normalizeSymbolSearchQuery(query);
+    const cacheKey = normalizedQuery || "__default__";
+    const cached = symbolSearchCacheRef.current.get(cacheKey);
+    if (cached) {
+      setSymbolOptions(cached);
+      return;
+    }
+
+    symbolSearchAbortRef.current?.abort();
+    const controller = new AbortController();
+    symbolSearchAbortRef.current = controller;
+
+    const requestId = symbolSearchSeqRef.current + 1;
+    symbolSearchSeqRef.current = requestId;
+    setSymbolOptionsLoading(true);
+
+    try {
+      const nextOptions = await fetchSymbolsByQuery(
+        normalizedQuery,
+        quoteAssetsRef.current,
+        controller.signal,
+      );
+      if (requestId !== symbolSearchSeqRef.current || controller.signal.aborted) {
+        return;
+      }
+      symbolSearchCacheRef.current.set(cacheKey, nextOptions);
+      setSymbolOptions(nextOptions);
+    } catch {
+      if (requestId !== symbolSearchSeqRef.current || controller.signal.aborted) {
+        return;
+      }
+      setSymbolOptions(FALLBACK_SYMBOL_OPTIONS);
+    } finally {
+      if (requestId === symbolSearchSeqRef.current) {
+        setSymbolOptionsLoading(false);
+      }
+      if (symbolSearchAbortRef.current === controller) {
+        symbolSearchAbortRef.current = null;
+      }
+    }
+  }, []);
+
+  const handleSymbolSearch = useCallback(
+    (nextQuery: string) => {
+      if (symbolSearchDebounceRef.current) {
+        clearTimeout(symbolSearchDebounceRef.current);
+      }
+      symbolSearchDebounceRef.current = setTimeout(() => {
+        void runSymbolSearch(nextQuery);
+      }, SYMBOL_SEARCH_DEBOUNCE_MS);
+    },
+    [runSymbolSearch],
+  );
+
+  const handleSymbolDropdownOpen = useCallback(
+    (open: boolean) => {
+      if (!open) return;
+      if (symbolOptions.length === 0) {
+        void runSymbolSearch("");
+      }
+    },
+    [runSymbolSearch, symbolOptions.length],
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
+    const loadInitialSymbols = async () => {
+      const quotes = await fetchQuoteAssets(controller.signal);
+      if (!mounted) return;
+      quoteAssetsRef.current = quotes;
+      await runSymbolSearch("");
+    };
+
+    void loadInitialSymbols();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+      if (symbolSearchDebounceRef.current) {
+        clearTimeout(symbolSearchDebounceRef.current);
+      }
+      symbolSearchAbortRef.current?.abort();
+    };
+  }, [runSymbolSearch]);
 
   const historyKindLabel = (kind: string) => {
     switch (kind) {
@@ -704,9 +970,15 @@ export default function TransactionsPage() {
               <Select
                 allowClear
                 placeholder={t("transactionsPage.toolbar.allSymbols")}
-                options={SYMBOL_OPTIONS}
+                showSearch
+                filterOption={false}
+                options={mergedSymbolOptions}
                 value={symbol ?? null}
                 onChange={handleSymbolChange}
+                onSearch={handleSymbolSearch}
+                onDropdownVisibleChange={handleSymbolDropdownOpen}
+                loading={symbolOptionsLoading}
+                notFoundContent={symbolOptionsLoading ? <Spin size="small" /> : null}
                 className="tx-symbol-select"
               />
               {loading && <Spin size="small" />}
@@ -840,12 +1112,12 @@ export default function TransactionsPage() {
             <Select
               showSearch
               placeholder={t("transactionsPage.createModal.symbolPlaceholder")}
-              options={SYMBOL_OPTIONS}
-              filterOption={(input, opt) =>
-                (opt?.value as string)
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              options={mergedSymbolOptions}
+              filterOption={false}
+              onSearch={handleSymbolSearch}
+              onDropdownVisibleChange={handleSymbolDropdownOpen}
+              loading={symbolOptionsLoading}
+              notFoundContent={symbolOptionsLoading ? <Spin size="small" /> : null}
             />
           </Form.Item>
 
