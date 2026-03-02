@@ -8,7 +8,13 @@ export class CoinAiValidationError extends Error {
   }
 }
 
-export const COIN_AI_ALGORITHMS = ["auto", "linear", "ensemble"] as const;
+export const COIN_AI_ALGORITHMS = [
+  "auto",
+  "linear",
+  "ensemble",
+  "poly2",
+  "blend",
+] as const;
 export type CoinAiAlgorithmValue = (typeof COIN_AI_ALGORITHMS)[number];
 
 export const COIN_AI_INTERVALS = [
@@ -45,7 +51,7 @@ export function resolveCoinAiAlgorithm(
     return algorithm as CoinAiAlgorithmValue;
   }
   throw new CoinAiValidationError(
-    "algorithm must be one of auto, linear, or ensemble",
+    "algorithm must be one of auto, linear, ensemble, poly2, or blend",
   );
 }
 

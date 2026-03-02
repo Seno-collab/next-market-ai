@@ -333,7 +333,13 @@ export type QuotesResponse = {
 // ── CoinAI types ────────────────────────────────────────────────────────────
 
 export type CoinAISignal = "BUY" | "SELL" | "HOLD";
-export type CoinAIAlgorithm = "auto" | "linear" | "ensemble";
+export type CoinAIAlgorithm =
+	| "auto"
+	| "linear"
+	| "ensemble"
+	| "poly2"
+	| "blend";
+export type CoinAIModelAlgorithm = "linear" | "ensemble" | "poly2" | "blend";
 
 export type BacktestResult = {
 	total_return: number; // decimal  e.g. 0.082 = +8.2%
@@ -341,6 +347,7 @@ export type BacktestResult = {
 	max_drawdown: number; // decimal, negative  e.g. -0.041 = -4.1%
 	sharpe: number;
 	trades: number;
+	stopped_by_risk?: boolean;
 };
 
 export type ReliabilityComponents = {
@@ -381,7 +388,7 @@ export type ThresholdOptimizationResult = {
 export type TrainReport = {
 	symbol: string;
 	interval: string;
-	model_algorithm: CoinAIAlgorithm;
+	model_algorithm: CoinAIModelAlgorithm;
 	applied_long_threshold: number;
 	applied_short_threshold: number;
 	candles: number;
@@ -416,7 +423,7 @@ export type AddWatchlistRequest = {
 export type TrainMultiRequest = {
 	symbols: string[]; // >= 2, uppercase
 	interval?: string; // default "1h"
-	algorithm?: CoinAIAlgorithm; // auto | linear | ensemble (default auto)
+	algorithm?: CoinAIAlgorithm; // auto | linear | ensemble | poly2 | blend (default auto)
 	limit?: number; // 50..1000 (0 means use backend default 500)
 	train_ratio?: number; // (0,1), default 0.7
 	val_ratio?: number; // [0,1) and train_ratio + val_ratio < 1
@@ -440,7 +447,7 @@ export type MultiSymbolSignal = {
 export type MultiTrainReport = {
 	symbols: string[];
 	interval: string;
-	model_algorithm: CoinAIAlgorithm;
+	model_algorithm: CoinAIModelAlgorithm;
 	applied_long_threshold: number;
 	applied_short_threshold: number;
 	total_candles: number;

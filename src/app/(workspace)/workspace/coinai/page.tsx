@@ -24,6 +24,7 @@ import {
   Badge,
   Button,
   Card,
+  Collapse,
   Col,
   Empty,
   Flex,
@@ -82,7 +83,7 @@ const INTERVALS = [
 type Interval = (typeof INTERVALS)[number];
 const QUICK_INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
-const ALGORITHMS = ["auto", "linear", "ensemble"] as const;
+const ALGORITHMS = ["auto", "linear", "ensemble", "poly2", "blend"] as const;
 type ModelAlgorithm = (typeof ALGORITHMS)[number];
 
 const SYMBOL_REGEX = /^[A-Z0-9]{5,20}$/;
@@ -91,6 +92,16 @@ const MAX_REFRESH_MS = 10 * 60 * 1000;
 const MIN_REFRESH_MS = 5 * 1000;
 const RATE_LIMIT_COOLDOWN_MS = 5 * 1000;
 const DEFAULT_MIN_TRUST_SCORE = 0.58;
+const DEFAULT_LIMIT = 500;
+const DEFAULT_TRAIN_RATIO = 0.7;
+const DEFAULT_VAL_RATIO = 0;
+const DEFAULT_TRAIN_EPOCHS = 800;
+const DEFAULT_REALTIME_EPOCHS = 200;
+const DEFAULT_LONG_THRESHOLD = 0.0015;
+const DEFAULT_SHORT_THRESHOLD = -0.0015;
+const DEFAULT_SLIPPAGE_BPS = 0;
+const DEFAULT_LATENCY_BARS = 0;
+const DEFAULT_MAX_DRAWDOWN_STOP = 0;
 const SYMBOL_SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_QUOTE_ASSETS = ["USDT", "BTC", "ETH", "BNB"];
 const KNOWN_QUOTES = ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB"];
@@ -146,6 +157,14 @@ function isValidAlgorithm(value: string): value is CoinAIAlgorithm {
 
 function isValidTrustScore(value: number) {
   return Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function isFiniteInRange(value: number, min: number, max: number) {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function isIntegerInRange(value: number, min: number, max: number) {
+  return Number.isInteger(value) && Number.isFinite(value) && value >= min && value <= max;
 }
 
 function formatThreshold(value: number | string | undefined | null) {
@@ -356,6 +375,21 @@ export default function CoinAIPage() {
   const [trainMinTrustScore, setTrainMinTrustScore] = useState(
     DEFAULT_MIN_TRUST_SCORE,
   );
+  const [trainLimit, setTrainLimit] = useState(DEFAULT_LIMIT);
+  const [trainTrainRatio, setTrainTrainRatio] = useState(DEFAULT_TRAIN_RATIO);
+  const [trainValRatio, setTrainValRatio] = useState(DEFAULT_VAL_RATIO);
+  const [trainEpochs, setTrainEpochs] = useState(DEFAULT_TRAIN_EPOCHS);
+  const [trainLongThreshold, setTrainLongThreshold] = useState(
+    DEFAULT_LONG_THRESHOLD,
+  );
+  const [trainShortThreshold, setTrainShortThreshold] = useState(
+    DEFAULT_SHORT_THRESHOLD,
+  );
+  const [trainSlippageBps, setTrainSlippageBps] = useState(DEFAULT_SLIPPAGE_BPS);
+  const [trainLatencyBars, setTrainLatencyBars] = useState(DEFAULT_LATENCY_BARS);
+  const [trainMaxDrawdownStop, setTrainMaxDrawdownStop] = useState(
+    DEFAULT_MAX_DRAWDOWN_STOP,
+  );
 
   const [addLoading, setAddLoading] = useState(false);
 
@@ -368,6 +402,26 @@ export default function CoinAIPage() {
   );
   const [realtimeRefresh, setRealtimeRefresh] = useState("20s");
   const [realtimeLimit, setRealtimeLimit] = useState(500);
+  const [realtimeTrainRatio, setRealtimeTrainRatio] = useState(
+    DEFAULT_TRAIN_RATIO,
+  );
+  const [realtimeValRatio, setRealtimeValRatio] = useState(DEFAULT_VAL_RATIO);
+  const [realtimeEpochs, setRealtimeEpochs] = useState(DEFAULT_REALTIME_EPOCHS);
+  const [realtimeLongThreshold, setRealtimeLongThreshold] = useState(
+    DEFAULT_LONG_THRESHOLD,
+  );
+  const [realtimeShortThreshold, setRealtimeShortThreshold] = useState(
+    DEFAULT_SHORT_THRESHOLD,
+  );
+  const [realtimeSlippageBps, setRealtimeSlippageBps] = useState(
+    DEFAULT_SLIPPAGE_BPS,
+  );
+  const [realtimeLatencyBars, setRealtimeLatencyBars] = useState(
+    DEFAULT_LATENCY_BARS,
+  );
+  const [realtimeMaxDrawdownStop, setRealtimeMaxDrawdownStop] = useState(
+    DEFAULT_MAX_DRAWDOWN_STOP,
+  );
   const [realtimeMaxUpdates, setRealtimeMaxUpdates] = useState(180);
   const [realtimeStreaming, setRealtimeStreaming] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState("idle");
@@ -385,7 +439,19 @@ export default function CoinAIPage() {
   );
   const [multiLimit, setMultiLimit] = useState(300);
   const [multiTrainRatio, setMultiTrainRatio] = useState(0.7);
+  const [multiValRatio, setMultiValRatio] = useState(DEFAULT_VAL_RATIO);
   const [multiEpochs, setMultiEpochs] = useState(800);
+  const [multiLongThreshold, setMultiLongThreshold] = useState(
+    DEFAULT_LONG_THRESHOLD,
+  );
+  const [multiShortThreshold, setMultiShortThreshold] = useState(
+    DEFAULT_SHORT_THRESHOLD,
+  );
+  const [multiSlippageBps, setMultiSlippageBps] = useState(DEFAULT_SLIPPAGE_BPS);
+  const [multiLatencyBars, setMultiLatencyBars] = useState(DEFAULT_LATENCY_BARS);
+  const [multiMaxDrawdownStop, setMultiMaxDrawdownStop] = useState(
+    DEFAULT_MAX_DRAWDOWN_STOP,
+  );
   const [multiLoading, setMultiLoading] = useState(false);
   const [multiError, setMultiError] = useState<string | null>(null);
   const [multiReport, setMultiReport] = useState<MultiTrainReport | null>(null);
@@ -600,11 +666,53 @@ export default function CoinAIPage() {
         return;
       }
       if (!isValidAlgorithm(trainAlgorithm)) {
-        setErrorTrain("Algorithm must be auto, linear, or ensemble");
+        setErrorTrain(
+          "Algorithm must be auto, linear, ensemble, poly2, or blend",
+        );
         return;
       }
       if (!isValidTrustScore(trainMinTrustScore)) {
         setErrorTrain("Min trust score must be in range 0..1");
+        return;
+      }
+      if (!isIntegerInRange(trainLimit, 50, 1000)) {
+        setErrorTrain("Limit must be an integer in range 50..1000");
+        return;
+      }
+      if (!Number.isFinite(trainTrainRatio) || trainTrainRatio <= 0 || trainTrainRatio >= 1) {
+        setErrorTrain("Train ratio must be in range (0,1)");
+        return;
+      }
+      if (!isFiniteInRange(trainValRatio, 0, 0.99)) {
+        setErrorTrain("Val ratio must be in range 0..0.99");
+        return;
+      }
+      if (trainTrainRatio + trainValRatio >= 1) {
+        setErrorTrain("train_ratio + val_ratio must be < 1");
+        return;
+      }
+      if (!isIntegerInRange(trainEpochs, 1, 3000)) {
+        setErrorTrain("Epochs must be an integer in range 1..3000");
+        return;
+      }
+      if (!Number.isFinite(trainLongThreshold) || !Number.isFinite(trainShortThreshold)) {
+        setErrorTrain("Thresholds must be numeric values");
+        return;
+      }
+      if (!(trainLongThreshold > trainShortThreshold)) {
+        setErrorTrain("long_threshold must be greater than short_threshold");
+        return;
+      }
+      if (!isFiniteInRange(trainSlippageBps, 0, 1000)) {
+        setErrorTrain("slippage_bps must be in range 0..1000");
+        return;
+      }
+      if (!isIntegerInRange(trainLatencyBars, 0, 50)) {
+        setErrorTrain("latency_bars must be an integer in range 0..50");
+        return;
+      }
+      if (!isFiniteInRange(trainMaxDrawdownStop, 0, 1)) {
+        setErrorTrain("max_drawdown_stop must be in range 0..1");
         return;
       }
       if (isTrainCoolingDown) {
@@ -622,7 +730,15 @@ export default function CoinAIPage() {
           await coinAiApi.train(normalizedSymbol, interval, {
             algorithm: trainAlgorithm,
             minTrustScore: trainMinTrustScore,
-            limit: 500,
+            limit: trainLimit,
+            trainRatio: trainTrainRatio,
+            valRatio: trainValRatio,
+            epochs: trainEpochs,
+            longThreshold: trainLongThreshold,
+            shortThreshold: trainShortThreshold,
+            slippageBps: trainSlippageBps,
+            latencyBars: trainLatencyBars,
+            maxDrawdownStop: trainMaxDrawdownStop,
           }),
         );
       } catch (error) {
@@ -640,7 +756,16 @@ export default function CoinAIPage() {
       isTrainCoolingDown,
       trainAlgorithm,
       trainCooldownSeconds,
+      trainEpochs,
+      trainLatencyBars,
+      trainLimit,
+      trainLongThreshold,
+      trainMaxDrawdownStop,
       trainMinTrustScore,
+      trainShortThreshold,
+      trainSlippageBps,
+      trainTrainRatio,
+      trainValRatio,
     ],
   );
 
@@ -683,7 +808,9 @@ export default function CoinAIPage() {
       return;
     }
     if (!isValidAlgorithm(realtimeAlgorithm)) {
-      setRealtimeError("Algorithm must be auto, linear, or ensemble");
+      setRealtimeError(
+        "Algorithm must be auto, linear, ensemble, poly2, or blend",
+      );
       return;
     }
     if (!isValidTrustScore(realtimeMinTrustScore)) {
@@ -697,6 +824,49 @@ export default function CoinAIPage() {
       realtimeLimit > 1000
     ) {
       setRealtimeError("Limit must be an integer in range 50..1000");
+      return;
+    }
+    if (
+      !Number.isFinite(realtimeTrainRatio) ||
+      realtimeTrainRatio <= 0 ||
+      realtimeTrainRatio >= 1
+    ) {
+      setRealtimeError("Train ratio must be in range (0,1)");
+      return;
+    }
+    if (!isFiniteInRange(realtimeValRatio, 0, 0.99)) {
+      setRealtimeError("Val ratio must be in range 0..0.99");
+      return;
+    }
+    if (realtimeTrainRatio + realtimeValRatio >= 1) {
+      setRealtimeError("train_ratio + val_ratio must be < 1");
+      return;
+    }
+    if (!isIntegerInRange(realtimeEpochs, 1, 3000)) {
+      setRealtimeError("Epochs must be an integer in range 1..3000");
+      return;
+    }
+    if (
+      !Number.isFinite(realtimeLongThreshold) ||
+      !Number.isFinite(realtimeShortThreshold)
+    ) {
+      setRealtimeError("Thresholds must be numeric values");
+      return;
+    }
+    if (!(realtimeLongThreshold > realtimeShortThreshold)) {
+      setRealtimeError("long_threshold must be greater than short_threshold");
+      return;
+    }
+    if (!isFiniteInRange(realtimeSlippageBps, 0, 1000)) {
+      setRealtimeError("slippage_bps must be in range 0..1000");
+      return;
+    }
+    if (!isIntegerInRange(realtimeLatencyBars, 0, 50)) {
+      setRealtimeError("latency_bars must be an integer in range 0..50");
+      return;
+    }
+    if (!isFiniteInRange(realtimeMaxDrawdownStop, 0, 1)) {
+      setRealtimeError("max_drawdown_stop must be in range 0..1");
       return;
     }
     if (refreshMs === null) {
@@ -734,6 +904,14 @@ export default function CoinAIPage() {
         interval: realtimeInterval,
         refresh: refreshValue,
         limit: realtimeLimit,
+        trainRatio: realtimeTrainRatio,
+        valRatio: realtimeValRatio,
+        epochs: realtimeEpochs,
+        longThreshold: realtimeLongThreshold,
+        shortThreshold: realtimeShortThreshold,
+        slippageBps: realtimeSlippageBps,
+        latencyBars: realtimeLatencyBars,
+        maxDrawdownStop: realtimeMaxDrawdownStop,
         maxUpdates: realtimeMaxUpdates,
       },
       {
@@ -782,12 +960,20 @@ export default function CoinAIPage() {
     handleAuthRequired,
     isTrainCoolingDown,
     realtimeAlgorithm,
+    realtimeEpochs,
     realtimeInterval,
+    realtimeLatencyBars,
     realtimeLimit,
+    realtimeLongThreshold,
+    realtimeMaxDrawdownStop,
     realtimeMaxUpdates,
     realtimeMinTrustScore,
     realtimeRefresh,
+    realtimeShortThreshold,
+    realtimeSlippageBps,
     realtimeSymbol,
+    realtimeTrainRatio,
+    realtimeValRatio,
     stopRealtime,
     trainCooldownSeconds,
     triggerTrainCooldown,
@@ -850,7 +1036,9 @@ export default function CoinAIPage() {
       return;
     }
     if (!isValidAlgorithm(multiAlgorithm)) {
-      setMultiError("Algorithm must be auto, linear, or ensemble");
+      setMultiError(
+        "Algorithm must be auto, linear, ensemble, poly2, or blend",
+      );
       return;
     }
     if (!isValidTrustScore(multiMinTrustScore)) {
@@ -874,6 +1062,15 @@ export default function CoinAIPage() {
       setMultiError("Train ratio must be 0 or in range (0,1)");
       return;
     }
+    if (!isFiniteInRange(multiValRatio, 0, 0.99)) {
+      setMultiError("Val ratio must be in range 0..0.99");
+      return;
+    }
+    const effectiveTrainRatio = multiTrainRatio === 0 ? DEFAULT_TRAIN_RATIO : multiTrainRatio;
+    if (effectiveTrainRatio + multiValRatio >= 1) {
+      setMultiError("train_ratio + val_ratio must be < 1");
+      return;
+    }
     if (
       !Number.isInteger(multiEpochs) ||
       !Number.isFinite(multiEpochs) ||
@@ -881,6 +1078,26 @@ export default function CoinAIPage() {
       multiEpochs > 3000
     ) {
       setMultiError("Epochs must be 0 or an integer in range 1..3000");
+      return;
+    }
+    if (!Number.isFinite(multiLongThreshold) || !Number.isFinite(multiShortThreshold)) {
+      setMultiError("Thresholds must be numeric values");
+      return;
+    }
+    if (!(multiLongThreshold > multiShortThreshold)) {
+      setMultiError("long_threshold must be greater than short_threshold");
+      return;
+    }
+    if (!isFiniteInRange(multiSlippageBps, 0, 1000)) {
+      setMultiError("slippage_bps must be in range 0..1000");
+      return;
+    }
+    if (!isIntegerInRange(multiLatencyBars, 0, 50)) {
+      setMultiError("latency_bars must be an integer in range 0..50");
+      return;
+    }
+    if (!isFiniteInRange(multiMaxDrawdownStop, 0, 1)) {
+      setMultiError("max_drawdown_stop must be in range 0..1");
       return;
     }
 
@@ -894,7 +1111,13 @@ export default function CoinAIPage() {
         min_trust_score: multiMinTrustScore,
         limit: multiLimit,
         train_ratio: multiTrainRatio,
+        val_ratio: multiValRatio,
         epochs: multiEpochs,
+        long_threshold: multiLongThreshold,
+        short_threshold: multiShortThreshold,
+        slippage_bps: multiSlippageBps,
+        latency_bars: multiLatencyBars,
+        max_drawdown_stop: multiMaxDrawdownStop,
       });
       setMultiReport(result);
     } catch (error) {
@@ -912,10 +1135,16 @@ export default function CoinAIPage() {
     multiAlgorithm,
     multiEpochs,
     multiInterval,
+    multiLatencyBars,
     multiLimit,
+    multiLongThreshold,
+    multiMaxDrawdownStop,
     multiMinTrustScore,
+    multiShortThreshold,
+    multiSlippageBps,
     multiSymbols,
     multiTrainRatio,
+    multiValRatio,
     trainCooldownSeconds,
   ]);
 
@@ -1013,7 +1242,12 @@ export default function CoinAIPage() {
     const logs: string[] = [];
     if (report) {
       logs.push(
-        `${formatGeneratedAt(report.generated_at)} · ${report.symbol} ${report.interval} · ${report.signal} (${Math.round(report.reliability.score * 100)}% trust)`,
+        `${formatGeneratedAt(report.generated_at)} · ${report.symbol} ${report.interval} · ${report.signal} (${Math.round(report.reliability.score * 100)}% trust) · model ${report.model_algorithm.toUpperCase()}`,
+      );
+    }
+    if (realtimeReport) {
+      logs.push(
+        `Realtime latest: ${realtimeReport.symbol} ${realtimeReport.interval} · ${realtimeReport.signal} (${Math.round(realtimeReport.reliability.score * 100)}% trust) · model ${realtimeReport.model_algorithm.toUpperCase()}`,
       );
     }
     if (realtimeStatus) {
@@ -1026,7 +1260,7 @@ export default function CoinAIPage() {
     }
     if (multiReport) {
       logs.push(
-        `Multi-symbol training completed: ${multiReport.symbols.length} symbols on ${formatGeneratedAt(multiReport.generated_at)}`,
+        `Multi-symbol training completed: ${multiReport.symbols.length} symbols on ${formatGeneratedAt(multiReport.generated_at)} · model ${multiReport.model_algorithm.toUpperCase()}`,
       );
     }
     if (errorTrain) logs.push(`Analyze error: ${errorTrain}`);
@@ -1038,6 +1272,7 @@ export default function CoinAIPage() {
     multiError,
     multiReport,
     realtimeError,
+    realtimeReport,
     realtimeStatus,
     realtimeStreaming,
     realtimeUpdates,
@@ -1429,113 +1664,316 @@ export default function CoinAIPage() {
               size="small"
               className={`${styles.surfaceCard} ${styles.controlCard}`}
             >
-              <Flex
-                align="flex-end"
-                gap={12}
-                wrap={screens.xxl ? "nowrap" : "wrap"}
-                className={styles.controlRow}
+              <Space
+                orientation="vertical"
+                size={10}
+                style={{ width: "100%" }}
+                className={styles.controlStack}
               >
-                {!screens.lg && (
-                  <Button
-                    type="default"
-                    icon={<MenuOutlined />}
-                    onClick={() => setSiderCollapsed((prev) => !prev)}
-                    className={styles.menuButton}
-                  />
-                )}
-
-                <div className={styles.controlGroup}>
-                  <Typography.Text className={styles.fieldLabel}>
-                    Symbol
-                  </Typography.Text>
-                  <Select
-                    showSearch
-                    value={selectedAnalysisSymbol ?? undefined}
-                    onChange={(value) => setActiveSymbol(value)}
-                    options={symbolOptions}
-                    placeholder="Select symbol"
-                    className={styles.fieldControl}
-                  />
-                </div>
-
-                <div
-                  className={`${styles.controlGroup} ${styles.segmentedControl}`}
+                <Flex
+                  align="flex-end"
+                  gap={12}
+                  wrap={screens.xxl ? "nowrap" : "wrap"}
+                  className={styles.controlRow}
                 >
-                  <Typography.Text className={styles.fieldLabel}>
-                    Interval
-                  </Typography.Text>
-                  <Segmented
-                    options={quickIntervalOptions}
-                    value={analysisInterval}
-                    onChange={(value) => setAnalysisInterval(value as Interval)}
-                    size="large"
-                  />
-                </div>
-
-                <div
-                  className={`${styles.controlGroup} ${styles.segmentedControl}`}
-                >
-                  <Typography.Text className={styles.fieldLabel}>
-                    Algorithm
-                  </Typography.Text>
-                  <Segmented
-                    options={algorithmSelectOptions}
-                    value={trainAlgorithm}
-                    onChange={(value) =>
-                      setTrainAlgorithm(value as CoinAIAlgorithm)
-                    }
-                    size="large"
-                  />
-                </div>
-
-                <div
-                  className={`${styles.controlGroup} ${styles.trustControlGroup}`}
-                >
-                  <Typography.Text className={styles.fieldLabel}>
-                    Min trust score
-                  </Typography.Text>
-                  <Flex align="center" gap={8} className={styles.trustControl}>
-                    <Slider
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={trainMinTrustScore}
-                      onChange={(value) => {
-                        if (typeof value === "number") {
-                          setTrainMinTrustScore(value);
-                        }
-                      }}
-                      className={styles.trustSlider}
+                  {!screens.lg && (
+                    <Button
+                      type="default"
+                      icon={<MenuOutlined />}
+                      onClick={() => setSiderCollapsed((prev) => !prev)}
+                      className={styles.menuButton}
                     />
-                    <InputNumber
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={trainMinTrustScore}
+                  )}
+
+                  <div className={styles.controlGroup}>
+                    <Typography.Text className={styles.fieldLabel}>
+                      Symbol
+                    </Typography.Text>
+                    <Select
+                      showSearch
+                      value={selectedAnalysisSymbol ?? undefined}
+                      onChange={(value) => setActiveSymbol(value)}
+                      options={symbolOptions}
+                      placeholder="Select symbol"
+                      className={styles.fieldControl}
+                    />
+                  </div>
+
+                  <div
+                    className={`${styles.controlGroup} ${styles.segmentedControl}`}
+                  >
+                    <Typography.Text className={styles.fieldLabel}>
+                      Interval
+                    </Typography.Text>
+                    <Segmented
+                      options={quickIntervalOptions}
+                      value={analysisInterval}
+                      onChange={(value) => setAnalysisInterval(value as Interval)}
+                      size="large"
+                    />
+                  </div>
+
+                  <div
+                    className={`${styles.controlGroup} ${styles.segmentedControl}`}
+                  >
+                    <Typography.Text className={styles.fieldLabel}>
+                      Algorithm
+                    </Typography.Text>
+                    <Segmented
+                      options={algorithmSelectOptions}
+                      value={trainAlgorithm}
                       onChange={(value) =>
-                        setTrainMinTrustScore(
-                          typeof value === "number"
-                            ? value
-                            : DEFAULT_MIN_TRUST_SCORE,
-                        )
+                        setTrainAlgorithm(value as CoinAIAlgorithm)
                       }
-                      className={styles.trustInput}
+                      size="large"
                     />
-                  </Flex>
-                </div>
+                  </div>
 
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<RobotOutlined />}
-                  loading={loadingTrain}
-                  disabled={!selectedAnalysisSymbol || isTrainCoolingDown}
-                  onClick={handleAnalyzeSelected}
-                  className={styles.analyzeButton}
-                >
-                  Analyze
-                </Button>
-              </Flex>
+                  <div
+                    className={`${styles.controlGroup} ${styles.trustControlGroup}`}
+                  >
+                    <Typography.Text className={styles.fieldLabel}>
+                      Min trust score
+                    </Typography.Text>
+                    <Flex align="center" gap={8} className={styles.trustControl}>
+                      <Slider
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={trainMinTrustScore}
+                        onChange={(value) => {
+                          if (typeof value === "number") {
+                            setTrainMinTrustScore(value);
+                          }
+                        }}
+                        className={styles.trustSlider}
+                      />
+                      <InputNumber
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={trainMinTrustScore}
+                        onChange={(value) =>
+                          setTrainMinTrustScore(
+                            typeof value === "number"
+                              ? value
+                              : DEFAULT_MIN_TRUST_SCORE,
+                          )
+                        }
+                        className={styles.trustInput}
+                      />
+                    </Flex>
+                  </div>
+
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<RobotOutlined />}
+                    loading={loadingTrain}
+                    disabled={!selectedAnalysisSymbol || isTrainCoolingDown}
+                    onClick={handleAnalyzeSelected}
+                    className={styles.analyzeButton}
+                  >
+                    Analyze
+                  </Button>
+                </Flex>
+
+                <Collapse
+                  size="small"
+                  className={styles.advancedCollapse}
+                  items={[
+                    {
+                      key: "analysis-advanced",
+                      label: "Advanced train params",
+                      children: (
+                        <Row gutter={[12, 12]} className={styles.advancedParamsGrid}>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Limit
+                              </Typography.Text>
+                              <InputNumber
+                                min={50}
+                                max={1000}
+                                value={trainLimit}
+                                onChange={(value) =>
+                                  setTrainLimit(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_LIMIT,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Train ratio
+                              </Typography.Text>
+                              <InputNumber
+                                min={0.01}
+                                max={0.99}
+                                step={0.01}
+                                value={trainTrainRatio}
+                                onChange={(value) =>
+                                  setTrainTrainRatio(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_TRAIN_RATIO,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Val ratio
+                              </Typography.Text>
+                              <InputNumber
+                                min={0}
+                                max={0.99}
+                                step={0.01}
+                                value={trainValRatio}
+                                onChange={(value) =>
+                                  setTrainValRatio(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_VAL_RATIO,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Epochs
+                              </Typography.Text>
+                              <InputNumber
+                                min={1}
+                                max={3000}
+                                value={trainEpochs}
+                                onChange={(value) =>
+                                  setTrainEpochs(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_TRAIN_EPOCHS,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Long threshold
+                              </Typography.Text>
+                              <InputNumber
+                                step={0.0001}
+                                value={trainLongThreshold}
+                                onChange={(value) =>
+                                  setTrainLongThreshold(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_LONG_THRESHOLD,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Short threshold
+                              </Typography.Text>
+                              <InputNumber
+                                step={0.0001}
+                                value={trainShortThreshold}
+                                onChange={(value) =>
+                                  setTrainShortThreshold(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_SHORT_THRESHOLD,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Slippage (bps)
+                              </Typography.Text>
+                              <InputNumber
+                                min={0}
+                                max={1000}
+                                value={trainSlippageBps}
+                                onChange={(value) =>
+                                  setTrainSlippageBps(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_SLIPPAGE_BPS,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Latency bars
+                              </Typography.Text>
+                              <InputNumber
+                                min={0}
+                                max={50}
+                                value={trainLatencyBars}
+                                onChange={(value) =>
+                                  setTrainLatencyBars(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_LATENCY_BARS,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                          <Col xs={24} md={12} lg={8}>
+                            <div className={styles.fieldWrap}>
+                              <Typography.Text className={styles.fieldLabel}>
+                                Max drawdown stop
+                              </Typography.Text>
+                              <InputNumber
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={trainMaxDrawdownStop}
+                                onChange={(value) =>
+                                  setTrainMaxDrawdownStop(
+                                    typeof value === "number"
+                                      ? value
+                                      : DEFAULT_MAX_DRAWDOWN_STOP,
+                                  )
+                                }
+                                className={styles.fieldControl}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      ),
+                    },
+                  ]}
+                />
+              </Space>
             </Card>
 
             <Card
@@ -1738,6 +2176,182 @@ export default function CoinAIPage() {
                       </div>
                     </Col>
                   </Row>
+
+                  <Collapse
+                    size="small"
+                    className={styles.advancedCollapse}
+                    items={[
+                      {
+                        key: "realtime-advanced",
+                        label: "Advanced realtime params",
+                        children: (
+                          <Row gutter={[12, 12]} className={styles.advancedParamsGrid}>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Train ratio
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0.01}
+                                  max={0.99}
+                                  step={0.01}
+                                  value={realtimeTrainRatio}
+                                  onChange={(value) =>
+                                    setRealtimeTrainRatio(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_TRAIN_RATIO,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Val ratio
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={0.99}
+                                  step={0.01}
+                                  value={realtimeValRatio}
+                                  onChange={(value) =>
+                                    setRealtimeValRatio(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_VAL_RATIO,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Epochs
+                                </Typography.Text>
+                                <InputNumber
+                                  min={1}
+                                  max={3000}
+                                  value={realtimeEpochs}
+                                  onChange={(value) =>
+                                    setRealtimeEpochs(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_REALTIME_EPOCHS,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Long threshold
+                                </Typography.Text>
+                                <InputNumber
+                                  step={0.0001}
+                                  value={realtimeLongThreshold}
+                                  onChange={(value) =>
+                                    setRealtimeLongThreshold(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_LONG_THRESHOLD,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Short threshold
+                                </Typography.Text>
+                                <InputNumber
+                                  step={0.0001}
+                                  value={realtimeShortThreshold}
+                                  onChange={(value) =>
+                                    setRealtimeShortThreshold(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_SHORT_THRESHOLD,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Slippage (bps)
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={1000}
+                                  value={realtimeSlippageBps}
+                                  onChange={(value) =>
+                                    setRealtimeSlippageBps(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_SLIPPAGE_BPS,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Latency bars
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={50}
+                                  value={realtimeLatencyBars}
+                                  onChange={(value) =>
+                                    setRealtimeLatencyBars(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_LATENCY_BARS,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Max drawdown stop
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={1}
+                                  step={0.01}
+                                  value={realtimeMaxDrawdownStop}
+                                  onChange={(value) =>
+                                    setRealtimeMaxDrawdownStop(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_MAX_DRAWDOWN_STOP,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                          </Row>
+                        ),
+                      },
+                    ]}
+                  />
 
                   <Flex gap={8} wrap="wrap" className={styles.actionRow}>
                     <Button
@@ -1963,6 +2577,141 @@ export default function CoinAIPage() {
                       </div>
                     </Col>
                   </Row>
+
+                  <Collapse
+                    size="small"
+                    className={styles.advancedCollapse}
+                    items={[
+                      {
+                        key: "multi-advanced",
+                        label: "Advanced multi params",
+                        children: (
+                          <Row gutter={[12, 12]} className={styles.advancedParamsGrid}>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Val ratio
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={0.99}
+                                  step={0.01}
+                                  value={multiValRatio}
+                                  onChange={(value) =>
+                                    setMultiValRatio(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_VAL_RATIO,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Long threshold
+                                </Typography.Text>
+                                <InputNumber
+                                  step={0.0001}
+                                  value={multiLongThreshold}
+                                  onChange={(value) =>
+                                    setMultiLongThreshold(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_LONG_THRESHOLD,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Short threshold
+                                </Typography.Text>
+                                <InputNumber
+                                  step={0.0001}
+                                  value={multiShortThreshold}
+                                  onChange={(value) =>
+                                    setMultiShortThreshold(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_SHORT_THRESHOLD,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Slippage (bps)
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={1000}
+                                  value={multiSlippageBps}
+                                  onChange={(value) =>
+                                    setMultiSlippageBps(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_SLIPPAGE_BPS,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Latency bars
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={50}
+                                  value={multiLatencyBars}
+                                  onChange={(value) =>
+                                    setMultiLatencyBars(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_LATENCY_BARS,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                              <div className={styles.fieldWrap}>
+                                <Typography.Text className={styles.fieldLabel}>
+                                  Max drawdown stop
+                                </Typography.Text>
+                                <InputNumber
+                                  min={0}
+                                  max={1}
+                                  step={0.01}
+                                  value={multiMaxDrawdownStop}
+                                  onChange={(value) =>
+                                    setMultiMaxDrawdownStop(
+                                      typeof value === "number"
+                                        ? value
+                                        : DEFAULT_MAX_DRAWDOWN_STOP,
+                                    )
+                                  }
+                                  className={styles.fieldControl}
+                                />
+                              </div>
+                            </Col>
+                          </Row>
+                        ),
+                      },
+                    ]}
+                  />
 
                   <Flex gap={8} className={styles.actionRow}>
                     <Button

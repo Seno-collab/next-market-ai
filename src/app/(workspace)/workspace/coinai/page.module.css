@@ -213,6 +213,32 @@
     align-items: flex-end;
 }
 
+.controlStack {
+    width: 100%;
+}
+
+.advancedCollapse {
+    border-radius: 12px;
+    border: 1px solid var(--ca-border-soft);
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.advancedCollapse :global(.ant-collapse-item) {
+    border-bottom: 0 !important;
+}
+
+.advancedCollapse :global(.ant-collapse-header) {
+    padding: 10px 12px !important;
+}
+
+.advancedCollapse :global(.ant-collapse-content-box) {
+    padding: 4px 12px 12px !important;
+}
+
+.advancedParamsGrid {
+    width: 100%;
+}
+
 .menuButton {
     height: 40px;
 }
@@ -478,6 +504,11 @@
 
     .contentWrap {
         gap: 16px;
+    }
+
+    .advancedCollapse :global(.ant-collapse-content-box) {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
     }
 }
 

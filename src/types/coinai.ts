@@ -8,7 +8,13 @@ export type ApiError = {
 };
 
 export type CoinAISignal = "BUY" | "SELL" | "HOLD";
-export type CoinAIAlgorithm = "auto" | "linear" | "ensemble";
+export type CoinAIAlgorithm =
+  | "auto"
+  | "linear"
+  | "ensemble"
+  | "poly2"
+  | "blend";
+export type CoinAIModelAlgorithm = "linear" | "ensemble" | "poly2" | "blend";
 
 export type BacktestResult = {
   total_return: number;
@@ -16,6 +22,7 @@ export type BacktestResult = {
   max_drawdown: number;
   sharpe: number;
   trades: number;
+  stopped_by_risk?: boolean;
 };
 
 export type ReliabilityComponents = {
@@ -63,7 +70,7 @@ export type WatchlistResult = {
 export type TrainReport = {
   symbol: string;
   interval: string;
-  model_algorithm: CoinAIAlgorithm;
+  model_algorithm: CoinAIModelAlgorithm;
   applied_long_threshold: number;
   applied_short_threshold: number;
   candles: number;
@@ -96,7 +103,7 @@ export type MultiSymbolSignal = {
 export type MultiTrainReport = {
   symbols: string[];
   interval: string;
-  model_algorithm: CoinAIAlgorithm;
+  model_algorithm: CoinAIModelAlgorithm;
   applied_long_threshold: number;
   applied_short_threshold: number;
   total_candles: number;

@@ -1,4 +1,4 @@
-import type { TrainReport } from "@/types/coinai";
+import type { CoinAIModelAlgorithm, TrainReport } from "@/types/coinai";
 import { reliabilityReasonText } from "@/lib/coinai-ui";
 
 export type CoinAIViewModel = {
@@ -9,7 +9,7 @@ export type CoinAIViewModel = {
   score: number;
   scoreLevel: "LOW" | "MEDIUM" | "HIGH";
   scoreReason: string;
-  modelAlgorithm: "auto" | "linear" | "ensemble";
+  modelAlgorithm: CoinAIModelAlgorithm;
   thresholds: {
     long: number;
     short: number;
