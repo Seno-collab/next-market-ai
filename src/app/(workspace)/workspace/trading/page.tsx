@@ -631,7 +631,9 @@ export default function TradingPage() {
                 setIsPeriodMenuOpen(false);
               }}
               aria-expanded={controlsExpanded}
-              aria-label={controlsExpanded ? "Hide time controls" : "Show time controls"}
+              aria-label={
+                controlsExpanded ? "Hide time controls" : "Show time controls"
+              }
             >
               {controlsExpanded ? "Hide" : "Show"}
             </button>

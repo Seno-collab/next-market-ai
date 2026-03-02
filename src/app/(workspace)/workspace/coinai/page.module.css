@@ -1,0 +1,507 @@
+.pageLayout {
+    --ca-bg: rgba(59, 130, 246, 0.12);
+    --ca-bg-accent-a: rgba(59, 130, 246, 0.12);
+    --ca-bg-accent-b: rgba(14, 116, 144, 0.08);
+    --ca-surface: rgba(59, 130, 246, 0.12);
+    --ca-surface-soft: rgba(59, 130, 246, 0.12);
+    --ca-border: rgba(15, 23, 42, 0.1);
+    --ca-border-soft: rgba(15, 23, 42, 0.08);
+    --ca-border-accent: #1677ff;
+    --ca-accent-soft: #112545;
+    --ca-text-secondary: rgba(51, 65, 85, 0.84);
+    --ca-success: #15803d;
+    --ca-danger: #b91c1c;
+    min-height: 100%;
+    background:
+        radial-gradient(
+            circle at 12% 4%,
+            var(--ca-bg-accent-a),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 88% 2%,
+            var(--ca-bg-accent-b),
+            transparent 30%
+        ),
+        var(--ca-bg);
+}
+
+.watchlistSider {
+    background: transparent !important;
+    border-right: 1px solid var(--ca-border-soft);
+}
+
+.watchlistSider :global(.ant-layout-sider-children) {
+    background: var(--ca-surface-soft);
+    backdrop-filter: blur(10px);
+}
+
+.siderInner {
+    height: 100%;
+    padding: 24px 16px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.siderHeader {
+    margin-bottom: 4px;
+}
+
+.siderHeaderSpace {
+    max-width: calc(100% - 36px);
+}
+
+.siderTitle {
+    margin: 0 !important;
+    font-size: 18px !important;
+    line-height: 1.1;
+}
+
+.siderInputSpace {
+    width: 100%;
+}
+
+.searchInput :global(.ant-input),
+.searchInput :global(.ant-input-search-button) {
+    height: 40px;
+}
+
+.watchlistList {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.watchlistListInner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.watchlistLoading {
+    min-height: 120px;
+}
+
+.watchlistItem {
+    border: 1px solid #d9d9d9;
+    border-radius: 12px;
+    background: #fafafa;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.watchlistItem:hover {
+    border-color: #0958d9;
+    background: #1677ff;
+}
+
+.watchlistItem:hover .symbolText {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+    .watchlistItem {
+        border-color: #434343;
+        background: #1f1f1f;
+    }
+
+    .watchlistItem:hover {
+        border-color: #1668dc;
+        background: #111a2c;
+    }
+
+    .watchlistItemActive {
+        border-color: #1668dc;
+        background: #112545;
+    }
+
+    .watchlistItem .symbolText {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .watchlistItem:hover .symbolText {
+        color: rgba(255, 255, 255, 0.92);
+    }
+}
+
+.watchlistItemActive {
+    border-color: var(--ca-border-accent);
+    background: var(--ca-accent-soft);
+}
+
+.watchlistItemActive .symbolText {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.watchlistRow {
+    width: 100%;
+    gap: 8px;
+    min-width: 0;
+}
+
+.watchlistMeta {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.watchlistTrustTag {
+    margin-inline-end: 0;
+    flex: 0 0 auto;
+}
+
+.watchlistAnalyzeButton {
+    flex: 0 0 auto;
+}
+
+.symbolText {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mainLayout {
+    background: transparent;
+}
+
+.mainContent {
+    padding: 24px;
+}
+
+.contentWrap {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.surfaceCard {
+    border-radius: 16px !important;
+    border: 1px solid var(--ca-border-soft) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    background: var(--ca-surface);
+}
+
+.surfaceCard :global(.ant-card-head-title) {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.surfaceCard :global(.ant-card-body) {
+    padding: 16px !important;
+}
+
+.cooldownCard :global(.ant-card-body) {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+.controlCard :global(.ant-card-body) {
+    min-height: 68px;
+}
+
+.controlRow {
+    width: 100%;
+    align-items: flex-end;
+}
+
+.menuButton {
+    height: 40px;
+}
+
+.controlGroup {
+    min-width: 170px;
+    flex: 0 0 auto;
+}
+
+.trustControlGroup {
+    min-width: 280px;
+    flex: 1 1 300px;
+    max-width: 380px;
+}
+
+.fieldLabel {
+    display: inline-block;
+    margin-bottom: 6px;
+    color: var(--ca-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.fieldWrap {
+    width: 100%;
+}
+
+.fieldControl {
+    width: 100%;
+}
+
+.fieldControl:global(.ant-input),
+.fieldWrap :global(.ant-input),
+.fieldWrap :global(.ant-input-number),
+.fieldWrap :global(.ant-input-number-group-wrapper),
+.fieldWrap :global(.ant-select-selector) {
+    height: 40px;
+}
+
+.fieldWrap :global(.ant-input),
+.fieldWrap :global(.ant-input-number),
+.fieldWrap :global(.ant-select-selector) {
+    border-radius: 10px;
+}
+
+.fieldWrap :global(.ant-select-selector) {
+    align-items: center;
+}
+
+.fieldWrap :global(.ant-input-number) {
+    width: 100%;
+}
+
+.fieldWrap :global(.ant-input-number-input) {
+    height: 38px;
+}
+
+.fieldControl :global(.ant-select-selector) {
+    min-height: 40px !important;
+}
+
+.segmentedControl :global(.ant-segmented) {
+    min-height: 40px;
+    border-radius: 10px;
+}
+
+.segmentedControl :global(.ant-segmented-item) {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.trustControl {
+    width: 100%;
+}
+
+.trustSlider {
+    flex: 1;
+    margin-inline: 0 !important;
+}
+
+.trustInput {
+    width: 92px;
+}
+
+.trustInput:global(.ant-input-number) {
+    height: 40px;
+}
+
+.trustInput :global(.ant-input-number-input) {
+    height: 38px;
+}
+
+.analyzeButton {
+    height: 40px;
+    min-width: 112px;
+}
+
+.analysisCard :global(.ant-card-body) {
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.loadingArea {
+    min-height: 360px;
+}
+
+.errorText {
+    font-size: 13px;
+}
+
+.analysisEmpty {
+    margin: auto 0;
+}
+
+.analysisEmptyIcon {
+    font-size: 34px;
+    color: rgba(37, 99, 235, 0.82);
+}
+
+.analysisTabs :global(.ant-tabs-nav) {
+    margin-bottom: 12px;
+}
+
+.metricCard {
+    border-radius: 12px !important;
+    border: 1px solid var(--ca-border-soft) !important;
+    box-shadow: none !important;
+}
+
+.metricCard :global(.ant-card-body) {
+    padding: 12px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metricValue,
+.metricPositive,
+.metricNegative {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.metricPositive {
+    color: var(--ca-success) !important;
+}
+
+.metricNegative {
+    color: var(--ca-danger) !important;
+}
+
+.componentTag {
+    margin-bottom: 8px;
+}
+
+.logText {
+    font-size: 13px;
+}
+
+.dataList {
+    display: flex;
+    flex-direction: column;
+}
+
+.dataListItem {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ca-border-soft);
+}
+
+.dataListItem:first-child {
+    padding-top: 0;
+}
+
+.dataListItem:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.logListItem {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.multiSignalItem {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.multiSignalRow {
+    width: 100%;
+    min-width: 0;
+}
+
+.multiSignalSymbol {
+    min-width: 84px;
+}
+
+.multiSignalMeta {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.compactTag {
+    margin-inline-end: 0;
+}
+
+.multiSignalReturn {
+    white-space: nowrap;
+}
+
+.zoneCard :global(.ant-card-body) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.actionRow {
+    align-items: center;
+}
+
+.subCard {
+    border-radius: 12px !important;
+    border: 1px solid var(--ca-border-soft) !important;
+    box-shadow: none !important;
+}
+
+.subCard :global(.ant-card-body) {
+    padding: 12px !important;
+}
+
+.secondaryText {
+    font-size: 13px;
+    color: rgba(51, 65, 85, 0.78);
+}
+
+@media (max-width: 1199px) {
+    .controlGroup {
+        min-width: 150px;
+    }
+
+    .trustControlGroup {
+        min-width: 250px;
+        max-width: none;
+    }
+}
+
+@media (max-width: 991px) {
+    .mainContent {
+        padding: 16px;
+    }
+
+    .siderInner {
+        padding: 16px;
+    }
+
+    .analysisCard :global(.ant-card-body) {
+        min-height: 440px;
+    }
+
+    .contentWrap {
+        gap: 16px;
+    }
+}
+
+@media (max-width: 767px) {
+    .watchlistRow {
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    .watchlistAnalyzeButton {
+        width: 100%;
+    }
+
+    .symbolText {
+        min-width: 0;
+        font-size: 13px;
+    }
+
+    .multiSignalSymbol {
+        min-width: 72px;
+    }
+
+    .analysisCard :global(.ant-card-body) {
+        min-height: 360px;
+    }
+}

@@ -380,7 +380,8 @@ export default function AdminDashboardPage() {
         responsive: ["sm"],
         render: (side: "LONG" | "SHORT") => (
           <span className={`db-side ${side === "LONG" ? "long" : "short"}`}>
-            {side === "LONG" ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {side}
+            {side === "LONG" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+            {side}
           </span>
         ),
       },
@@ -415,7 +416,9 @@ export default function AdminDashboardPage() {
         title: "P&L",
         key: "pnl",
         render: (_, row) => (
-          <div className={`db-pnl-cell ${row.pnl.startsWith("+") ? "up" : "dn"}`}>
+          <div
+            className={`db-pnl-cell ${row.pnl.startsWith("+") ? "up" : "dn"}`}
+          >
             {row.pnl} <span className="db-pnl-pct">{row.pct}</span>
           </div>
         ),
@@ -427,7 +430,9 @@ export default function AdminDashboardPage() {
   const watchlistRows = useMemo<DashboardWatchRow[]>(
     () =>
       WATCHLIST.map((row) => {
-        const live = tickers.find((ticker) => ticker.apiSym === `${row.symbol}USDT`);
+        const live = tickers.find(
+          (ticker) => ticker.apiSym === `${row.symbol}USDT`,
+        );
         return {
           key: row.symbol,
           symbol: row.symbol,
@@ -489,7 +494,9 @@ export default function AdminDashboardPage() {
         dataIndex: "signal",
         key: "signal",
         responsive: ["lg"],
-        render: (signal: string) => <span className="db-signal-chip">{signal}</span>,
+        render: (signal: string) => (
+          <span className="db-signal-chip">{signal}</span>
+        ),
       },
     ],
     [],
@@ -573,8 +580,8 @@ export default function AdminDashboardPage() {
                   <span className="db-hero-accent">Command Center</span>
                 </h1>
                 <p className="db-hero-sub">
-                  Real-time portfolio tracking, AI signals, and market structure in
-                  one view.
+                  Real-time portfolio tracking, AI signals, and market structure
+                  in one view.
                 </p>
                 <div className="db-portfolio-row">
                   <div className="db-ring-wrap">
@@ -789,7 +796,12 @@ export default function AdminDashboardPage() {
                   </div>
                   {[
                     { label: "API Latency", val: "42ms", pct: 96, color: "" },
-                    { label: "Server Load", val: "18%", pct: 18, color: "green" },
+                    {
+                      label: "Server Load",
+                      val: "18%",
+                      pct: 18,
+                      color: "green",
+                    },
                     { label: "Memory", val: "58%", pct: 58, color: "yellow" },
                     { label: "Cache Hit", val: "95%", pct: 95, color: "" },
                   ].map((m) => (

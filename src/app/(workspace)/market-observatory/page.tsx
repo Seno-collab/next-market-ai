@@ -132,9 +132,19 @@ const WATCHLIST: WatchRow[] = [
 
 const SECTOR_HEAT: SectorHeat[] = [
   { sector: "Layer 1", share: "34%", move: 2.8, note: "Stable risk-on demand" },
-  { sector: "AI Tokens", share: "11%", move: 8.4, note: "Speculative expansion" },
+  {
+    sector: "AI Tokens",
+    share: "11%",
+    move: 8.4,
+    note: "Speculative expansion",
+  },
   { sector: "DeFi", share: "15%", move: 1.9, note: "Volume-led recovery" },
-  { sector: "Memecoins", share: "8%", move: -3.6, note: "Mean reversion pressure" },
+  {
+    sector: "Memecoins",
+    share: "8%",
+    move: -3.6,
+    note: "Mean reversion pressure",
+  },
   { sector: "RWA", share: "6%", move: 4.1, note: "Institutional narrative" },
 ];
 
@@ -148,7 +158,8 @@ const ALERT_FEED: AlertItem[] = [
   {
     time: "08:45 UTC",
     title: "ETH spot inflow acceleration",
-    detail: "Exchange net inflow switched positive for the first time in 6 hours.",
+    detail:
+      "Exchange net inflow switched positive for the first time in 6 hours.",
     severity: "medium",
   },
   {
@@ -180,11 +191,14 @@ export default function MarketObservatoryPage() {
       <div className={styles.orbB} />
       <div className={styles.noise} />
 
-      <section className={`${styles.hero} ${styles.reveal} ${styles.revealOne}`}>
+      <section
+        className={`${styles.hero} ${styles.reveal} ${styles.revealOne}`}
+      >
         <p className={styles.badge}>UI RESEARCH PROTOTYPE</p>
         <h1 className={styles.title}>Coin Market Observatory</h1>
         <p className={styles.subtitle}>
-          A command center layout for monitoring market structure, sector rotation, and risk events in one screen.
+          A command center layout for monitoring market structure, sector
+          rotation, and risk events in one screen.
         </p>
         <div className={styles.heroMeta}>
           <span>
@@ -199,7 +213,9 @@ export default function MarketObservatoryPage() {
         </div>
       </section>
 
-      <section className={`${styles.kpiGrid} ${styles.reveal} ${styles.revealTwo}`}>
+      <section
+        className={`${styles.kpiGrid} ${styles.reveal} ${styles.revealTwo}`}
+      >
         {KPI_CARDS.map((card) => (
           <article key={card.id} className={styles.kpiCard}>
             <div className={styles.kpiHead}>
@@ -207,15 +223,23 @@ export default function MarketObservatoryPage() {
               <AreaChartOutlined className={styles.kpiIcon} />
             </div>
             <p className={styles.kpiValue}>{card.value}</p>
-            <p className={`${styles.kpiDelta} ${card.trend === "up" ? styles.up : styles.down}`}>
-              {card.trend === "up" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+            <p
+              className={`${styles.kpiDelta} ${card.trend === "up" ? styles.up : styles.down}`}
+            >
+              {card.trend === "up" ? (
+                <ArrowUpOutlined />
+              ) : (
+                <ArrowDownOutlined />
+              )}
               {card.delta}
             </p>
           </article>
         ))}
       </section>
 
-      <section className={`${styles.gridMain} ${styles.reveal} ${styles.revealThree}`}>
+      <section
+        className={`${styles.gridMain} ${styles.reveal} ${styles.revealThree}`}
+      >
         <article className={styles.panel}>
           <header className={styles.panelHeader}>
             <h2>Top Coin Watchlist</h2>
@@ -243,8 +267,14 @@ export default function MarketObservatoryPage() {
                       </div>
                     </td>
                     <td>{row.price}</td>
-                    <td className={row.change24h >= 0 ? styles.up : styles.down}>{formatPercent(row.change24h)}</td>
-                    <td className={row.change7d >= 0 ? styles.up : styles.down}>{formatPercent(row.change7d)}</td>
+                    <td
+                      className={row.change24h >= 0 ? styles.up : styles.down}
+                    >
+                      {formatPercent(row.change24h)}
+                    </td>
+                    <td className={row.change7d >= 0 ? styles.up : styles.down}>
+                      {formatPercent(row.change7d)}
+                    </td>
                     <td>{row.volume}</td>
                     <td>{row.signal}</td>
                   </tr>
@@ -273,7 +303,9 @@ export default function MarketObservatoryPage() {
                   />
                 </div>
                 <div className={styles.sectorBottom}>
-                  <span className={item.move >= 0 ? styles.up : styles.down}>{formatPercent(item.move)}</span>
+                  <span className={item.move >= 0 ? styles.up : styles.down}>
+                    {formatPercent(item.move)}
+                  </span>
                   <small>{item.note}</small>
                 </div>
               </div>
@@ -282,7 +314,9 @@ export default function MarketObservatoryPage() {
         </article>
       </section>
 
-      <section className={`${styles.gridBottom} ${styles.reveal} ${styles.revealFour}`}>
+      <section
+        className={`${styles.gridBottom} ${styles.reveal} ${styles.revealFour}`}
+      >
         <article className={styles.panel}>
           <header className={styles.panelHeader}>
             <h2>Event Timeline</h2>
@@ -290,8 +324,13 @@ export default function MarketObservatoryPage() {
           </header>
           <div className={styles.alertFeed}>
             {ALERT_FEED.map((item) => (
-              <div key={`${item.time}-${item.title}`} className={styles.alertRow}>
-                <span className={`${styles.alertDot} ${styles[`severity${item.severity}`]}`} />
+              <div
+                key={`${item.time}-${item.title}`}
+                className={styles.alertRow}
+              >
+                <span
+                  className={`${styles.alertDot} ${styles[`severity${item.severity}`]}`}
+                />
                 <div className={styles.alertBody}>
                   <div className={styles.alertHead}>
                     <strong>{item.title}</strong>
@@ -312,15 +351,24 @@ export default function MarketObservatoryPage() {
           <div className={styles.noteList}>
             <div>
               <FireOutlined />
-              <p>Priority hierarchy: metric cards first, watchlist second, event feed always visible.</p>
+              <p>
+                Priority hierarchy: metric cards first, watchlist second, event
+                feed always visible.
+              </p>
             </div>
             <div>
               <FireOutlined />
-              <p>Color logic: green/red reserved for movement, cyan and amber for structural context.</p>
+              <p>
+                Color logic: green/red reserved for movement, cyan and amber for
+                structural context.
+              </p>
             </div>
             <div>
               <FireOutlined />
-              <p>Interaction model: fast scan on desktop, stacked cards with horizontal table scroll on mobile.</p>
+              <p>
+                Interaction model: fast scan on desktop, stacked cards with
+                horizontal table scroll on mobile.
+              </p>
             </div>
           </div>
         </article>

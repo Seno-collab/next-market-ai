@@ -255,7 +255,8 @@ export default function TransactionsPage() {
       }
     } catch (e) {
       notifyError(
-        (e as Error).message || t("transactionsPage.notifications.createFailed"),
+        (e as Error).message ||
+          t("transactionsPage.notifications.createFailed"),
       );
     } finally {
       setCreating(false);
@@ -280,7 +281,8 @@ export default function TransactionsPage() {
       }
     } catch (e) {
       notifyError(
-        (e as Error).message || t("transactionsPage.notifications.deleteFailed"),
+        (e as Error).message ||
+          t("transactionsPage.notifications.deleteFailed"),
       );
     }
   }
@@ -340,7 +342,11 @@ export default function TransactionsPage() {
           {isXs && (
             <div className="tx-symbol-meta">
               <span className={`tx-side ${tx.side === "BUY" ? "buy" : "sell"}`}>
-                {tx.side === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+                {tx.side === "BUY" ? (
+                  <ArrowUpOutlined />
+                ) : (
+                  <ArrowDownOutlined />
+                )}{" "}
                 {tx.side}
               </span>
               <span className="tx-soft">{fmtDate(tx.created_at, locale)}</span>
@@ -356,7 +362,8 @@ export default function TransactionsPage() {
       responsive: ["md"],
       render: (value: Transaction["side"]) => (
         <span className={`tx-side ${value === "BUY" ? "buy" : "sell"}`}>
-          {value === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {value}
+          {value === "BUY" ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+          {value}
         </span>
       ),
     },
@@ -366,7 +373,9 @@ export default function TransactionsPage() {
       dataIndex: "quantity",
       responsive: ["md"],
       align: "right",
-      render: (value: string) => <span className="tx-num">{fmtNum(value, locale, 6)}</span>,
+      render: (value: string) => (
+        <span className="tx-num">{fmtNum(value, locale, 6)}</span>
+      ),
     },
     {
       title: t("transactionsPage.table.entryPrice"),
@@ -374,7 +383,9 @@ export default function TransactionsPage() {
       dataIndex: "price",
       responsive: ["md"],
       align: "right",
-      render: (value: string) => <span className="tx-num">${fmtNum(value, locale, 2)}</span>,
+      render: (value: string) => (
+        <span className="tx-num">${fmtNum(value, locale, 2)}</span>
+      ),
     },
     {
       title: t("transactionsPage.table.current"),
@@ -409,7 +420,8 @@ export default function TransactionsPage() {
       responsive: ["lg"],
       align: "right",
       render: (_, tx) => {
-        const hasLive = tx.current_price !== "" && tx.current_price !== undefined;
+        const hasLive =
+          tx.current_price !== "" && tx.current_price !== undefined;
         return (
           <span
             className={`tx-num tx-pnl-cell ${tx.side === "BUY" && hasLive ? pnlColor(tx.pnl) : "tx-soft"}`}
@@ -425,14 +437,18 @@ export default function TransactionsPage() {
       dataIndex: "fee",
       responsive: ["xl"],
       align: "right",
-      render: (value: string) => <span className="tx-soft">{fmtNum(value, locale, 4)}</span>,
+      render: (value: string) => (
+        <span className="tx-soft">{fmtNum(value, locale, 4)}</span>
+      ),
     },
     {
       title: t("transactionsPage.table.note"),
       key: "note",
       dataIndex: "note",
       responsive: ["xl"],
-      render: (value: string) => <span className="tx-soft tx-note">{value || "—"}</span>,
+      render: (value: string) => (
+        <span className="tx-soft tx-note">{value || "—"}</span>
+      ),
     },
     {
       title: "",
@@ -484,7 +500,10 @@ export default function TransactionsPage() {
           {value !== 0 && (
             <span className="tx-hist-arrow">{value > 0 ? "▲" : "▼"}</span>
           )}
-          ${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          $
+          {Math.abs(value).toLocaleString("en-US", {
+            maximumFractionDigits: 2,
+          })}
         </span>
       ),
     },
@@ -499,7 +518,10 @@ export default function TransactionsPage() {
           {value !== 0 && (
             <span className="tx-hist-arrow">{value > 0 ? "▲" : "▼"}</span>
           )}
-          ${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          $
+          {Math.abs(value).toLocaleString("en-US", {
+            maximumFractionDigits: 2,
+          })}
         </span>
       ),
     },
@@ -523,7 +545,8 @@ export default function TransactionsPage() {
       align: "right",
       render: (value: number) => (
         <span className={`tx-num tx-right ${deltaClass(value)}`}>
-          {value >= 0 ? "+" : ""}${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          {value >= 0 ? "+" : ""}$
+          {value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
         </span>
       ),
     },
@@ -574,7 +597,9 @@ export default function TransactionsPage() {
         <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
           <div className="tx-kpi-card tx-kpi-blue">
             <div className="tx-kpi-top">
-              <span className="tx-kpi-label">{t("transactionsPage.kpi.totalTrades")}</span>
+              <span className="tx-kpi-label">
+                {t("transactionsPage.kpi.totalTrades")}
+              </span>
               <FundOutlined className="tx-kpi-icon" />
             </div>
             <div className="tx-kpi-val">{total}</div>
@@ -587,26 +612,38 @@ export default function TransactionsPage() {
         <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
           <div className="tx-kpi-card tx-kpi-green">
             <div className="tx-kpi-top">
-              <span className="tx-kpi-label">{t("transactionsPage.kpi.buyVolume")}</span>
+              <span className="tx-kpi-label">
+                {t("transactionsPage.kpi.buyVolume")}
+              </span>
               <ArrowUpOutlined className="tx-kpi-icon" />
             </div>
             <div className="tx-kpi-val">
-              ${kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+              $
+              {kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
             </div>
-            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+            <div className="tx-kpi-sub">
+              {t("transactionsPage.kpi.currentPage")}
+            </div>
           </div>
         </Col>
 
         <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
           <div className="tx-kpi-card tx-kpi-red">
             <div className="tx-kpi-top">
-              <span className="tx-kpi-label">{t("transactionsPage.kpi.sellVolume")}</span>
+              <span className="tx-kpi-label">
+                {t("transactionsPage.kpi.sellVolume")}
+              </span>
               <ArrowDownOutlined className="tx-kpi-icon" />
             </div>
             <div className="tx-kpi-val">
-              ${kpi.sellVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+              $
+              {kpi.sellVol.toLocaleString("en-US", {
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+            <div className="tx-kpi-sub">
+              {t("transactionsPage.kpi.currentPage")}
+            </div>
           </div>
         </Col>
 
@@ -615,27 +652,39 @@ export default function TransactionsPage() {
             className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}
           >
             <div className="tx-kpi-top">
-              <span className="tx-kpi-label">{t("transactionsPage.kpi.unrealizedPnl")}</span>
+              <span className="tx-kpi-label">
+                {t("transactionsPage.kpi.unrealizedPnl")}
+              </span>
               <DollarOutlined className="tx-kpi-icon" />
             </div>
-            <div className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}>
+            <div
+              className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}
+            >
               {kpi.totalPnl >= 0 ? "+" : ""}
-              {kpi.totalPnl.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+              {kpi.totalPnl.toLocaleString("en-US", {
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <div className="tx-kpi-sub">{t("transactionsPage.kpi.buyPositionsOnPage")}</div>
+            <div className="tx-kpi-sub">
+              {t("transactionsPage.kpi.buyPositionsOnPage")}
+            </div>
           </div>
         </Col>
 
         <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
           <div className="tx-kpi-card tx-kpi-amber">
             <div className="tx-kpi-top">
-              <span className="tx-kpi-label">{t("transactionsPage.kpi.feesPaid")}</span>
+              <span className="tx-kpi-label">
+                {t("transactionsPage.kpi.feesPaid")}
+              </span>
               <WalletOutlined className="tx-kpi-icon" />
             </div>
             <div className="tx-kpi-val">
               ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
             </div>
-            <div className="tx-kpi-sub">{t("transactionsPage.kpi.currentPage")}</div>
+            <div className="tx-kpi-sub">
+              {t("transactionsPage.kpi.currentPage")}
+            </div>
           </div>
         </Col>
       </Row>
@@ -707,8 +756,12 @@ export default function TransactionsPage() {
               <div className="tx-empty-icon-wrap">
                 <SwapOutlined />
               </div>
-              <p className="tx-empty-title">{t("transactionsPage.empty.title")}</p>
-              <p className="tx-empty-hint">{t("transactionsPage.empty.hint")}</p>
+              <p className="tx-empty-title">
+                {t("transactionsPage.empty.title")}
+              </p>
+              <p className="tx-empty-hint">
+                {t("transactionsPage.empty.hint")}
+              </p>
             </div>
           ) : (
             <Table<Transaction>
@@ -727,10 +780,16 @@ export default function TransactionsPage() {
           <div className="tx-footer">
             <span className="tx-footer-count">
               {Math.min((page - 1) * PER_PAGE + 1, total)}–
-              {Math.min(page * PER_PAGE, total)} <span className="tx-footer-sep">/</span>{" "}
-              {total} {t("transactionsPage.footer.totalTransactions")}
+              {Math.min(page * PER_PAGE, total)}{" "}
+              <span className="tx-footer-sep">/</span> {total}{" "}
+              {t("transactionsPage.footer.totalTransactions")}
             </span>
-            <Paginator page={page} total={total} perPage={PER_PAGE} onChange={setPage} />
+            <Paginator
+              page={page}
+              total={total}
+              perPage={PER_PAGE}
+              onChange={setPage}
+            />
           </div>
         )}
       </div>
@@ -747,8 +806,12 @@ export default function TransactionsPage() {
               <DollarOutlined />
             </div>
             <div>
-              <div className="tx-modal-title">{t("transactionsPage.createModal.title")}</div>
-              <div className="tx-modal-sub">{t("transactionsPage.createModal.subtitle")}</div>
+              <div className="tx-modal-title">
+                {t("transactionsPage.createModal.title")}
+              </div>
+              <div className="tx-modal-sub">
+                {t("transactionsPage.createModal.subtitle")}
+              </div>
             </div>
           </div>
         }
@@ -779,7 +842,9 @@ export default function TransactionsPage() {
               placeholder={t("transactionsPage.createModal.symbolPlaceholder")}
               options={SYMBOL_OPTIONS}
               filterOption={(input, opt) =>
-                (opt?.value as string).toLowerCase().includes(input.toLowerCase())
+                (opt?.value as string)
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             />
           </Form.Item>
@@ -855,7 +920,10 @@ export default function TransactionsPage() {
 
           <Row gutter={[GRID_GUTTER, 0]}>
             <Col xs={24} sm={24} md={12}>
-              <Form.Item name="fee" label={t("transactionsPage.createModal.feeUsd")}>
+              <Form.Item
+                name="fee"
+                label={t("transactionsPage.createModal.feeUsd")}
+              >
                 <InputNumber
                   min={0}
                   step={0.01}
@@ -866,9 +934,14 @@ export default function TransactionsPage() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={24} md={12}>
-              <Form.Item name="note" label={t("transactionsPage.createModal.note")}>
+              <Form.Item
+                name="note"
+                label={t("transactionsPage.createModal.note")}
+              >
                 <Input
-                  placeholder={t("transactionsPage.createModal.notePlaceholder")}
+                  placeholder={t(
+                    "transactionsPage.createModal.notePlaceholder",
+                  )}
                   maxLength={120}
                 />
               </Form.Item>
@@ -909,12 +982,17 @@ export default function TransactionsPage() {
               <LineChartOutlined />
             </div>
             <div>
-              <div className="tx-modal-title">{t("transactionsPage.historyModal.title")}</div>
+              <div className="tx-modal-title">
+                {t("transactionsPage.historyModal.title")}
+              </div>
               <div className="tx-modal-sub">
                 {t("transactionsPage.historyModal.subtitlePrefix")}{" "}
                 {historyData?.interval_seconds ?? 10}s
                 {historyData && historyData.total > 0 && (
-                  <span className="tx-modal-sub-count"> · {historyData.total} snapshots</span>
+                  <span className="tx-modal-sub-count">
+                    {" "}
+                    · {historyData.total} snapshots
+                  </span>
                 )}
               </div>
             </div>
@@ -949,7 +1027,8 @@ export default function TransactionsPage() {
         ) : historyError ? (
           <div className="tx-error">
             <Text type="danger">
-              {t("transactionsPage.historyModal.loadErrorPrefix")} {historyError}
+              {t("transactionsPage.historyModal.loadErrorPrefix")}{" "}
+              {historyError}
             </Text>
           </div>
         ) : !historyData || historyData.items.length === 0 ? (
@@ -957,18 +1036,30 @@ export default function TransactionsPage() {
             <div className="tx-empty-icon-wrap">
               <LineChartOutlined />
             </div>
-            <p className="tx-empty-title">{t("transactionsPage.historyModal.emptyTitle")}</p>
-            <p className="tx-empty-hint">{t("transactionsPage.historyModal.emptyHint")}</p>
+            <p className="tx-empty-title">
+              {t("transactionsPage.historyModal.emptyTitle")}
+            </p>
+            <p className="tx-empty-hint">
+              {t("transactionsPage.historyModal.emptyHint")}
+            </p>
           </div>
         ) : (
           <div className="tx-history-wrap">
             {historyData.items[0] && (
-              <Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="tx-hist-stats-grid">
+              <Row
+                gutter={[GRID_GUTTER, GRID_GUTTER]}
+                className="tx-hist-stats-grid"
+              >
                 <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
                   <div className="tx-hist-stat">
                     <span className="tx-hist-stat-label">Invested</span>
                     <span className="tx-hist-stat-val">
-                      ${signedNum(historyData.items[0].total_invested, locale, 2)}
+                      $
+                      {signedNum(
+                        historyData.items[0].total_invested,
+                        locale,
+                        2,
+                      )}
                     </span>
                   </div>
                 </Col>
@@ -991,7 +1082,9 @@ export default function TransactionsPage() {
                     <span
                       className={`tx-hist-stat-val ${deltaClass(historyData.items[0].total_unrealized_pnl)}`}
                     >
-                      {historyData.items[0].total_unrealized_pnl >= 0 ? "▲ " : "▼ "}
+                      {historyData.items[0].total_unrealized_pnl >= 0
+                        ? "▲ "
+                        : "▼ "}
                       $
                       {Math.abs(
                         historyData.items[0].total_unrealized_pnl,
@@ -1002,7 +1095,9 @@ export default function TransactionsPage() {
                 <Col xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
                   <div className="tx-hist-stat">
                     <span className="tx-hist-stat-label">Snapshots</span>
-                    <span className="tx-hist-stat-val">{historyData.total}</span>
+                    <span className="tx-hist-stat-val">
+                      {historyData.total}
+                    </span>
                   </div>
                 </Col>
               </Row>
@@ -1023,9 +1118,13 @@ export default function TransactionsPage() {
             {historyData.total > HISTORY_PER_PAGE && (
               <div className="tx-footer">
                 <span className="tx-footer-count">
-                  {Math.min((historyPage - 1) * HISTORY_PER_PAGE + 1, historyData.total)}–
-                  {Math.min(historyPage * HISTORY_PER_PAGE, historyData.total)}{" "}
-                  <span className="tx-footer-sep">/</span> {historyData.total} snapshots
+                  {Math.min(
+                    (historyPage - 1) * HISTORY_PER_PAGE + 1,
+                    historyData.total,
+                  )}
+                  –{Math.min(historyPage * HISTORY_PER_PAGE, historyData.total)}{" "}
+                  <span className="tx-footer-sep">/</span> {historyData.total}{" "}
+                  snapshots
                 </span>
                 <Paginator
                   page={historyPage}
