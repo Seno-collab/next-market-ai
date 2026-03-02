@@ -941,10 +941,14 @@ export default function CoinAIPage() {
             {metricRows.map((item) => (
               <div key={item.label} className={styles.dataListItem}>
                 <Flex justify="space-between" style={{ width: "100%" }}>
-                  <Typography.Text type="secondary">{item.label}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {item.label}
+                  </Typography.Text>
                   <Typography.Text
                     className={
-                      item.positive ? styles.metricPositive : styles.metricNegative
+                      item.positive
+                        ? styles.metricPositive
+                        : styles.metricNegative
                     }
                   >
                     {item.value}
@@ -958,9 +962,12 @@ export default function CoinAIPage() {
       {
         key: "logs",
         label: "Logs",
-        children: (
+        children:
           analysisLogs.length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No logs yet" />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="No logs yet"
+            />
           ) : (
             <div className={styles.dataList}>
               {analysisLogs.map((line, index) => (
@@ -968,12 +975,13 @@ export default function CoinAIPage() {
                   key={`${line}-${index}`}
                   className={`${styles.dataListItem} ${styles.logListItem}`}
                 >
-                  <Typography.Text className={styles.logText}>{line}</Typography.Text>
+                  <Typography.Text className={styles.logText}>
+                    {line}
+                  </Typography.Text>
                 </div>
               ))}
             </div>
-          )
-        ),
+          ),
       },
     ];
   }, [analysisLogs, report, reportView]);
@@ -1051,7 +1059,11 @@ export default function CoinAIPage() {
 
           <div className={styles.watchlistList}>
             {loadingWL ? (
-              <Flex align="center" justify="center" className={styles.watchlistLoading}>
+              <Flex
+                align="center"
+                justify="center"
+                className={styles.watchlistLoading}
+              >
                 <Spin size="small" />
               </Flex>
             ) : filteredWatchlist.length === 0 ? (
@@ -1081,7 +1093,11 @@ export default function CoinAIPage() {
                         justify="space-between"
                         className={styles.watchlistRow}
                       >
-                        <Flex align="center" gap={8} className={styles.watchlistMeta}>
+                        <Flex
+                          align="center"
+                          gap={8}
+                          className={styles.watchlistMeta}
+                        >
                           <Typography.Text
                             strong
                             className={styles.symbolText}
@@ -1091,7 +1107,10 @@ export default function CoinAIPage() {
                           </Typography.Text>
                           <Tag
                             className={styles.watchlistTrustTag}
-                            color={trustTagColor(trustScore, trainMinTrustScore)}
+                            color={trustTagColor(
+                              trustScore,
+                              trainMinTrustScore,
+                            )}
                           >
                             {trustLabel(trustScore)}
                           </Tag>
@@ -1100,7 +1119,9 @@ export default function CoinAIPage() {
                           type={isActive ? "primary" : "default"}
                           size="small"
                           className={styles.watchlistAnalyzeButton}
-                          loading={loadingTrain && selectedAnalysisSymbol === symbol}
+                          loading={
+                            loadingTrain && selectedAnalysisSymbol === symbol
+                          }
                           disabled={isTrainCoolingDown}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -1725,7 +1746,11 @@ export default function CoinAIPage() {
                                 >
                                   {signal.symbol}
                                 </Typography.Text>
-                                <Space size={4} wrap className={styles.multiSignalMeta}>
+                                <Space
+                                  size={4}
+                                  wrap
+                                  className={styles.multiSignalMeta}
+                                >
                                   <Tag
                                     className={styles.compactTag}
                                     color={SIG_CLR[signal.signal]}
@@ -1748,7 +1773,10 @@ export default function CoinAIPage() {
                                         : `${styles.metricNegative} ${styles.multiSignalReturn}`
                                     }
                                   >
-                                    {fmtSignedPercent(signal.next_predicted_return, 3)}
+                                    {fmtSignedPercent(
+                                      signal.next_predicted_return,
+                                      3,
+                                    )}
                                   </Typography.Text>
                                 </Space>
                               </Flex>
