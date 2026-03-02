@@ -102,7 +102,10 @@ function toSymbolOption(symbol: string): SymbolOption {
 }
 
 function normalizeSymbolSearchQuery(raw: string): string {
-  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return raw
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
 }
 
 function uniqueSymbolOptions(symbols: string[]): SymbolOption[] {
@@ -130,7 +133,11 @@ async function fetchQuoteAssets(signal?: AbortSignal): Promise<string[]> {
     }
     const body = (await res.json()) as QuotesApiBody;
     const quotes = (body.data?.quotes ?? [])
-      .map((item) => String(item.quote_asset ?? "").trim().toUpperCase())
+      .map((item) =>
+        String(item.quote_asset ?? "")
+          .trim()
+          .toUpperCase(),
+      )
       .filter(Boolean)
       .slice(0, 8);
     return quotes.length > 0 ? quotes : DEFAULT_QUOTE_ASSETS;
@@ -159,7 +166,11 @@ async function fetchSymbolsByQuery(
     }
     const body = (await res.json()) as SymbolsApiBody;
     const symbols = (body.data?.symbols ?? [])
-      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .map((item) =>
+        String(item.symbol ?? "")
+          .trim()
+          .toUpperCase(),
+      )
       .filter(Boolean)
       .slice(0, 200);
     const options = uniqueSymbolOptions(symbols);
@@ -180,7 +191,11 @@ async function fetchSymbolsByQuery(
     }
     const body = (await res.json()) as SymbolsApiBody;
     return (body.data?.symbols ?? [])
-      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .map((item) =>
+        String(item.symbol ?? "")
+          .trim()
+          .toUpperCase(),
+      )
       .filter(Boolean);
   });
 
@@ -209,7 +224,11 @@ async function fetchSymbolsByQuery(
     }
     const body = (await res.json()) as SymbolsApiBody;
     const singleSymbols = (body.data?.symbols ?? [])
-      .map((item) => String(item.symbol ?? "").trim().toUpperCase())
+      .map((item) =>
+        String(item.symbol ?? "")
+          .trim()
+          .toUpperCase(),
+      )
       .filter(Boolean);
     const singleOptions = uniqueSymbolOptions(singleSymbols).slice(0, 300);
     return singleOptions.length > 0 ? singleOptions : FALLBACK_SYMBOL_OPTIONS;
@@ -495,13 +514,19 @@ export default function TransactionsPage() {
         quoteAssetsRef.current,
         controller.signal,
       );
-      if (requestId !== symbolSearchSeqRef.current || controller.signal.aborted) {
+      if (
+        requestId !== symbolSearchSeqRef.current ||
+        controller.signal.aborted
+      ) {
         return;
       }
       symbolSearchCacheRef.current.set(cacheKey, nextOptions);
       setSymbolOptions(nextOptions);
     } catch {
-      if (requestId !== symbolSearchSeqRef.current || controller.signal.aborted) {
+      if (
+        requestId !== symbolSearchSeqRef.current ||
+        controller.signal.aborted
+      ) {
         return;
       }
       setSymbolOptions(FALLBACK_SYMBOL_OPTIONS);
@@ -967,18 +992,20 @@ export default function TransactionsPage() {
         <Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="tx-toolbar-grid">
           <Col xs={24} sm={24} md={12} lg={8} xl={8} xxl={8}>
             <div className="tx-toolbar-left">
-              <Select
+              <Select<string, SymbolOption>
                 allowClear
                 placeholder={t("transactionsPage.toolbar.allSymbols")}
                 showSearch
                 filterOption={false}
                 options={mergedSymbolOptions}
-                value={symbol ?? null}
+                value={symbol}
                 onChange={handleSymbolChange}
                 onSearch={handleSymbolSearch}
-                onDropdownVisibleChange={handleSymbolDropdownOpen}
+                onOpenChange={handleSymbolDropdownOpen}
                 loading={symbolOptionsLoading}
-                notFoundContent={symbolOptionsLoading ? <Spin size="small" /> : null}
+                notFoundContent={
+                  symbolOptionsLoading ? <Spin size="small" /> : null
+                }
                 className="tx-symbol-select"
               />
               {loading && <Spin size="small" />}
@@ -1109,15 +1136,17 @@ export default function TransactionsPage() {
               },
             ]}
           >
-            <Select
+            <Select<string, SymbolOption>
               showSearch
               placeholder={t("transactionsPage.createModal.symbolPlaceholder")}
               options={mergedSymbolOptions}
               filterOption={false}
               onSearch={handleSymbolSearch}
-              onDropdownVisibleChange={handleSymbolDropdownOpen}
+              onOpenChange={handleSymbolDropdownOpen}
               loading={symbolOptionsLoading}
-              notFoundContent={symbolOptionsLoading ? <Spin size="small" /> : null}
+              notFoundContent={
+                symbolOptionsLoading ? <Spin size="small" /> : null
+              }
             />
           </Form.Item>
 
