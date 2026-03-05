@@ -857,21 +857,15 @@ export default function TransactionsPage() {
 
   return (
     <div className="tx-shell">
-      <Row
-        gutter={[GRID_GUTTER, GRID_GUTTER]}
-        align="middle"
-        className="tx-header-grid"
-      >
-        <Col xs={24} sm={24} md={16} lg={18} xl={18} xxl={18}>
-          <div className="tx-header">
-            <div className="tx-eyebrow">
-              <SwapOutlined /> {t("transactionsPage.eyebrow")}
-            </div>
-            <h1 className="tx-title">{t("transactionsPage.title")}</h1>
-            <p className="tx-subtitle">{t("transactionsPage.subtitle")}</p>
+      <section className="tx-header-grid">
+        <div className="tx-header">
+          <div className="tx-eyebrow">
+            <SwapOutlined /> {t("transactionsPage.eyebrow")}
           </div>
-        </Col>
-        <Col xs={24} sm={24} md={8} lg={6} xl={6} xxl={6}>
+          <h1 className="tx-title">{t("transactionsPage.title")}</h1>
+          <p className="tx-subtitle">{t("transactionsPage.subtitle")}</p>
+        </div>
+        <div className="tx-header-cta">
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -881,104 +875,94 @@ export default function TransactionsPage() {
           >
             {t("transactionsPage.toolbar.newTrade")}
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </section>
 
-      <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
-          <div className="tx-kpi-card tx-kpi-blue">
-            <div className="tx-kpi-top">
-              <span className="tx-kpi-label">
-                {t("transactionsPage.kpi.totalTrades")}
-              </span>
-              <FundOutlined className="tx-kpi-icon" />
-            </div>
-            <div className="tx-kpi-val">{total}</div>
-            <div className="tx-kpi-sub">
-              {kpi.buys} BUY · {kpi.sells} SELL
-            </div>
+      <section className="tx-kpi-grid">
+        <div className="tx-kpi-card tx-kpi-blue">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">
+              {t("transactionsPage.kpi.totalTrades")}
+            </span>
+            <FundOutlined className="tx-kpi-icon" />
           </div>
-        </Col>
-
-        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
-          <div className="tx-kpi-card tx-kpi-green">
-            <div className="tx-kpi-top">
-              <span className="tx-kpi-label">
-                {t("transactionsPage.kpi.buyVolume")}
-              </span>
-              <ArrowUpOutlined className="tx-kpi-icon" />
-            </div>
-            <div className="tx-kpi-val">
-              $
-              {kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-            </div>
-            <div className="tx-kpi-sub">
-              {t("transactionsPage.kpi.currentPage")}
-            </div>
+          <div className="tx-kpi-val">{total}</div>
+          <div className="tx-kpi-sub">
+            {kpi.buys} BUY · {kpi.sells} SELL
           </div>
-        </Col>
+        </div>
 
-        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
-          <div className="tx-kpi-card tx-kpi-red">
-            <div className="tx-kpi-top">
-              <span className="tx-kpi-label">
-                {t("transactionsPage.kpi.sellVolume")}
-              </span>
-              <ArrowDownOutlined className="tx-kpi-icon" />
-            </div>
-            <div className="tx-kpi-val">
-              $
-              {kpi.sellVol.toLocaleString("en-US", {
-                maximumFractionDigits: 2,
-              })}
-            </div>
-            <div className="tx-kpi-sub">
-              {t("transactionsPage.kpi.currentPage")}
-            </div>
+        <div className="tx-kpi-card tx-kpi-green">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">
+              {t("transactionsPage.kpi.buyVolume")}
+            </span>
+            <ArrowUpOutlined className="tx-kpi-icon" />
           </div>
-        </Col>
+          <div className="tx-kpi-val">
+            $
+            {kpi.buyVol.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </div>
+          <div className="tx-kpi-sub">
+            {t("transactionsPage.kpi.currentPage")}
+          </div>
+        </div>
 
-        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
+        <div className="tx-kpi-card tx-kpi-red">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">
+              {t("transactionsPage.kpi.sellVolume")}
+            </span>
+            <ArrowDownOutlined className="tx-kpi-icon" />
+          </div>
+          <div className="tx-kpi-val">
+            $
+            {kpi.sellVol.toLocaleString("en-US", {
+              maximumFractionDigits: 2,
+            })}
+          </div>
+          <div className="tx-kpi-sub">
+            {t("transactionsPage.kpi.currentPage")}
+          </div>
+        </div>
+
+        <div
+          className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}
+        >
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">
+              {t("transactionsPage.kpi.unrealizedPnl")}
+            </span>
+            <DollarOutlined className="tx-kpi-icon" />
+          </div>
           <div
-            className={`tx-kpi-card ${kpi.totalPnl >= 0 ? "tx-kpi-green" : "tx-kpi-red"}`}
+            className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}
           >
-            <div className="tx-kpi-top">
-              <span className="tx-kpi-label">
-                {t("transactionsPage.kpi.unrealizedPnl")}
-              </span>
-              <DollarOutlined className="tx-kpi-icon" />
-            </div>
-            <div
-              className={`tx-kpi-val ${kpi.totalPnl >= 0 ? "tx-pnl-up" : "tx-pnl-dn"}`}
-            >
-              {kpi.totalPnl >= 0 ? "+" : ""}
-              {kpi.totalPnl.toLocaleString("en-US", {
-                maximumFractionDigits: 2,
-              })}
-            </div>
-            <div className="tx-kpi-sub">
-              {t("transactionsPage.kpi.buyPositionsOnPage")}
-            </div>
+            {kpi.totalPnl >= 0 ? "+" : ""}
+            {kpi.totalPnl.toLocaleString("en-US", {
+              maximumFractionDigits: 2,
+            })}
           </div>
-        </Col>
+          <div className="tx-kpi-sub">
+            {t("transactionsPage.kpi.buyPositionsOnPage")}
+          </div>
+        </div>
 
-        <Col xs={24} sm={12} md={12} lg={8} xl={6} xxl={6}>
-          <div className="tx-kpi-card tx-kpi-amber">
-            <div className="tx-kpi-top">
-              <span className="tx-kpi-label">
-                {t("transactionsPage.kpi.feesPaid")}
-              </span>
-              <WalletOutlined className="tx-kpi-icon" />
-            </div>
-            <div className="tx-kpi-val">
-              ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
-            </div>
-            <div className="tx-kpi-sub">
-              {t("transactionsPage.kpi.currentPage")}
-            </div>
+        <div className="tx-kpi-card tx-kpi-amber">
+          <div className="tx-kpi-top">
+            <span className="tx-kpi-label">
+              {t("transactionsPage.kpi.feesPaid")}
+            </span>
+            <WalletOutlined className="tx-kpi-icon" />
           </div>
-        </Col>
-      </Row>
+          <div className="tx-kpi-val">
+            ${kpi.fees.toLocaleString("en-US", { maximumFractionDigits: 4 })}
+          </div>
+          <div className="tx-kpi-sub">
+            {t("transactionsPage.kpi.currentPage")}
+          </div>
+        </div>
+      </section>
 
       {error && (
         <div className="tx-error">
@@ -989,61 +973,55 @@ export default function TransactionsPage() {
       )}
 
       <div className="tx-panel">
-        <Row gutter={[GRID_GUTTER, GRID_GUTTER]} className="tx-toolbar-grid">
-          <Col xs={24} sm={24} md={12} lg={8} xl={8} xxl={8}>
-            <div className="tx-toolbar-left">
-              <Select<string, SymbolOption>
-                allowClear
-                placeholder={t("transactionsPage.toolbar.allSymbols")}
-                showSearch
-                filterOption={false}
-                options={mergedSymbolOptions}
-                value={symbol}
-                onChange={handleSymbolChange}
-                onSearch={handleSymbolSearch}
-                onOpenChange={handleSymbolDropdownOpen}
-                loading={symbolOptionsLoading}
-                notFoundContent={
-                  symbolOptionsLoading ? <Spin size="small" /> : null
-                }
-                className="tx-symbol-select"
-              />
-              {loading && <Spin size="small" />}
-            </div>
-          </Col>
-          <Col xs={24} sm={24} md={12} lg={16} xl={16} xxl={16}>
-            <div className="tx-toolbar-right">
+        <div className="tx-toolbar-grid">
+          <div className="tx-toolbar-left">
+            <Select<string, SymbolOption>
+              allowClear
+              placeholder={t("transactionsPage.toolbar.allSymbols")}
+              showSearch
+              filterOption={false}
+              options={mergedSymbolOptions}
+              value={symbol}
+              onChange={handleSymbolChange}
+              onSearch={handleSymbolSearch}
+              onOpenChange={handleSymbolDropdownOpen}
+              loading={symbolOptionsLoading}
+              notFoundContent={symbolOptionsLoading ? <Spin size="small" /> : null}
+              className="tx-symbol-select"
+            />
+            {loading && <Spin size="small" />}
+          </div>
+          <div className="tx-toolbar-right">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => refetch()}
+              loading={loading}
+              block={isXs}
+            >
+              {!isXs && t("transactionsPage.toolbar.refresh")}
+            </Button>
+            <Button
+              icon={<LineChartOutlined />}
+              onClick={() => {
+                setHistoryOpen(true);
+                void refetchHistory();
+              }}
+              block={isXs}
+            >
+              {!isXs && t("transactionsPage.toolbar.viewDetail")}
+            </Button>
+            {!isXs && (
               <Button
-                icon={<ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={loading}
-                block={isXs}
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setModalOpen(true)}
+                className="tx-add-btn"
               >
-                {!isXs && t("transactionsPage.toolbar.refresh")}
+                {t("transactionsPage.toolbar.newTrade")}
               </Button>
-              <Button
-                icon={<LineChartOutlined />}
-                onClick={() => {
-                  setHistoryOpen(true);
-                  void refetchHistory();
-                }}
-                block={isXs}
-              >
-                {!isXs && t("transactionsPage.toolbar.viewDetail")}
-              </Button>
-              {!isXs && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalOpen(true)}
-                  className="tx-add-btn"
-                >
-                  {t("transactionsPage.toolbar.newTrade")}
-                </Button>
-              )}
-            </div>
-          </Col>
-        </Row>
+            )}
+          </div>
+        </div>
 
         <div className="tx-table-wrap">
           {loading && safeRows.length === 0 ? (

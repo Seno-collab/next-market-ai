@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Col, Grid, Row, Spin, Table } from "antd";
+import { Grid, Spin, Table } from "antd";
 import type { TableColumnsType } from "antd";
 import { tradingApi } from "@/lib/api/trading";
 import {
@@ -324,7 +324,6 @@ const COLOR_MAP: Record<string, string> = {
   purple: "#a78bfa",
   cyan: "#22d3ee",
 };
-const GRID_GUTTER = { xs: 8, sm: 16, md: 24, lg: 32 } as const;
 
 type DashboardPositionRow = (typeof POSITIONS)[number];
 type DashboardWatchRow = {
@@ -568,312 +567,293 @@ export default function AdminDashboardPage() {
 
         {/* ── 2. Hero ── */}
         <section className="db-hero">
-          <Row gutter={[GRID_GUTTER, GRID_GUTTER]} align="middle">
-            <Col xs={24} sm={24} md={24} lg={14} xl={13} xxl={13}>
-              <div className="db-hero-left">
-                <div className="db-eyebrow">
-                  <DotChartOutlined /> AI + SMART TRADING
+          <div className="db-hero-left">
+            <div className="db-eyebrow">
+              <DotChartOutlined /> AI + SMART TRADING
+            </div>
+            <h1 className="db-hero-title">
+              Market
+              <br />
+              <span className="db-hero-accent">Command Center</span>
+            </h1>
+            <p className="db-hero-sub">
+              Real-time portfolio tracking, AI signals, and market structure in
+              one view.
+            </p>
+            <div className="db-portfolio-row">
+              <div className="db-ring-wrap">
+                <svg
+                  viewBox="0 0 80 80"
+                  width="80"
+                  height="80"
+                  className="db-ring-svg"
+                >
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="32"
+                    fill="none"
+                    stroke="rgba(34,211,238,0.1)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="32"
+                    fill="none"
+                    stroke="url(#rg)"
+                    strokeWidth="8"
+                    strokeDasharray="201"
+                    strokeDashoffset="56"
+                    strokeLinecap="round"
+                    transform="rotate(-90 40 40)"
+                  />
+                  <defs>
+                    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#22d3ee" />
+                      <stop offset="100%" stopColor="#60a5fa" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span className="db-ring-pct">72%</span>
+              </div>
+              <div className="db-portfolio-stats">
+                <div className="db-pstat">
+                  <span className="db-pstat-label">Portfolio</span>
+                  <span className="db-pstat-val">$248,510</span>
+                  <Chg v={8.2} />
                 </div>
-                <h1 className="db-hero-title">
-                  Market
-                  <br />
-                  <span className="db-hero-accent">Command Center</span>
-                </h1>
-                <p className="db-hero-sub">
-                  Real-time portfolio tracking, AI signals, and market structure
-                  in one view.
-                </p>
-                <div className="db-portfolio-row">
-                  <div className="db-ring-wrap">
-                    <svg
-                      viewBox="0 0 80 80"
-                      width="80"
-                      height="80"
-                      className="db-ring-svg"
-                    >
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke="rgba(34,211,238,0.1)"
-                        strokeWidth="8"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke="url(#rg)"
-                        strokeWidth="8"
-                        strokeDasharray="201"
-                        strokeDashoffset="56"
-                        strokeLinecap="round"
-                        transform="rotate(-90 40 40)"
-                      />
-                      <defs>
-                        <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#22d3ee" />
-                          <stop offset="100%" stopColor="#60a5fa" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <span className="db-ring-pct">72%</span>
-                  </div>
-                  <div className="db-portfolio-stats">
-                    <div className="db-pstat">
-                      <span className="db-pstat-label">Portfolio</span>
-                      <span className="db-pstat-val">$248,510</span>
-                      <Chg v={8.2} />
-                    </div>
-                    <div className="db-pstat">
-                      <span className="db-pstat-label">P&amp;L Today</span>
-                      <span className="db-pstat-val green">+$3,120</span>
-                      <Chg v={1.29} />
-                    </div>
-                    <div className="db-pstat">
-                      <span className="db-pstat-label">Win Rate</span>
-                      <span className="db-pstat-val">72.4%</span>
-                      <Chg v={3.1} />
-                    </div>
-                    <div className="db-pstat">
-                      <span className="db-pstat-label">Open Pos.</span>
-                      <span className="db-pstat-val">
-                        3 <span className="db-pstat-active">active</span>
-                      </span>
-                    </div>
-                  </div>
+                <div className="db-pstat">
+                  <span className="db-pstat-label">P&amp;L Today</span>
+                  <span className="db-pstat-val green">+$3,120</span>
+                  <Chg v={1.29} />
+                </div>
+                <div className="db-pstat">
+                  <span className="db-pstat-label">Win Rate</span>
+                  <span className="db-pstat-val">72.4%</span>
+                  <Chg v={3.1} />
+                </div>
+                <div className="db-pstat">
+                  <span className="db-pstat-label">Open Pos.</span>
+                  <span className="db-pstat-val">
+                    3 <span className="db-pstat-active">active</span>
+                  </span>
                 </div>
               </div>
-            </Col>
-            <Col xs={24} sm={24} md={24} lg={10} xl={11} xxl={11}>
-              <div className="db-hero-right">
-                <div className="globe-container">
-                  <div className="globe-glow-ring" />
-                  <DashboardGlobeScene />
-                  {screens.lg && (
-                    <div className="globe-label">
-                      <GlobalOutlined /> Global Markets Active
-                    </div>
-                  )}
+            </div>
+          </div>
+
+          <div className="db-hero-right">
+            <div className="globe-container">
+              <div className="globe-glow-ring" />
+              <DashboardGlobeScene />
+              {screens.lg && (
+                <div className="globe-label">
+                  <GlobalOutlined /> Global Markets Active
                 </div>
-              </div>
-            </Col>
-          </Row>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* ── 3. KPI cards ── */}
         <section className="db-kpi-row">
-          <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-            {KPI_CARDS.map((c) => (
-              <Col key={c.label} xs={24} sm={12} md={12} lg={6} xl={6} xxl={6}>
-                <div className={`db-kpi-card db-kpi-${c.color}`}>
-                  <div className="db-kpi-top">
-                    <span className="db-kpi-label">{c.label}</span>
-                    <Chg v={parseFloat(c.delta)} />
-                  </div>
-                  <div className="db-kpi-val">{c.value}</div>
-                  <Sparkline
-                    data={[...c.history]}
-                    width={120}
-                    height={36}
-                    color={COLOR_MAP[c.color]}
-                  />
-                </div>
-              </Col>
-            ))}
-          </Row>
+          {KPI_CARDS.map((c) => (
+            <div key={c.label} className={`db-kpi-card db-kpi-${c.color}`}>
+              <div className="db-kpi-top">
+                <span className="db-kpi-label">{c.label}</span>
+                <Chg v={parseFloat(c.delta)} />
+              </div>
+              <div className="db-kpi-val">{c.value}</div>
+              <Sparkline
+                data={[...c.history]}
+                width={120}
+                height={36}
+                color={COLOR_MAP[c.color]}
+              />
+            </div>
+          ))}
         </section>
 
         {/* ── 4. Positions + Sidebar ── */}
         <section className="db-main-grid">
-          <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-            <Col xs={24} sm={24} md={24} lg={16} xl={17} xxl={18}>
-              {/* left: positions + trades */}
-              <div className="db-panel">
-                <div className="db-panel-hd">
-                  <span className="db-panel-title">
-                    <RiseOutlined /> Open Positions
+          {/* left: positions + trades */}
+          <div className="db-panel">
+            <div className="db-panel-hd">
+              <span className="db-panel-title">
+                <RiseOutlined /> Open Positions
+              </span>
+              <span className="db-live-pill">
+                <span className="db-live-dot" />
+                LIVE
+              </span>
+            </div>
+            <Table<DashboardPositionRow>
+              rowKey="pair"
+              columns={positionColumns}
+              dataSource={positionRows}
+              pagination={false}
+              size="small"
+              scroll={{ x: "max-content" }}
+              className="db-ant-table"
+            />
+            <div className="db-section-lbl">
+              <ClockCircleOutlined /> Recent Trades
+            </div>
+            <div className="db-trade-feed">
+              {TRADES.map((t, i) => (
+                <div key={i} className="db-trade-row">
+                  <span className="db-trade-time">{t.time}</span>
+                  <span className={`db-trade-badge ${t.type}`}>
+                    {t.type === "signal" ? (
+                      <AlertOutlined />
+                    ) : t.type === "buy" ? (
+                      <ArrowUpOutlined />
+                    ) : (
+                      <ArrowDownOutlined />
+                    )}
+                    {t.type.toUpperCase()}
                   </span>
-                  <span className="db-live-pill">
-                    <span className="db-live-dot" />
-                    LIVE
+                  <span className="db-trade-pair">{t.pair}</span>
+                  <span className="db-soft">{t.size}</span>
+                  <span
+                    className={`db-trade-pnl ${t.pnl.startsWith("+") || t.pnl === "LONG" ? "up" : "dn"}`}
+                  >
+                    {t.pnl}
                   </span>
                 </div>
-                <Table<DashboardPositionRow>
-                  rowKey="pair"
-                  columns={positionColumns}
-                  dataSource={positionRows}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: "max-content" }}
-                  className="db-ant-table"
-                />
-                <div className="db-section-lbl">
-                  <ClockCircleOutlined /> Recent Trades
-                </div>
-                <div className="db-trade-feed">
-                  {TRADES.map((t, i) => (
-                    <div key={i} className="db-trade-row">
-                      <span className="db-trade-time">{t.time}</span>
-                      <span className={`db-trade-badge ${t.type}`}>
-                        {t.type === "signal" ? (
-                          <AlertOutlined />
-                        ) : t.type === "buy" ? (
-                          <ArrowUpOutlined />
-                        ) : (
-                          <ArrowDownOutlined />
-                        )}
-                        {t.type.toUpperCase()}
-                      </span>
-                      <span className="db-trade-pair">{t.pair}</span>
-                      <span className="db-soft">{t.size}</span>
-                      <span
-                        className={`db-trade-pnl ${t.pnl.startsWith("+") || t.pnl === "LONG" ? "up" : "dn"}`}
-                      >
-                        {t.pnl}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Col>
-            <Col xs={24} sm={24} md={24} lg={8} xl={7} xxl={6}>
-              {/* right col */}
-              <div className="db-right-col">
-                {/* watchlist sparklines */}
-                <div className="db-panel">
-                  <div className="db-panel-hd">
-                    <span className="db-panel-title">
-                      <FireOutlined /> Watchlist
-                    </span>
-                  </div>
-                  <div className="db-watch-list">
-                    {tickers.map((t) => (
-                      <div key={t.symbol} className="db-watch-row">
-                        <span className="db-watch-sym">{t.symbol}</span>
-                        <Sparkline
-                          data={[...t.history]}
-                          width={60}
-                          height={24}
-                          color={t.up ? "#34d399" : "#f87171"}
-                        />
-                        <div className="db-watch-right">
-                          <span className="db-watch-price">${t.price}</span>
-                          <Chg v={t.change} size="xs" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              ))}
+            </div>
+          </div>
 
-                {/* sector heat */}
-                <div className="db-panel">
-                  <div className="db-panel-hd">
-                    <span className="db-panel-title">
-                      <DotChartOutlined /> Sector Heat
-                    </span>
-                    <span className="db-panel-sub">Narrative flow</span>
-                  </div>
-                  <div className="db-sector-list">
-                    {SECTORS.map((s) => (
-                      <div key={s.name} className="db-sector-row">
-                        <div className="db-sector-top">
-                          <span className="db-sector-name">{s.name}</span>
-                          <Chg v={s.move} size="xs" />
-                        </div>
-                        <div className="db-sector-bar-bg">
-                          <div
-                            className="db-sector-bar-fill"
-                            style={{ width: `${s.pct}%`, background: s.color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="db-section-lbl" style={{ marginTop: 14 }}>
-                    <SafetyOutlined /> System Health
-                  </div>
-                  {[
-                    { label: "API Latency", val: "42ms", pct: 96, color: "" },
-                    {
-                      label: "Server Load",
-                      val: "18%",
-                      pct: 18,
-                      color: "green",
-                    },
-                    { label: "Memory", val: "58%", pct: 58, color: "yellow" },
-                    { label: "Cache Hit", val: "95%", pct: 95, color: "" },
-                  ].map((m) => (
-                    <div key={m.label} className="metric-item">
-                      <span className="metric-label">{m.label}</span>
-                      <span className="metric-value">{m.val}</span>
-                      <div className="metric-bar">
-                        <div
-                          className={`metric-fill ${m.color}`}
-                          style={{ width: `${m.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* right col */}
+          <div className="db-right-col">
+            {/* watchlist sparklines */}
+            <div className="db-panel">
+              <div className="db-panel-hd">
+                <span className="db-panel-title">
+                  <FireOutlined /> Watchlist
+                </span>
               </div>
-            </Col>
-          </Row>
+              <div className="db-watch-list">
+                {tickers.map((t) => (
+                  <div key={t.symbol} className="db-watch-row">
+                    <span className="db-watch-sym">{t.symbol}</span>
+                    <Sparkline
+                      data={[...t.history]}
+                      width={60}
+                      height={24}
+                      color={t.up ? "#34d399" : "#f87171"}
+                    />
+                    <div className="db-watch-right">
+                      <span className="db-watch-price">${t.price}</span>
+                      <Chg v={t.change} size="xs" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* sector heat */}
+            <div className="db-panel">
+              <div className="db-panel-hd">
+                <span className="db-panel-title">
+                  <DotChartOutlined /> Sector Heat
+                </span>
+                <span className="db-panel-sub">Narrative flow</span>
+              </div>
+              <div className="db-sector-list">
+                {SECTORS.map((s) => (
+                  <div key={s.name} className="db-sector-row">
+                    <div className="db-sector-top">
+                      <span className="db-sector-name">{s.name}</span>
+                      <Chg v={s.move} size="xs" />
+                    </div>
+                    <div className="db-sector-bar-bg">
+                      <div
+                        className="db-sector-bar-fill"
+                        style={{ width: `${s.pct}%`, background: s.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="db-section-lbl" style={{ marginTop: 14 }}>
+                <SafetyOutlined /> System Health
+              </div>
+              {[
+                { label: "API Latency", val: "42ms", pct: 96, color: "" },
+                {
+                  label: "Server Load",
+                  val: "18%",
+                  pct: 18,
+                  color: "green",
+                },
+                { label: "Memory", val: "58%", pct: 58, color: "yellow" },
+                { label: "Cache Hit", val: "95%", pct: 95, color: "" },
+              ].map((m) => (
+                <div key={m.label} className="metric-item">
+                  <span className="metric-label">{m.label}</span>
+                  <span className="metric-value">{m.val}</span>
+                  <div className="metric-bar">
+                    <div
+                      className={`metric-fill ${m.color}`}
+                      style={{ width: `${m.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* ── 5. Bottom: Watchlist table + Risk Alerts ── */}
         <section className="db-bottom-grid">
-          <Row gutter={[GRID_GUTTER, GRID_GUTTER]}>
-            <Col xs={24} sm={24} md={24} lg={15} xl={16} xxl={16}>
-              {/* Full watchlist table (from Observatory) */}
-              <div className="db-panel">
-                <div className="db-panel-hd">
-                  <span className="db-panel-title">
-                    <AreaChartOutlined /> Top Coin Watchlist
-                  </span>
-                  <span className="db-live-pill">
-                    <span className="db-live-dot" />
-                    Live ranking
-                  </span>
-                </div>
-                <Table<DashboardWatchRow>
-                  rowKey="key"
-                  columns={watchlistColumns}
-                  dataSource={watchlistRows}
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: "max-content" }}
-                  className="db-ant-table db-watch-ant-table"
-                />
-              </div>
-            </Col>
-            <Col xs={24} sm={24} md={24} lg={9} xl={8} xxl={8}>
-              {/* Risk Alert feed (from Observatory) */}
-              <div className="db-panel">
-                <div className="db-panel-hd">
-                  <span className="db-panel-title">
-                    <RadarChartOutlined /> Event Timeline
-                  </span>
-                  <span className="db-panel-sub">Risk alerts</span>
-                </div>
-                <div className="db-alert-feed">
-                  {ALERTS.map((a, i) => (
-                    <div key={i} className="db-alert-row">
-                      <SevDot s={a.severity} />
-                      <div className="db-alert-body">
-                        <div className="db-alert-head">
-                          <strong>{a.title}</strong>
-                          <span className="db-alert-time">{a.time}</span>
-                        </div>
-                        <p className="db-alert-detail">{a.detail}</p>
-                      </div>
+          {/* Full watchlist table (from Observatory) */}
+          <div className="db-panel">
+            <div className="db-panel-hd">
+              <span className="db-panel-title">
+                <AreaChartOutlined /> Top Coin Watchlist
+              </span>
+              <span className="db-live-pill">
+                <span className="db-live-dot" />
+                Live ranking
+              </span>
+            </div>
+            <Table<DashboardWatchRow>
+              rowKey="key"
+              columns={watchlistColumns}
+              dataSource={watchlistRows}
+              pagination={false}
+              size="small"
+              scroll={{ x: "max-content" }}
+              className="db-ant-table db-watch-ant-table"
+            />
+          </div>
+
+          {/* Risk Alert feed (from Observatory) */}
+          <div className="db-panel">
+            <div className="db-panel-hd">
+              <span className="db-panel-title">
+                <RadarChartOutlined /> Event Timeline
+              </span>
+              <span className="db-panel-sub">Risk alerts</span>
+            </div>
+            <div className="db-alert-feed">
+              {ALERTS.map((a, i) => (
+                <div key={i} className="db-alert-row">
+                  <SevDot s={a.severity} />
+                  <div className="db-alert-body">
+                    <div className="db-alert-head">
+                      <strong>{a.title}</strong>
+                      <span className="db-alert-time">{a.time}</span>
                     </div>
-                  ))}
+                    <p className="db-alert-detail">{a.detail}</p>
+                  </div>
                 </div>
-              </div>
-            </Col>
-          </Row>
+              ))}
+            </div>
+          </div>
         </section>
       </div>
     </div>

@@ -4,14 +4,26 @@
     --ca-bg-accent-b: rgba(14, 116, 144, 0.08);
     --ca-surface: rgba(59, 130, 246, 0.12);
     --ca-surface-soft: rgba(59, 130, 246, 0.12);
+    --ca-surface-elevated: rgba(255, 255, 255, 0.58);
+    --ca-panel-bg: rgba(255, 255, 255, 0.52);
     --ca-border: rgba(15, 23, 42, 0.1);
     --ca-border-soft: rgba(15, 23, 42, 0.08);
     --ca-border-accent: #1677ff;
     --ca-accent-soft: #112545;
+    --ca-text-primary: rgba(15, 23, 42, 0.94);
     --ca-text-secondary: rgba(51, 65, 85, 0.84);
     --ca-success: #15803d;
     --ca-danger: #b91c1c;
+    --ca-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    --ca-control-bg: rgba(255, 255, 255, 0.84);
+    --ca-control-border: rgba(15, 23, 42, 0.14);
+    --ca-control-text: rgba(15, 23, 42, 0.94);
+    --ca-control-placeholder: rgba(100, 116, 139, 0.82);
+    --ca-hover-bg: #1677ff;
+    --ca-hover-border: #0958d9;
+    --ca-hover-text: rgba(255, 255, 255, 0.96);
     min-height: 100%;
+    color: var(--ca-text-primary);
     background:
         radial-gradient(
             circle at 12% 4%,
@@ -24,6 +36,60 @@
             transparent 30%
         ),
         var(--ca-bg);
+}
+
+:global(:root[data-theme="dark"]) .pageLayout {
+    --ca-bg: #070d18;
+    --ca-bg-accent-a: rgba(59, 130, 246, 0.24);
+    --ca-bg-accent-b: rgba(56, 189, 248, 0.18);
+    --ca-surface: rgba(15, 23, 42, 0.72);
+    --ca-surface-soft: rgba(10, 17, 30, 0.78);
+    --ca-surface-elevated: rgba(15, 23, 42, 0.82);
+    --ca-panel-bg: rgba(15, 23, 42, 0.72);
+    --ca-border: rgba(148, 163, 184, 0.34);
+    --ca-border-soft: rgba(148, 163, 184, 0.24);
+    --ca-border-accent: #60a5fa;
+    --ca-accent-soft: rgba(30, 64, 175, 0.56);
+    --ca-text-primary: rgba(241, 245, 249, 0.96);
+    --ca-text-secondary: rgba(203, 213, 225, 0.86);
+    --ca-success: #34d399;
+    --ca-danger: #f87171;
+    --ca-shadow: 0 14px 34px rgba(2, 6, 23, 0.52);
+    --ca-control-bg: rgba(15, 23, 42, 0.72);
+    --ca-control-border: rgba(148, 163, 184, 0.3);
+    --ca-control-text: rgba(241, 245, 249, 0.96);
+    --ca-control-placeholder: rgba(148, 163, 184, 0.85);
+    --ca-hover-bg: rgba(30, 64, 175, 0.82);
+    --ca-hover-border: #60a5fa;
+    --ca-hover-text: rgba(248, 250, 252, 0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme])) .pageLayout {
+        --ca-bg: #070d18;
+        --ca-bg-accent-a: rgba(59, 130, 246, 0.24);
+        --ca-bg-accent-b: rgba(56, 189, 248, 0.18);
+        --ca-surface: rgba(15, 23, 42, 0.72);
+        --ca-surface-soft: rgba(10, 17, 30, 0.78);
+        --ca-surface-elevated: rgba(15, 23, 42, 0.82);
+        --ca-panel-bg: rgba(15, 23, 42, 0.72);
+        --ca-border: rgba(148, 163, 184, 0.34);
+        --ca-border-soft: rgba(148, 163, 184, 0.24);
+        --ca-border-accent: #60a5fa;
+        --ca-accent-soft: rgba(30, 64, 175, 0.56);
+        --ca-text-primary: rgba(241, 245, 249, 0.96);
+        --ca-text-secondary: rgba(203, 213, 225, 0.86);
+        --ca-success: #34d399;
+        --ca-danger: #f87171;
+        --ca-shadow: 0 14px 34px rgba(2, 6, 23, 0.52);
+        --ca-control-bg: rgba(15, 23, 42, 0.72);
+        --ca-control-border: rgba(148, 163, 184, 0.3);
+        --ca-control-text: rgba(241, 245, 249, 0.96);
+        --ca-control-placeholder: rgba(148, 163, 184, 0.85);
+        --ca-hover-bg: rgba(30, 64, 175, 0.82);
+        --ca-hover-border: #60a5fa;
+        --ca-hover-text: rgba(248, 250, 252, 0.96);
+    }
 }
 
 .watchlistSider {
@@ -56,6 +122,7 @@
     margin: 0 !important;
     font-size: 18px !important;
     line-height: 1.1;
+    color: var(--ca-text-primary) !important;
 }
 
 .siderInputSpace {
@@ -65,6 +132,18 @@
 .searchInput :global(.ant-input),
 .searchInput :global(.ant-input-search-button) {
     height: 40px;
+    background: var(--ca-control-bg) !important;
+    border-color: var(--ca-control-border) !important;
+    color: var(--ca-control-text) !important;
+}
+
+.searchInput :global(.ant-input::placeholder) {
+    color: var(--ca-control-placeholder);
+}
+
+.searchInput :global(.ant-input-search-button:hover),
+.searchInput :global(.ant-input-search-button:focus-visible) {
+    border-color: var(--ca-border-accent);
 }
 
 .watchlistList {
@@ -85,9 +164,9 @@
 }
 
 .watchlistItem {
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--ca-border);
     border-radius: 12px;
-    background: #fafafa;
+    background: var(--ca-surface-elevated);
     padding: 10px 12px;
     cursor: pointer;
     transition:
@@ -96,37 +175,12 @@
 }
 
 .watchlistItem:hover {
-    border-color: #0958d9;
-    background: #1677ff;
+    border-color: var(--ca-hover-border);
+    background: var(--ca-hover-bg);
 }
 
 .watchlistItem:hover .symbolText {
-    color: rgba(255, 255, 255, 0.96);
-}
-
-@media (prefers-color-scheme: dark) {
-    .watchlistItem {
-        border-color: #434343;
-        background: #1f1f1f;
-    }
-
-    .watchlistItem:hover {
-        border-color: #1668dc;
-        background: #111a2c;
-    }
-
-    .watchlistItemActive {
-        border-color: #1668dc;
-        background: #112545;
-    }
-
-    .watchlistItem .symbolText {
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    .watchlistItem:hover .symbolText {
-        color: rgba(255, 255, 255, 0.92);
-    }
+    color: var(--ca-hover-text);
 }
 
 .watchlistItemActive {
@@ -159,6 +213,7 @@
 }
 
 .symbolText {
+    color: var(--ca-text-primary);
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -168,6 +223,50 @@
 
 .mainLayout {
     background: transparent;
+}
+
+.pageLayout :global(.ant-typography) {
+    color: var(--ca-text-primary);
+}
+
+.pageLayout :global(.ant-typography.ant-typography-secondary),
+.pageLayout :global(.ant-empty-description) {
+    color: var(--ca-text-secondary) !important;
+}
+
+.pageLayout :global(.ant-typography.ant-typography-success) {
+    color: var(--ca-success) !important;
+}
+
+.pageLayout :global(.ant-typography.ant-typography-danger) {
+    color: var(--ca-danger) !important;
+}
+
+.pageLayout :global(.ant-typography.ant-typography-warning) {
+    color: #d97706 !important;
+}
+
+.pageLayout :global(.ant-tag:not(.ant-tag-has-color)) {
+    color: var(--ca-text-secondary);
+    border-color: var(--ca-border-soft);
+    background: var(--ca-surface-elevated);
+}
+
+.pageLayout :global(.ant-badge-status-text) {
+    color: var(--ca-text-secondary);
+}
+
+.pageLayout :global(.ant-btn-default) {
+    color: var(--ca-text-primary);
+    border-color: var(--ca-border-soft);
+    background: var(--ca-surface-elevated);
+}
+
+.pageLayout :global(.ant-btn-default:hover),
+.pageLayout :global(.ant-btn-default:focus-visible) {
+    color: var(--ca-text-primary);
+    border-color: var(--ca-border-accent);
+    background: var(--ca-surface-elevated);
 }
 
 .mainContent {
@@ -186,26 +285,38 @@
 .surfaceCard {
     border-radius: 16px !important;
     border: 1px solid var(--ca-border-soft) !important;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    box-shadow: var(--ca-shadow);
     background: var(--ca-surface);
 }
 
 .surfaceCard :global(.ant-card-head-title) {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
+    color: var(--ca-text-primary);
+}
+
+.surfaceCard :global(.ant-card-head) {
+    min-height: 46px;
+    padding-inline: 14px !important;
+    border-bottom-color: var(--ca-border-soft) !important;
+}
+
+.surfaceCard :global(.ant-card-extra) {
+    padding-block: 10px !important;
+    color: var(--ca-text-secondary);
 }
 
 .surfaceCard :global(.ant-card-body) {
-    padding: 16px !important;
+    padding: 12px !important;
 }
 
 .cooldownCard :global(.ant-card-body) {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
 }
 
 .controlCard :global(.ant-card-body) {
-    min-height: 68px;
+    min-height: 0;
 }
 
 .controlRow {
@@ -220,7 +331,7 @@
 .advancedCollapse {
     border-radius: 12px;
     border: 1px solid var(--ca-border-soft);
-    background: rgba(255, 255, 255, 0.55);
+    background: var(--ca-surface-elevated);
 }
 
 .advancedCollapse :global(.ant-collapse-item) {
@@ -229,6 +340,10 @@
 
 .advancedCollapse :global(.ant-collapse-header) {
     padding: 10px 12px !important;
+}
+
+.advancedCollapse :global(.ant-collapse-header-text) {
+    color: var(--ca-text-primary);
 }
 
 .advancedCollapse :global(.ant-collapse-content-box) {
@@ -282,6 +397,9 @@
 .fieldWrap :global(.ant-input-number),
 .fieldWrap :global(.ant-select-selector) {
     border-radius: 10px;
+    background: var(--ca-control-bg) !important;
+    border-color: var(--ca-control-border) !important;
+    color: var(--ca-control-text) !important;
 }
 
 .fieldWrap :global(.ant-select-selector) {
@@ -294,21 +412,53 @@
 
 .fieldWrap :global(.ant-input-number-input) {
     height: 38px;
+    color: var(--ca-control-text);
 }
 
 .fieldControl :global(.ant-select-selector) {
     min-height: 40px !important;
 }
 
+.fieldWrap :global(.ant-select-selection-item),
+.fieldWrap :global(.ant-select-selection-placeholder) {
+    color: var(--ca-control-text) !important;
+}
+
+.fieldWrap :global(.ant-select-selection-placeholder) {
+    color: var(--ca-control-placeholder) !important;
+}
+
+.fieldWrap :global(.ant-select-arrow) {
+    color: var(--ca-control-placeholder);
+}
+
+.fieldWrap :global(.ant-input::placeholder) {
+    color: var(--ca-control-placeholder);
+}
+
 .segmentedControl :global(.ant-segmented) {
     min-height: 40px;
     border-radius: 10px;
+    background: var(--ca-surface-elevated);
+    border: 1px solid var(--ca-border-soft);
 }
 
 .segmentedControl :global(.ant-segmented-item) {
     min-height: 32px;
     display: inline-flex;
     align-items: center;
+}
+
+.segmentedControl :global(.ant-segmented-item-label) {
+    color: var(--ca-text-secondary);
+}
+
+.segmentedControl :global(.ant-segmented-item-selected) {
+    background: var(--ca-control-bg) !important;
+}
+
+.segmentedControl :global(.ant-segmented-item-selected .ant-segmented-item-label) {
+    color: var(--ca-text-primary);
 }
 
 .trustControl {
@@ -338,14 +488,14 @@
 }
 
 .analysisCard :global(.ant-card-body) {
-    min-height: 520px;
+    min-height: 280px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .loadingArea {
-    min-height: 360px;
+    min-height: 180px;
 }
 
 .errorText {
@@ -362,7 +512,54 @@
 }
 
 .analysisTabs :global(.ant-tabs-nav) {
-    margin-bottom: 12px;
+    margin-bottom: 6px;
+}
+
+.analysisTabs :global(.ant-tabs-tab) {
+    padding-block: 8px !important;
+    color: var(--ca-text-secondary);
+}
+
+.analysisTabs :global(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) {
+    color: var(--ca-text-primary) !important;
+}
+
+.analysisTabs :global(.ant-tabs-ink-bar) {
+    background: var(--ca-border-accent);
+}
+
+.analysisTabs :global(.ant-tabs-tab-btn) {
+    color: inherit;
+}
+
+.analysisTabs :global(.ant-tabs-content-holder) {
+    margin-top: 2px;
+}
+
+.overviewTagRow {
+    row-gap: 6px;
+}
+
+.overviewStatGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.overviewStatItem {
+    min-width: 0;
+    border: 1px solid var(--ca-border-soft);
+    border-radius: 10px;
+    background: var(--ca-panel-bg);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.overviewStatLabel {
+    font-size: 12px;
+    line-height: 1.2;
 }
 
 .metricCard {
@@ -372,10 +569,10 @@
 }
 
 .metricCard :global(.ant-card-body) {
-    padding: 12px !important;
+    padding: 10px !important;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .metricValue,
@@ -395,11 +592,12 @@
 }
 
 .componentTag {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .logText {
     font-size: 13px;
+    color: var(--ca-text-secondary);
 }
 
 .dataList {
@@ -407,8 +605,18 @@
     flex-direction: column;
 }
 
+.metricListGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+}
+
+.metricListItem {
+    padding: 7px 0;
+}
+
 .dataListItem {
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--ca-border-soft);
 }
 
@@ -422,8 +630,8 @@
 }
 
 .logListItem {
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 .multiSignalItem {
@@ -456,26 +664,33 @@
 .zoneCard :global(.ant-card-body) {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+}
+
+.trainPanelGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+
+.trainFieldGrid :global(.ant-col) {
+    min-width: 0;
 }
 
 .actionRow {
     align-items: center;
 }
 
-.subCard {
-    border-radius: 12px !important;
-    border: 1px solid var(--ca-border-soft) !important;
-    box-shadow: none !important;
-}
-
-.subCard :global(.ant-card-body) {
-    padding: 12px !important;
+.reportPanel {
+    border: 1px solid var(--ca-border-soft);
+    border-radius: 12px;
+    background: var(--ca-panel-bg);
+    padding: 10px;
 }
 
 .secondaryText {
     font-size: 13px;
-    color: rgba(51, 65, 85, 0.78);
+    color: var(--ca-text-secondary);
 }
 
 @media (max-width: 1199px) {
@@ -499,7 +714,11 @@
     }
 
     .analysisCard :global(.ant-card-body) {
-        min-height: 440px;
+        min-height: 240px;
+    }
+
+    .overviewStatGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .contentWrap {
@@ -512,7 +731,49 @@
     }
 }
 
+@media (min-width: 992px) {
+    .trainPanelGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
 @media (max-width: 767px) {
+    .surfaceCard :global(.ant-card-head) {
+        min-height: 42px;
+        padding-inline: 12px !important;
+    }
+
+    .surfaceCard :global(.ant-card-extra) {
+        padding-block: 8px !important;
+    }
+
+    .surfaceCard :global(.ant-card-body) {
+        padding: 10px !important;
+    }
+
+    .metricListGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .overviewStatItem {
+        padding: 7px 8px;
+    }
+
+    .reportPanel {
+        padding: 8px;
+    }
+
+    .trainFieldGrid :global(.ant-col-xs-24) {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .trainFieldFull {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+
     .watchlistRow {
         gap: 6px;
         flex-wrap: wrap;
@@ -533,6 +794,6 @@
     }
 
     .analysisCard :global(.ant-card-body) {
-        min-height: 360px;
+        min-height: 220px;
     }
 }

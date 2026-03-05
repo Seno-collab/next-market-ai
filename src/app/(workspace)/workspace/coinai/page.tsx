@@ -1322,8 +1322,8 @@ export default function CoinAIPage() {
         key: "overview",
         label: "Overview",
         children: (
-          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-            <Flex gap={8} wrap="wrap">
+          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+            <Flex gap={6} wrap="wrap" className={styles.overviewTagRow}>
               <Tag
                 color={SIG_CLR[viewModel.signal]}
               >{`Signal ${viewModel.signal}`}</Tag>
@@ -1335,50 +1335,58 @@ export default function CoinAIPage() {
               </Tag>
               <Tag>{`Algorithm ${viewModel.modelAlgorithm.toUpperCase()}`}</Tag>
             </Flex>
-            <Row gutter={[12, 12]}>
-              <Col xs={24} md={12}>
-                <Card size="small" className={styles.metricCard}>
-                  <Typography.Text type="secondary">
-                    Predicted Return
-                  </Typography.Text>
-                  <Typography.Text
-                    className={
-                      report.next_predicted_return >= 0
-                        ? styles.metricPositive
-                        : styles.metricNegative
-                    }
-                  >
-                    {fmtSignedPercent(report.next_predicted_return)}
-                  </Typography.Text>
-                </Card>
-              </Col>
-              <Col xs={24} md={12}>
-                <Card size="small" className={styles.metricCard}>
-                  <Typography.Text type="secondary">Win Rate</Typography.Text>
-                  <Typography.Text className={styles.metricPositive}>
-                    {(report.backtest.win_rate * 100).toFixed(1)}%
-                  </Typography.Text>
-                </Card>
-              </Col>
-              <Col xs={24} md={12}>
-                <Card size="small" className={styles.metricCard}>
-                  <Typography.Text type="secondary">
-                    Directional Acc
-                  </Typography.Text>
-                  <Typography.Text>
-                    {(report.test_directional_acc * 100).toFixed(1)}%
-                  </Typography.Text>
-                </Card>
-              </Col>
-              <Col xs={24} md={12}>
-                <Card size="small" className={styles.metricCard}>
-                  <Typography.Text type="secondary">Sharpe</Typography.Text>
-                  <Typography.Text>
-                    {report.backtest.sharpe.toFixed(2)}
-                  </Typography.Text>
-                </Card>
-              </Col>
-            </Row>
+            <div className={styles.overviewStatGrid}>
+              <div className={styles.overviewStatItem}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.overviewStatLabel}
+                >
+                  Predicted Return
+                </Typography.Text>
+                <Typography.Text
+                  className={
+                    report.next_predicted_return >= 0
+                      ? styles.metricPositive
+                      : styles.metricNegative
+                  }
+                >
+                  {fmtSignedPercent(report.next_predicted_return)}
+                </Typography.Text>
+              </div>
+              <div className={styles.overviewStatItem}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.overviewStatLabel}
+                >
+                  Win Rate
+                </Typography.Text>
+                <Typography.Text className={styles.metricPositive}>
+                  {(report.backtest.win_rate * 100).toFixed(1)}%
+                </Typography.Text>
+              </div>
+              <div className={styles.overviewStatItem}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.overviewStatLabel}
+                >
+                  Directional Acc
+                </Typography.Text>
+                <Typography.Text className={styles.metricValue}>
+                  {(report.test_directional_acc * 100).toFixed(1)}%
+                </Typography.Text>
+              </div>
+              <div className={styles.overviewStatItem}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.overviewStatLabel}
+                >
+                  Sharpe
+                </Typography.Text>
+                <Typography.Text className={styles.metricValue}>
+                  {report.backtest.sharpe.toFixed(2)}
+                </Typography.Text>
+              </div>
+            </div>
           </Space>
         ),
       },
@@ -1386,7 +1394,7 @@ export default function CoinAIPage() {
         key: "signals",
         label: "Signals",
         children: (
-          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
             <Flex gap={8} wrap="wrap">
               <Tag>{`Raw ${viewModel.rawSignal} -> Final ${viewModel.signal}`}</Tag>
               <Tag>{`Threshold L ${formatThreshold(viewModel.thresholds.long)} / S ${formatThreshold(viewModel.thresholds.short)}`}</Tag>
@@ -1405,7 +1413,7 @@ export default function CoinAIPage() {
                 </Tag>
               )}
             </Flex>
-            <Row gutter={[8, 8]}>
+            <Row gutter={[6, 6]}>
               <Col xs={24} md={12}>
                 <Tag className={styles.componentTag}>
                   {`Directional ${formatPercent(reliability.components.directional_acc_score, 1)}`}
@@ -1436,9 +1444,12 @@ export default function CoinAIPage() {
         key: "metrics",
         label: "Metrics",
         children: (
-          <div className={styles.dataList}>
+          <div className={`${styles.dataList} ${styles.metricListGrid}`}>
             {metricRows.map((item) => (
-              <div key={item.label} className={styles.dataListItem}>
+              <div
+                key={item.label}
+                className={`${styles.dataListItem} ${styles.metricListItem}`}
+              >
                 <Flex justify="space-between" style={{ width: "100%" }}>
                   <Typography.Text type="secondary">
                     {item.label}
@@ -2041,8 +2052,7 @@ export default function CoinAIPage() {
               )}
             </Card>
 
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={24} lg={12}>
+            <div className={styles.trainPanelGrid}>
                 <Card
                   title={
                     <Space size={8}>
@@ -2058,7 +2068,7 @@ export default function CoinAIPage() {
                   }
                   className={`${styles.surfaceCard} ${styles.zoneCard}`}
                 >
-                  <Row gutter={[12, 12]}>
+                  <Row gutter={[12, 12]} className={styles.trainFieldGrid}>
                     <Col xs={24} md={12}>
                       <div className={styles.fieldWrap}>
                         <Typography.Text className={styles.fieldLabel}>
@@ -2185,7 +2195,10 @@ export default function CoinAIPage() {
                         key: "realtime-advanced",
                         label: "Advanced realtime params",
                         children: (
-                          <Row gutter={[12, 12]} className={styles.advancedParamsGrid}>
+                          <Row
+                            gutter={[12, 12]}
+                            className={`${styles.advancedParamsGrid} ${styles.trainFieldGrid}`}
+                          >
                             <Col xs={24} md={12}>
                               <div className={styles.fieldWrap}>
                                 <Typography.Text className={styles.fieldLabel}>
@@ -2381,7 +2394,7 @@ export default function CoinAIPage() {
                   )}
 
                   {realtimeReport && (
-                    <Card size="small" className={styles.subCard}>
+                    <div className={styles.reportPanel}>
                       <Row gutter={[12, 12]}>
                         <Col xs={24} md={12}>
                           <Typography.Text type="secondary">
@@ -2433,12 +2446,10 @@ export default function CoinAIPage() {
                           </Typography.Text>
                         </Col>
                       </Row>
-                    </Card>
+                    </div>
                   )}
                 </Card>
-              </Col>
 
-              <Col xs={24} md={24} lg={12}>
                 <Card
                   title={
                     <Space size={8}>
@@ -2454,8 +2465,8 @@ export default function CoinAIPage() {
                   }
                   className={`${styles.surfaceCard} ${styles.zoneCard}`}
                 >
-                  <Row gutter={[12, 12]}>
-                    <Col span={24}>
+                  <Row gutter={[12, 12]} className={styles.trainFieldGrid}>
+                    <Col span={24} className={styles.trainFieldFull}>
                       <div className={styles.fieldWrap}>
                         <Typography.Text className={styles.fieldLabel}>
                           Symbols (comma separated)
@@ -2586,7 +2597,10 @@ export default function CoinAIPage() {
                         key: "multi-advanced",
                         label: "Advanced multi params",
                         children: (
-                          <Row gutter={[12, 12]} className={styles.advancedParamsGrid}>
+                          <Row
+                            gutter={[12, 12]}
+                            className={`${styles.advancedParamsGrid} ${styles.trainFieldGrid}`}
+                          >
                             <Col xs={24} md={12}>
                               <div className={styles.fieldWrap}>
                                 <Typography.Text className={styles.fieldLabel}>
@@ -2735,7 +2749,7 @@ export default function CoinAIPage() {
                   )}
 
                   {multiReport && (
-                    <Card size="small" className={styles.subCard}>
+                    <div className={styles.reportPanel}>
                       <Space
                         orientation="vertical"
                         size={10}
@@ -2803,11 +2817,10 @@ export default function CoinAIPage() {
                           ))}
                         </div>
                       </Space>
-                    </Card>
+                    </div>
                   )}
                 </Card>
-              </Col>
-            </Row>
+            </div>
           </div>
         </Content>
       </Layout>
