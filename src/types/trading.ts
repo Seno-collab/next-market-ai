@@ -272,6 +272,28 @@ export type AnalysisResult = {
 
 export type TradeDecisionMode = "hybrid" | "analysis" | "coinai";
 
+export type TradeDecisionDiagnostics = {
+	analysis_strength?: Strength;
+	coinai_trusted: boolean;
+	coinai_quality_score: number;
+	hold_blockers?: Array<
+		| "analysis_neutral"
+		| "coinai_neutral"
+		| "coinai_unavailable"
+		| "analysis_not_strong_enough"
+		| "buy_sell_conflict"
+		| "coinai_untrusted"
+		| "orderbook_anomalous"
+		| "backtest_risk_stop"
+		| "no_trade_history"
+		| "coinai_model_hold"
+		| "coinai_score_below_threshold"
+		| "coinai_weak_signal_strength"
+		| "coinai_risk_stop_triggered"
+		| "coinai_no_trade_history"
+	>;
+};
+
 export type TradeDecision = {
 	mode: TradeDecisionMode;
 	final_signal: Signal;
@@ -280,14 +302,38 @@ export type TradeDecision = {
 	reason: string;
 	analysis_signal: Signal;
 	coinai_signal?: Signal;
+	diagnostics?: TradeDecisionDiagnostics;
+};
+
+export type CoinAIReliability = {
+	score: number;
+	level: "LOW" | "MEDIUM" | "HIGH";
+	is_trusted: boolean;
+	min_trusted_score: number;
+	adjustment_reason?:
+		| "trusted"
+		| "hold_signal"
+		| "score_below_threshold"
+		| "weak_signal_strength"
+		| "risk_stop_triggered"
+		| "no_trade_history";
+	signal_strength_score: number;
 };
 
 export type CoinAISummary = {
 	signal: Signal;
+	raw_signal?: Signal;
+	model_algorithm?: "linear" | "ensemble" | "poly2" | "blend";
 	next_predicted_return: number;
 	test_directional_acc: number;
 	train_loss: number;
 	test_mse: number;
+	applied_long_threshold: number;
+	applied_short_threshold: number;
+	long_threshold_gap: number;
+	short_threshold_gap: number;
+	threshold_optimization_used: boolean;
+	reliability?: CoinAIReliability;
 	orderbook_checked: boolean;
 	orderbook_anomalous: boolean;
 	orderbook_imbalance: number;
@@ -347,7 +393,7 @@ export type BacktestResult = {
 	max_drawdown: number; // decimal, negative  e.g. -0.041 = -4.1%
 	sharpe: number;
 	trades: number;
-	stopped_by_risk?: boolean;
+	stopped_by_risk: boolean;
 };
 
 export type ReliabilityComponents = {
@@ -359,18 +405,20 @@ export type ReliabilityComponents = {
 	trade_support_score: number;
 };
 
+export type ReliabilityAdjustmentReason =
+	| "trusted"
+	| "hold_signal"
+	| "score_below_threshold"
+	| "weak_signal_strength"
+	| "risk_stop_triggered"
+	| "no_trade_history";
+
 export type SignalReliability = {
 	score: number;
 	level: "LOW" | "MEDIUM" | "HIGH";
 	is_trusted: boolean;
 	min_trusted_score: number;
-	adjustment_reason?:
-		| "trusted"
-		| "hold_signal"
-		| "score_below_threshold"
-		| "weak_signal_strength"
-		| "risk_stop_triggered"
-		| "no_trade_history";
+	adjustment_reason?: ReliabilityAdjustmentReason;
 	components: ReliabilityComponents;
 };
 
@@ -383,6 +431,26 @@ export type ThresholdOptimizationResult = {
 	candidate_pairs: number;
 	score: number;
 	validation_backtest: BacktestResult;
+};
+
+export type OrderBookLevelAnomaly = {
+	price: string;
+	quantity: string;
+	quantity_value: number;
+	z_score: number;
+};
+
+export type OrderBookAnomalyReport = {
+	checked_levels: number;
+	is_anomalous: boolean;
+	z_threshold: number;
+	imbalance: number;
+	total_bid_qty: number;
+	total_ask_qty: number;
+	max_bid_qty: number;
+	max_ask_qty: number;
+	bid_anomalies?: OrderBookLevelAnomaly[];
+	ask_anomalies?: OrderBookLevelAnomaly[];
 };
 
 export type TrainReport = {
@@ -403,6 +471,7 @@ export type TrainReport = {
 	test_directional_acc: number; // decimal  e.g. 0.537 = 53.7%
 	backtest: BacktestResult;
 	threshold_optimization?: ThresholdOptimizationResult;
+	orderbook_anomaly?: OrderBookAnomalyReport;
 	next_predicted_return: number; // decimal  e.g. 0.0018 = +0.18%
 	raw_signal: CoinAISignal;
 	signal: CoinAISignal;
@@ -442,6 +511,7 @@ export type MultiSymbolSignal = {
 	raw_signal: CoinAISignal;
 	signal: CoinAISignal;
 	reliability: SignalReliability;
+	orderbook_anomaly?: OrderBookAnomalyReport;
 };
 
 export type MultiTrainReport = {
@@ -465,6 +535,26 @@ export type MultiTrainReport = {
 	signals: MultiSymbolSignal[];
 	generated_at: string; // RFC3339 UTC
 };
+
+export type TrainRealtimeStatusEvent = {
+	message: "stream_started" | "stream_done";
+	symbol?: string;
+	interval?: string;
+	refresh?: string;
+	max_updates?: number;
+	updates?: number;
+	generated_at: string;
+};
+
+export type TrainRealtimeErrorEvent = {
+	message: "train_failed";
+	error: string;
+	symbol: string;
+	interval: string;
+	generated_at: string;
+};
+
+export type TrainRealtimeReportEvent = ApiResponse<TrainReport>;
 
 // ── Portfolio types ─────────────────────────────────────────────────────────
 

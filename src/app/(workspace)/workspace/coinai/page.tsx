@@ -14,7 +14,6 @@ import {
   MenuOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
-  PlusOutlined,
   RobotOutlined,
   SearchOutlined,
   SyncOutlined,
@@ -45,7 +44,10 @@ import {
 } from "antd";
 import type { TabsProps } from "antd";
 import { coinAiApi, isCoinAiApiError } from "@/lib/coinai-api";
-import { toCoinAIViewModel } from "@/lib/coinai-adapter";
+import {
+  toCoinAIViewModel,
+  type CoinAIViewModel,
+} from "@/lib/coinai-adapter";
 import {
   formatPercent,
   reliabilityBadgeColor,
@@ -53,9 +55,13 @@ import {
   shouldRenderAdjustmentReason,
 } from "@/lib/coinai-ui";
 import type {
+  BacktestResult,
   CoinAIAlgorithm,
   CoinAISignal,
   MultiTrainReport,
+  OrderBookAnomalyReport,
+  SignalReliability,
+  ThresholdOptimizationResult,
   TrainReport,
 } from "@/types/coinai";
 import styles from "./page.module.css";
@@ -117,6 +123,10 @@ const FALLBACK_SYMBOLS = [
   "LINKUSDT",
   "DOTUSDT",
 ];
+const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
 
 const SIG_CLR: Record<CoinAISignal, string> = {
   BUY: "#15803d",
@@ -211,11 +221,367 @@ function trustLabel(score: number | undefined) {
 function realtimeBadgeStatus(
   status: string,
 ): "success" | "processing" | "warning" | "error" | "default" {
-  if (/stream_opened|stream_done/i.test(status)) return "success";
+  if (/stream_opened|stream_started|stream_done/i.test(status)) return "success";
   if (/stream_starting/i.test(status)) return "processing";
   if (/disconnect/i.test(status)) return "warning";
   if (/error/i.test(status)) return "error";
   return "default";
+}
+
+function formatDecimal(
+  value: number | undefined | null,
+  digits = 4,
+): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+  return value.toFixed(digits);
+}
+
+function formatCompactNumber(value: number | undefined | null): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+  return COMPACT_NUMBER_FORMATTER.format(value);
+}
+
+function metricToneClass(
+  positive: boolean | null | undefined,
+): string {
+  if (positive === true) return styles.metricPositive;
+  if (positive === false) return styles.metricNegative;
+  return styles.metricValue;
+}
+
+function contextCalloutClassName(tone: "info" | "warning" | "danger") {
+  if (tone === "danger") {
+    return `${styles.contextCallout} ${styles.contextCalloutDanger}`;
+  }
+  if (tone === "warning") {
+    return `${styles.contextCallout} ${styles.contextCalloutWarning}`;
+  }
+  return `${styles.contextCallout} ${styles.contextCalloutInfo}`;
+}
+
+function renderMetricGrid(
+  rows: Array<{
+    label: string;
+    value: string;
+    positive?: boolean | null;
+  }>,
+) {
+  return (
+    <div className={styles.overviewStatGrid}>
+      {rows.map((item) => (
+        <div key={item.label} className={styles.overviewStatItem}>
+          <Typography.Text
+            type="secondary"
+            className={styles.overviewStatLabel}
+          >
+            {item.label}
+          </Typography.Text>
+          <Typography.Text className={metricToneClass(item.positive)}>
+            {item.value}
+          </Typography.Text>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderBacktestSnapshot(
+  backtest: BacktestResult,
+  options: { includeRiskStop?: boolean } = {},
+) {
+  const includeRiskStop = options.includeRiskStop ?? false;
+  const rows = [
+    {
+      label: "Total Return",
+      value: fmtSignedPercent(backtest.total_return),
+      positive: backtest.total_return >= 0,
+    },
+    {
+      label: "Win Rate",
+      value: formatPercent(backtest.win_rate, 1),
+      positive: true,
+    },
+    {
+      label: "Sharpe",
+      value: backtest.sharpe.toFixed(2),
+      positive: backtest.sharpe >= 0,
+    },
+    {
+      label: "Max Drawdown",
+      value: fmtSignedPercent(backtest.max_drawdown),
+      positive: false,
+    },
+    {
+      label: "Trades",
+      value: String(backtest.trades),
+      positive: null,
+    },
+  ];
+  if (includeRiskStop) {
+    rows.push({
+      label: "Risk Stop",
+      value: backtest.stopped_by_risk ? "Triggered" : "Clear",
+      positive: backtest.stopped_by_risk ? false : true,
+    });
+  }
+  return renderMetricGrid(rows);
+}
+
+function renderContextAlerts(options: {
+  adjusted?: boolean;
+  adjustmentReason?: string;
+  riskStopped?: boolean;
+  orderBook?: OrderBookAnomalyReport;
+}) {
+  const items: Array<{
+    key: string;
+    tone: "info" | "warning" | "danger";
+    title: string;
+    description: string;
+  }> = [];
+
+  if (options.adjusted) {
+    items.push({
+      key: "adjusted",
+      tone: "info",
+      title: "Signal adjusted by trust gate",
+      description:
+        options.adjustmentReason ||
+        "Final signal differs from raw model output after reliability checks.",
+    });
+  }
+
+  if (options.riskStopped) {
+    items.push({
+      key: "risk-stop",
+      tone: "danger",
+      title: "Risk stop triggered",
+      description:
+        "Backtest hit the configured max drawdown stop. Treat this run as degraded.",
+    });
+  }
+
+  if (options.orderBook?.is_anomalous) {
+    items.push({
+      key: "orderbook",
+      tone: "warning",
+      title: "Order-book anomaly detected",
+      description: `Imbalance ${formatPercent(options.orderBook.imbalance, 1)} across ${options.orderBook.checked_levels} checked levels.`,
+    });
+  }
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+      {items.map((item) => (
+        <div key={item.key} className={contextCalloutClassName(item.tone)}>
+          <Typography.Text strong className={styles.contextCalloutTitle}>
+            {item.title}
+          </Typography.Text>
+          <Typography.Text className={styles.secondaryText}>
+            {item.description}
+          </Typography.Text>
+        </div>
+      ))}
+    </Space>
+  );
+}
+
+function renderThresholdOptimizationPanel(
+  optimization: ThresholdOptimizationResult | undefined,
+  thresholds: { long: number; short: number },
+) {
+  if (!optimization) {
+    return (
+      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+        <Typography.Text type="secondary" className={styles.secondaryText}>
+          Backend did not return a threshold optimization block for this run.
+        </Typography.Text>
+        {renderMetricGrid([
+          {
+            label: "Applied Long",
+            value: formatThreshold(thresholds.long),
+          },
+          {
+            label: "Applied Short",
+            value: formatThreshold(thresholds.short),
+          },
+        ])}
+      </Space>
+    );
+  }
+
+  return (
+    <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+      <Flex gap={8} wrap="wrap">
+        <Tag color={optimization.used ? "blue" : "default"}>
+          {optimization.used ? "Optimization used" : "Optimization skipped"}
+        </Tag>
+        <Tag>{`Candidate pairs ${optimization.candidate_pairs}`}</Tag>
+        <Tag>{`Score ${formatDecimal(optimization.score, 4)}`}</Tag>
+      </Flex>
+      {renderMetricGrid([
+        {
+          label: "Base Long",
+          value: formatThreshold(optimization.base_long_threshold),
+        },
+        {
+          label: "Base Short",
+          value: formatThreshold(optimization.base_short_threshold),
+        },
+        {
+          label: "Applied Long",
+          value: formatThreshold(optimization.applied_long_threshold),
+        },
+        {
+          label: "Applied Short",
+          value: formatThreshold(optimization.applied_short_threshold),
+        },
+      ])}
+      <Typography.Text type="secondary" className={styles.secondaryText}>
+        Validation backtest snapshot
+      </Typography.Text>
+      {renderBacktestSnapshot(optimization.validation_backtest, {
+        includeRiskStop: true,
+      })}
+    </Space>
+  );
+}
+
+function renderOrderBookPanel(orderBook: OrderBookAnomalyReport | undefined) {
+  if (!orderBook) {
+    return (
+      <Typography.Text type="secondary" className={styles.secondaryText}>
+        Backend did not return order-book context for this run.
+      </Typography.Text>
+    );
+  }
+
+  const bidAnomalies = orderBook.bid_anomalies ?? [];
+  const askAnomalies = orderBook.ask_anomalies ?? [];
+
+  return (
+    <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+      <Flex gap={8} wrap="wrap">
+        <Tag color={orderBook.is_anomalous ? "gold" : "default"}>
+          {orderBook.is_anomalous ? "Anomalous" : "No anomaly"}
+        </Tag>
+        <Tag>{`Checked ${orderBook.checked_levels} levels`}</Tag>
+        <Tag>{`Z-threshold ${formatDecimal(orderBook.z_threshold, 2)}`}</Tag>
+      </Flex>
+      {renderMetricGrid([
+        {
+          label: "Imbalance",
+          value: formatPercent(orderBook.imbalance, 1),
+        },
+        {
+          label: "Bid Qty",
+          value: formatCompactNumber(orderBook.total_bid_qty),
+        },
+        {
+          label: "Ask Qty",
+          value: formatCompactNumber(orderBook.total_ask_qty),
+        },
+        {
+          label: "Max Bid",
+          value: formatCompactNumber(orderBook.max_bid_qty),
+        },
+        {
+          label: "Max Ask",
+          value: formatCompactNumber(orderBook.max_ask_qty),
+        },
+      ])}
+
+      {bidAnomalies.length === 0 && askAnomalies.length === 0 ? (
+        <Typography.Text type="secondary" className={styles.secondaryText}>
+          No anomalous bid or ask levels were surfaced by the backend.
+        </Typography.Text>
+      ) : (
+        <div className={styles.anomalyColumns}>
+          <div className={styles.anomalyColumn}>
+            <Typography.Text strong>Bid anomalies</Typography.Text>
+            {bidAnomalies.length === 0 ? (
+              <Typography.Text type="secondary" className={styles.secondaryText}>
+                None
+              </Typography.Text>
+            ) : (
+              <div className={styles.anomalyList}>
+                {bidAnomalies.slice(0, 4).map((item) => (
+                  <div
+                    key={`bid-${item.price}-${item.quantity}`}
+                    className={styles.anomalyItem}
+                  >
+                    <Typography.Text strong>{item.price}</Typography.Text>
+                    <Typography.Text className={styles.secondaryText}>
+                      {`Qty ${item.quantity} · z ${formatDecimal(item.z_score, 2)}`}
+                    </Typography.Text>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className={styles.anomalyColumn}>
+            <Typography.Text strong>Ask anomalies</Typography.Text>
+            {askAnomalies.length === 0 ? (
+              <Typography.Text type="secondary" className={styles.secondaryText}>
+                None
+              </Typography.Text>
+            ) : (
+              <div className={styles.anomalyList}>
+                {askAnomalies.slice(0, 4).map((item) => (
+                  <div
+                    key={`ask-${item.price}-${item.quantity}`}
+                    className={styles.anomalyItem}
+                  >
+                    <Typography.Text strong>{item.price}</Typography.Text>
+                    <Typography.Text className={styles.secondaryText}>
+                      {`Qty ${item.quantity} · z ${formatDecimal(item.z_score, 2)}`}
+                    </Typography.Text>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Space>
+  );
+}
+
+function renderReliabilityBreakdown(reliability: SignalReliability) {
+  return (
+    <Row gutter={[8, 8]}>
+      <Col xs={24} md={12}>
+        <Tag className={styles.componentTag}>
+          {`Directional ${formatPercent(reliability.components.directional_acc_score, 1)}`}
+        </Tag>
+        <Tag className={styles.componentTag}>
+          {`Error ${formatPercent(reliability.components.error_score, 1)}`}
+        </Tag>
+        <Tag className={styles.componentTag}>
+          {`Sharpe ${formatPercent(reliability.components.sharpe_score, 1)}`}
+        </Tag>
+      </Col>
+      <Col xs={24} md={12}>
+        <Tag className={styles.componentTag}>
+          {`Drawdown ${formatPercent(reliability.components.drawdown_score, 1)}`}
+        </Tag>
+        <Tag className={styles.componentTag}>
+          {`Signal strength ${formatPercent(reliability.components.signal_strength_score, 1)}`}
+        </Tag>
+        <Tag className={styles.componentTag}>
+          {`Support ${formatPercent(reliability.components.trade_support_score, 1)}`}
+        </Tag>
+      </Col>
+    </Row>
+  );
 }
 
 function formatSymbolLabel(symbol: string): string {
@@ -1244,6 +1610,19 @@ export default function CoinAIPage() {
       logs.push(
         `${formatGeneratedAt(report.generated_at)} · ${report.symbol} ${report.interval} · ${report.signal} (${Math.round(report.reliability.score * 100)}% trust) · model ${report.model_algorithm.toUpperCase()}`,
       );
+      if (report.raw_signal !== report.signal) {
+        logs.push(
+          `Signal adjusted: ${report.raw_signal} -> ${report.signal} · ${reliabilityReasonText(report.reliability.adjustment_reason)}`,
+        );
+      }
+      if (report.backtest.stopped_by_risk) {
+        logs.push(`Risk stop triggered on latest analysis for ${report.symbol}`);
+      }
+      if (report.orderbook_anomaly?.is_anomalous) {
+        logs.push(
+          `Order-book anomaly detected for ${report.symbol}: imbalance ${formatPercent(report.orderbook_anomaly.imbalance, 1)}`,
+        );
+      }
     }
     if (realtimeReport) {
       logs.push(
@@ -1262,6 +1641,9 @@ export default function CoinAIPage() {
       logs.push(
         `Multi-symbol training completed: ${multiReport.symbols.length} symbols on ${formatGeneratedAt(multiReport.generated_at)} · model ${multiReport.model_algorithm.toUpperCase()}`,
       );
+      if (multiReport.backtest.stopped_by_risk) {
+        logs.push("Multi-symbol backtest triggered risk stop");
+      }
     }
     if (errorTrain) logs.push(`Analyze error: ${errorTrain}`);
     if (realtimeError) logs.push(`Realtime error: ${realtimeError}`);
@@ -1281,10 +1663,47 @@ export default function CoinAIPage() {
 
   const analysisTabs = useMemo<NonNullable<TabsProps["items"]>>(() => {
     if (!report) return [];
-    const viewModel = reportView ?? toCoinAIViewModel(report);
+    const viewModel: CoinAIViewModel = reportView ?? toCoinAIViewModel(report);
     const reliability = report.reliability;
+    const adjustmentReason = reliabilityReasonText(
+      reliability.adjustment_reason,
+    );
+    const adjusted = shouldRenderAdjustmentReason(
+      viewModel.rawSignal,
+      viewModel.signal,
+    );
 
     const metricRows = [
+      {
+        label: "Candles",
+        value: `${report.candles}`,
+        positive: null,
+      },
+      {
+        label: "Train / Val / Test",
+        value: `${report.train_samples} / ${report.val_samples} / ${report.test_samples}`,
+        positive: null,
+      },
+      {
+        label: "Best Epoch",
+        value: `${report.best_epoch}`,
+        positive: null,
+      },
+      {
+        label: "Train Loss",
+        value: formatDecimal(report.train_loss, 6),
+        positive: null,
+      },
+      {
+        label: "Val Loss",
+        value: formatDecimal(report.val_loss, 6),
+        positive: null,
+      },
+      {
+        label: "Test MSE",
+        value: formatDecimal(report.test_mse, 6),
+        positive: null,
+      },
       {
         label: "Total Return",
         value: fmtSignedPercent(report.backtest.total_return),
@@ -1308,7 +1727,7 @@ export default function CoinAIPage() {
       {
         label: "Trades",
         value: `${report.backtest.trades}`,
-        positive: true,
+        positive: null,
       },
       {
         label: "Directional Accuracy",
@@ -1334,59 +1753,39 @@ export default function CoinAIPage() {
                 {reliability.is_trusted ? "Trusted" : "Not trusted"}
               </Tag>
               <Tag>{`Algorithm ${viewModel.modelAlgorithm.toUpperCase()}`}</Tag>
+              {viewModel.orderBookAnomalous && (
+                <Tag color="gold">Order-book anomaly</Tag>
+              )}
+              {viewModel.riskStopped && <Tag color="volcano">Risk stop hit</Tag>}
             </Flex>
-            <div className={styles.overviewStatGrid}>
-              <div className={styles.overviewStatItem}>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.overviewStatLabel}
-                >
-                  Predicted Return
-                </Typography.Text>
-                <Typography.Text
-                  className={
-                    report.next_predicted_return >= 0
-                      ? styles.metricPositive
-                      : styles.metricNegative
-                  }
-                >
-                  {fmtSignedPercent(report.next_predicted_return)}
-                </Typography.Text>
-              </div>
-              <div className={styles.overviewStatItem}>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.overviewStatLabel}
-                >
-                  Win Rate
-                </Typography.Text>
-                <Typography.Text className={styles.metricPositive}>
-                  {(report.backtest.win_rate * 100).toFixed(1)}%
-                </Typography.Text>
-              </div>
-              <div className={styles.overviewStatItem}>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.overviewStatLabel}
-                >
-                  Directional Acc
-                </Typography.Text>
-                <Typography.Text className={styles.metricValue}>
-                  {(report.test_directional_acc * 100).toFixed(1)}%
-                </Typography.Text>
-              </div>
-              <div className={styles.overviewStatItem}>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.overviewStatLabel}
-                >
-                  Sharpe
-                </Typography.Text>
-                <Typography.Text className={styles.metricValue}>
-                  {report.backtest.sharpe.toFixed(2)}
-                </Typography.Text>
-              </div>
-            </div>
+            {renderContextAlerts({
+              adjusted,
+              adjustmentReason,
+              riskStopped: viewModel.riskStopped,
+              orderBook: report.orderbook_anomaly,
+            })}
+            {renderMetricGrid([
+              {
+                label: "Predicted Return",
+                value: fmtSignedPercent(viewModel.nextPredictedReturn),
+                positive: viewModel.nextPredictedReturn >= 0,
+              },
+              {
+                label: "Win Rate",
+                value: formatPercent(report.backtest.win_rate, 1),
+                positive: true,
+              },
+              {
+                label: "Directional Acc",
+                value: formatPercent(report.test_directional_acc, 1),
+                positive: true,
+              },
+              {
+                label: "Sharpe",
+                value: report.backtest.sharpe.toFixed(2),
+                positive: report.backtest.sharpe >= 0,
+              },
+            ])}
           </Space>
         ),
       },
@@ -1398,45 +1797,46 @@ export default function CoinAIPage() {
             <Flex gap={8} wrap="wrap">
               <Tag>{`Raw ${viewModel.rawSignal} -> Final ${viewModel.signal}`}</Tag>
               <Tag>{`Threshold L ${formatThreshold(viewModel.thresholds.long)} / S ${formatThreshold(viewModel.thresholds.short)}`}</Tag>
-              <Tag>{`Min trust ${(reliability.min_trusted_score ?? DEFAULT_MIN_TRUST_SCORE).toFixed(2)}`}</Tag>
+              <Tag>{`Min trust ${viewModel.minTrustedScore.toFixed(2)}`}</Tag>
               <Tag color={viewModel.optimizationUsed ? "blue" : "default"}>
                 {viewModel.optimizationUsed
                   ? "Threshold optimization ON"
                   : "Threshold optimization OFF"}
               </Tag>
-              {shouldRenderAdjustmentReason(
-                viewModel.rawSignal,
-                viewModel.signal,
-              ) && (
+              {adjusted && (
                 <Tag color="volcano">
-                  {`Adjustment: ${reliabilityReasonText(reliability.adjustment_reason)}`}
+                  {`Adjustment: ${adjustmentReason}`}
                 </Tag>
               )}
             </Flex>
-            <Row gutter={[6, 6]}>
-              <Col xs={24} md={12}>
-                <Tag className={styles.componentTag}>
-                  {`Directional ${formatPercent(reliability.components.directional_acc_score, 1)}`}
-                </Tag>
-                <Tag className={styles.componentTag}>
-                  {`Error ${formatPercent(reliability.components.error_score, 1)}`}
-                </Tag>
-                <Tag className={styles.componentTag}>
-                  {`Sharpe ${formatPercent(reliability.components.sharpe_score, 1)}`}
-                </Tag>
-              </Col>
-              <Col xs={24} md={12}>
-                <Tag className={styles.componentTag}>
-                  {`Drawdown ${formatPercent(reliability.components.drawdown_score, 1)}`}
-                </Tag>
-                <Tag className={styles.componentTag}>
-                  {`Signal strength ${formatPercent(reliability.components.signal_strength_score, 1)}`}
-                </Tag>
-                <Tag className={styles.componentTag}>
-                  {`Support ${formatPercent(reliability.components.trade_support_score, 1)}`}
-                </Tag>
-              </Col>
-            </Row>
+            {renderMetricGrid([
+              {
+                label: "Reliability Score",
+                value: formatPercent(reliability.score, 1),
+                positive: reliability.is_trusted ? true : false,
+              },
+              {
+                label: "Level",
+                value: reliability.level,
+                positive:
+                  reliability.level === "HIGH"
+                    ? true
+                    : reliability.level === "LOW"
+                      ? false
+                      : null,
+              },
+              {
+                label: "Trusted",
+                value: reliability.is_trusted ? "Yes" : "No",
+                positive: reliability.is_trusted,
+              },
+              {
+                label: "Reason",
+                value: adjusted ? adjustmentReason : viewModel.scoreReason,
+                positive: null,
+              },
+            ])}
+            {renderReliabilityBreakdown(reliability)}
           </Space>
         ),
       },
@@ -1455,11 +1855,7 @@ export default function CoinAIPage() {
                     {item.label}
                   </Typography.Text>
                   <Typography.Text
-                    className={
-                      item.positive
-                        ? styles.metricPositive
-                        : styles.metricNegative
-                    }
+                    className={metricToneClass(item.positive)}
                   >
                     {item.value}
                   </Typography.Text>
@@ -1467,6 +1863,36 @@ export default function CoinAIPage() {
               </div>
             ))}
           </div>
+        ),
+      },
+      {
+        key: "optimization",
+        label: "Optimization",
+        children: renderThresholdOptimizationPanel(report.threshold_optimization, {
+          long: viewModel.thresholds.long,
+          short: viewModel.thresholds.short,
+        }),
+      },
+      {
+        key: "risk",
+        label: "Risk",
+        children: (
+          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+            {renderContextAlerts({
+              adjusted,
+              adjustmentReason,
+              riskStopped: report.backtest.stopped_by_risk,
+              orderBook: report.orderbook_anomaly,
+            })}
+            <Typography.Text type="secondary" className={styles.secondaryText}>
+              Backtest risk context
+            </Typography.Text>
+            {renderBacktestSnapshot(report.backtest, { includeRiskStop: true })}
+            <Typography.Text type="secondary" className={styles.secondaryText}>
+              Order-book context
+            </Typography.Text>
+            {renderOrderBookPanel(report.orderbook_anomaly)}
+          </Space>
         ),
       },
       {
@@ -2025,8 +2451,8 @@ export default function CoinAIPage() {
                         No analysis result yet
                       </Typography.Text>
                       <Typography.Text type="secondary">
-                        Run Analyze to generate Overview, Signals, Metrics, and
-                        Logs.
+                        Run Analyze to generate Overview, Signals, Metrics,
+                        Optimization, Risk, and Logs.
                       </Typography.Text>
                     </Space>
                   }
@@ -2395,57 +2821,113 @@ export default function CoinAIPage() {
 
                   {realtimeReport && (
                     <div className={styles.reportPanel}>
-                      <Row gutter={[12, 12]}>
-                        <Col xs={24} md={12}>
-                          <Typography.Text type="secondary">
-                            Signal
-                          </Typography.Text>
-                          <Typography.Text
-                            className={styles.metricValue}
-                            style={{
-                              color:
-                                SIG_CLR[
-                                  realtimeView?.signal ?? realtimeReport.signal
-                                ],
-                            }}
-                          >
-                            {`${realtimeReport.symbol} · ${realtimeView?.signal ?? realtimeReport.signal}`}
-                          </Typography.Text>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <Typography.Text type="secondary">
-                            Predicted Return
-                          </Typography.Text>
-                          <Typography.Text
-                            className={
-                              realtimeReport.next_predicted_return >= 0
-                                ? styles.metricPositive
-                                : styles.metricNegative
+                      <Space
+                        orientation="vertical"
+                        size={10}
+                        style={{ width: "100%" }}
+                      >
+                        <Flex gap={8} wrap="wrap">
+                          <Tag
+                            color={
+                              SIG_CLR[
+                                realtimeView?.signal ?? realtimeReport.signal
+                              ]
                             }
                           >
-                            {fmtSignedPercent(
+                            {`${realtimeReport.symbol} · ${realtimeView?.rawSignal ?? realtimeReport.raw_signal} -> ${realtimeView?.signal ?? realtimeReport.signal}`}
+                          </Tag>
+                          <Tag
+                            color={reliabilityBadgeColor(realtimeReport.reliability)}
+                          >
+                            {`${Math.round((realtimeReport.reliability?.score ?? 0) * 100)}% ${realtimeReport.reliability?.level ?? "N/A"}`}
+                          </Tag>
+                          <Tag>{`Algorithm ${realtimeReport.model_algorithm.toUpperCase()}`}</Tag>
+                          <Tag>
+                            {`Threshold L ${formatThreshold(realtimeView?.thresholds.long ?? realtimeReport.applied_long_threshold)} / S ${formatThreshold(realtimeView?.thresholds.short ?? realtimeReport.applied_short_threshold)}`}
+                          </Tag>
+                          <Tag
+                            color={
+                              realtimeView?.optimizationUsed ? "blue" : "default"
+                            }
+                          >
+                            {realtimeView?.optimizationUsed
+                              ? "Threshold optimization ON"
+                              : "Threshold optimization OFF"}
+                          </Tag>
+                        </Flex>
+
+                        {renderContextAlerts({
+                          adjusted:
+                            realtimeView?.adjusted ??
+                            shouldRenderAdjustmentReason(
+                              realtimeReport.raw_signal,
+                              realtimeReport.signal,
+                            ),
+                          adjustmentReason: reliabilityReasonText(
+                            realtimeReport.reliability.adjustment_reason,
+                          ),
+                          riskStopped: realtimeReport.backtest.stopped_by_risk,
+                          orderBook: realtimeReport.orderbook_anomaly,
+                        })}
+
+                        {renderMetricGrid([
+                          {
+                            label: "Predicted Return",
+                            value: fmtSignedPercent(
                               realtimeReport.next_predicted_return,
                               3,
+                            ),
+                            positive: realtimeReport.next_predicted_return >= 0,
+                          },
+                          {
+                            label: "Reliability",
+                            value: `${Math.round((realtimeReport.reliability?.score ?? 0) * 100)}%`,
+                            positive: realtimeReport.reliability?.is_trusted,
+                          },
+                          {
+                            label: "Reason",
+                            value: reliabilityReasonText(
+                              realtimeReport.reliability.adjustment_reason,
+                            ),
+                            positive: null,
+                          },
+                          {
+                            label: "Updated",
+                            value: formatGeneratedAt(realtimeReport.generated_at),
+                            positive: null,
+                          },
+                        ])}
+
+                        <Typography.Text
+                          type="secondary"
+                          className={styles.secondaryText}
+                        >
+                          Order-book context
+                        </Typography.Text>
+                        {renderOrderBookPanel(realtimeReport.orderbook_anomaly)}
+
+                        {realtimeReport.threshold_optimization && (
+                          <>
+                            <Typography.Text
+                              type="secondary"
+                              className={styles.secondaryText}
+                            >
+                              Threshold optimization
+                            </Typography.Text>
+                            {renderThresholdOptimizationPanel(
+                              realtimeReport.threshold_optimization,
+                              {
+                                long:
+                                  realtimeView?.thresholds.long ??
+                                  realtimeReport.applied_long_threshold,
+                                short:
+                                  realtimeView?.thresholds.short ??
+                                  realtimeReport.applied_short_threshold,
+                              },
                             )}
-                          </Typography.Text>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <Typography.Text type="secondary">
-                            Reliability
-                          </Typography.Text>
-                          <Typography.Text className={styles.metricValue}>
-                            {`${Math.round((realtimeReport.reliability?.score ?? 0) * 100)}% (${realtimeReport.reliability?.level ?? "N/A"})`}
-                          </Typography.Text>
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <Typography.Text type="secondary">
-                            Updated
-                          </Typography.Text>
-                          <Typography.Text className={styles.metricValue}>
-                            {formatGeneratedAt(realtimeReport.generated_at)}
-                          </Typography.Text>
-                        </Col>
-                      </Row>
+                          </>
+                        )}
+                      </Space>
                     </div>
                   )}
                 </Card>
@@ -2755,12 +3237,74 @@ export default function CoinAIPage() {
                         size={10}
                         style={{ width: "100%" }}
                       >
+                        <Flex gap={8} wrap="wrap">
+                          <Tag>{`${multiReport.symbols.length} symbols`}</Tag>
+                          <Tag>{`Algorithm ${multiReport.model_algorithm.toUpperCase()}`}</Tag>
+                          <Tag>{`Interval ${multiReport.interval}`}</Tag>
+                          <Tag>{`Threshold L ${formatThreshold(multiReport.applied_long_threshold)} / S ${formatThreshold(multiReport.applied_short_threshold)}`}</Tag>
+                          <Tag
+                            color={
+                              multiReport.threshold_optimization?.used
+                                ? "blue"
+                                : "default"
+                            }
+                          >
+                            {multiReport.threshold_optimization?.used
+                              ? "Threshold optimization ON"
+                              : "Threshold optimization OFF"}
+                          </Tag>
+                          {multiReport.backtest.stopped_by_risk && (
+                            <Tag color="volcano">Risk stop hit</Tag>
+                          )}
+                        </Flex>
+                        {renderContextAlerts({
+                          riskStopped: multiReport.backtest.stopped_by_risk,
+                        })}
                         <Typography.Text
                           type="secondary"
                           className={styles.secondaryText}
                         >
-                          {`${multiReport.symbols.join(" + ")} · ${multiReport.total_candles} candles · ${multiReport.train_samples} train / ${multiReport.test_samples} test · ${formatGeneratedAt(multiReport.generated_at)}`}
+                          {`${multiReport.symbols.join(" + ")} · ${multiReport.total_candles} candles · ${multiReport.train_samples} train / ${multiReport.val_samples} val / ${multiReport.test_samples} test · ${formatGeneratedAt(multiReport.generated_at)}`}
                         </Typography.Text>
+                        {renderMetricGrid([
+                          {
+                            label: "Directional Acc",
+                            value: formatPercent(multiReport.test_directional_acc, 1),
+                            positive: true,
+                          },
+                          {
+                            label: "Test MSE",
+                            value: formatDecimal(multiReport.test_mse, 6),
+                            positive: null,
+                          },
+                          {
+                            label: "Sharpe",
+                            value: multiReport.backtest.sharpe.toFixed(2),
+                            positive: multiReport.backtest.sharpe >= 0,
+                          },
+                          {
+                            label: "Best Epoch",
+                            value: String(multiReport.best_epoch),
+                            positive: null,
+                          },
+                        ])}
+                        {multiReport.threshold_optimization && (
+                          <>
+                            <Typography.Text
+                              type="secondary"
+                              className={styles.secondaryText}
+                            >
+                              Threshold optimization
+                            </Typography.Text>
+                            {renderThresholdOptimizationPanel(
+                              multiReport.threshold_optimization,
+                              {
+                                long: multiReport.applied_long_threshold,
+                                short: multiReport.applied_short_threshold,
+                              },
+                            )}
+                          </>
+                        )}
                         <div className={styles.dataList}>
                           {multiSignals.map((signal) => (
                             <div
@@ -2797,8 +3341,29 @@ export default function CoinAIPage() {
                                       multiMinTrustScore,
                                     )}
                                   >
-                                    {trustLabel(signal.reliability?.score)}
+                                    {`${trustLabel(signal.reliability?.score)} · ${signal.reliability?.level ?? "N/A"}`}
                                   </Tag>
+                                  {signal.orderbook_anomaly?.is_anomalous && (
+                                    <Tag
+                                      className={styles.compactTag}
+                                      color="gold"
+                                    >
+                                      {`Order-book anomaly ${formatPercent(signal.orderbook_anomaly.imbalance, 1)}`}
+                                    </Tag>
+                                  )}
+                                  {shouldRenderAdjustmentReason(
+                                    signal.raw_signal,
+                                    signal.signal,
+                                  ) && (
+                                    <Tag
+                                      className={styles.compactTag}
+                                      color="volcano"
+                                    >
+                                      {reliabilityReasonText(
+                                        signal.reliability.adjustment_reason,
+                                      )}
+                                    </Tag>
+                                  )}
                                   <Typography.Text
                                     className={
                                       signal.next_predicted_return >= 0
@@ -2813,6 +3378,32 @@ export default function CoinAIPage() {
                                   </Typography.Text>
                                 </Space>
                               </Flex>
+                              {(shouldRenderAdjustmentReason(
+                                signal.raw_signal,
+                                signal.signal,
+                              ) ||
+                                signal.orderbook_anomaly) && (
+                                <Typography.Text
+                                  type="secondary"
+                                  className={styles.signalNote}
+                                >
+                                  {[
+                                    shouldRenderAdjustmentReason(
+                                      signal.raw_signal,
+                                      signal.signal,
+                                    )
+                                      ? `Adjustment: ${reliabilityReasonText(
+                                          signal.reliability.adjustment_reason,
+                                        )}`
+                                      : null,
+                                    signal.orderbook_anomaly
+                                      ? `Order-book ${signal.orderbook_anomaly.is_anomalous ? "anomalous" : "clear"} · imbalance ${formatPercent(signal.orderbook_anomaly.imbalance, 1)}`
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </Typography.Text>
+                              )}
                             </div>
                           ))}
                         </div>

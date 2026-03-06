@@ -20,7 +20,7 @@ export function reliabilityReasonText(
     case "no_trade_history":
       return "Backtest had no executed trades";
     default:
-      return "Unknown reliability reason";
+      return "Reliability reason unavailable";
   }
 }
 

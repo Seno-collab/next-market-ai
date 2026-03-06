@@ -7,7 +7,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 type TrainBody = {
   symbol?: string;
   interval?: string;
-  algorithm?: "auto" | "linear" | "ensemble";
+  algorithm?: "auto" | "linear" | "ensemble" | "poly2" | "blend";
   limit?: number;
   train_ratio?: number;
   val_ratio?: number;

@@ -3,6 +3,9 @@ import type {
   CoinAIAlgorithm,
   ApiResponse,
   MultiTrainReport,
+  TrainRealtimeErrorEvent,
+  TrainRealtimeReportEvent,
+  TrainRealtimeStatusEvent,
   TrainMultiRequest,
   TrainReport,
   WatchlistResult,
@@ -19,6 +22,9 @@ export type {
   AddWatchlistRequest,
   CoinAIAlgorithm,
   MultiTrainReport,
+  TrainRealtimeErrorEvent,
+  TrainRealtimeReportEvent,
+  TrainRealtimeStatusEvent,
   TrainMultiRequest,
   TrainReport,
   WatchlistResult,
@@ -492,7 +498,7 @@ export const coinAiApi = {
     };
 
     stream.addEventListener("status", (event) => {
-      const payload = parseJson<{ status?: string; message?: string }>(
+      const payload = parseJson<TrainRealtimeStatusEvent & { status?: string }>(
         (event as MessageEvent<string>).data,
       );
       const status =
@@ -507,7 +513,7 @@ export const coinAiApi = {
     });
 
     stream.addEventListener("report", (event) => {
-      const payload = parseJson<ApiResponse<TrainReport>>(
+      const payload = parseJson<TrainRealtimeReportEvent>(
         (event as MessageEvent<string>).data,
       );
       if (!payload?.data) {
@@ -520,13 +526,21 @@ export const coinAiApi = {
     stream.addEventListener("error", (event) => {
       const data = (event as MessageEvent<string>).data;
       if (typeof data === "string" && data.length > 0) {
-        const payload = parseJson<{ message?: string; status?: number }>(data);
+        const payload = parseJson<
+          TrainRealtimeErrorEvent & { message?: string; status?: number }
+        >(data);
         const status =
           typeof payload?.status === "number" && Number.isFinite(payload.status)
             ? payload.status
             : undefined;
+        const message =
+          payload?.error ||
+          (payload?.message && payload.message !== "train_failed"
+            ? payload.message
+            : undefined) ||
+          (payload?.message === "train_failed" ? "Train failed" : undefined);
         handlers.onError?.(
-          payload?.message || (status ? `HTTP ${status}` : data),
+          message || (status ? `HTTP ${status}` : data),
           status,
         );
         return;

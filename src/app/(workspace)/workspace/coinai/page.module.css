@@ -693,6 +693,66 @@
     color: var(--ca-text-secondary);
 }
 
+.contextCallout {
+    border: 1px solid var(--ca-border-soft);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contextCalloutInfo {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.contextCalloutWarning {
+    background: rgba(217, 119, 6, 0.1);
+}
+
+.contextCalloutDanger {
+    background: rgba(185, 28, 28, 0.1);
+}
+
+.contextCalloutTitle {
+    color: var(--ca-text-primary);
+}
+
+.anomalyColumns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.anomalyColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.anomalyList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.anomalyItem {
+    border: 1px solid var(--ca-border-soft);
+    border-radius: 10px;
+    background: var(--ca-panel-bg);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.signalNote {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ca-text-secondary);
+}
+
 @media (max-width: 1199px) {
     .controlGroup {
         min-width: 150px;
@@ -795,5 +855,9 @@
 
     .analysisCard :global(.ant-card-body) {
         min-height: 220px;
+    }
+
+    .anomalyColumns {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

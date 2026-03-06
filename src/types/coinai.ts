@@ -22,7 +22,7 @@ export type BacktestResult = {
   max_drawdown: number;
   sharpe: number;
   trades: number;
-  stopped_by_risk?: boolean;
+  stopped_by_risk: boolean;
 };
 
 export type ReliabilityComponents = {
@@ -62,6 +62,26 @@ export type ThresholdOptimizationResult = {
   validation_backtest: BacktestResult;
 };
 
+export type OrderBookLevelAnomaly = {
+  price: string;
+  quantity: string;
+  quantity_value: number;
+  z_score: number;
+};
+
+export type OrderBookAnomalyReport = {
+  checked_levels: number;
+  is_anomalous: boolean;
+  z_threshold: number;
+  imbalance: number;
+  total_bid_qty: number;
+  total_ask_qty: number;
+  max_bid_qty: number;
+  max_ask_qty: number;
+  bid_anomalies?: OrderBookLevelAnomaly[];
+  ask_anomalies?: OrderBookLevelAnomaly[];
+};
+
 export type WatchlistResult = {
   symbols: string[];
   count: number;
@@ -85,6 +105,7 @@ export type TrainReport = {
   test_directional_acc: number;
   backtest: BacktestResult;
   threshold_optimization?: ThresholdOptimizationResult;
+  orderbook_anomaly?: OrderBookAnomalyReport;
   next_predicted_return: number;
   raw_signal: CoinAISignal;
   signal: CoinAISignal;
@@ -98,6 +119,7 @@ export type MultiSymbolSignal = {
   raw_signal: CoinAISignal;
   signal: CoinAISignal;
   reliability: SignalReliability;
+  orderbook_anomaly?: OrderBookAnomalyReport;
 };
 
 export type MultiTrainReport = {
@@ -137,3 +159,23 @@ export type TrainMultiRequest = {
   latency_bars?: number;
   max_drawdown_stop?: number;
 };
+
+export type TrainRealtimeStatusEvent = {
+  message: "stream_started" | "stream_done";
+  symbol?: string;
+  interval?: string;
+  refresh?: string;
+  max_updates?: number;
+  updates?: number;
+  generated_at: string;
+};
+
+export type TrainRealtimeErrorEvent = {
+  message: "train_failed";
+  error: string;
+  symbol: string;
+  interval: string;
+  generated_at: string;
+};
+
+export type TrainRealtimeReportEvent = ApiResponse<TrainReport>;

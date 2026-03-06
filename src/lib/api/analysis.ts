@@ -55,3 +55,31 @@ export const analysisApi = {
     );
   },
 };
+
+type ReportApiOptions = {
+  includeCoinAI?: boolean;
+  decisionMode?: TradeDecisionMode;
+};
+
+// Doc-friendly alias that matches the frontend integration guide signature.
+export const reportApi = {
+  getAnalysis: analysisApi.getAnalysis,
+  getDailyReport(
+    symbol: string,
+    interval = "1h",
+    date?: string,
+    options?: ReportApiOptions,
+    signal?: AbortSignal,
+  ): Promise<DailyReport> {
+    return analysisApi.getDailyReport(
+      symbol,
+      interval,
+      {
+        date,
+        includeCoinAI: options?.includeCoinAI,
+        decisionMode: options?.decisionMode,
+      },
+      signal,
+    );
+  },
+};
